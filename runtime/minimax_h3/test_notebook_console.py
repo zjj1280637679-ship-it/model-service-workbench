@@ -623,13 +623,23 @@ def test_mount_returns_with_full_controls_while_api_unready_and_stop_remains_cal
     state = {'instance_id': owner.instance_id, 'phase': 'preparing', 'api_ready': False,
              'public_requested': True, 'public_api_ready': False, 'model_ready': False,
              'ready': False, 'manager_alive': True, 'server_alive': True, 'model_alive': True}
-    observing = threading.Event()
+    awaiting_api_logged = threading.Event()
+    original_startup_stage = console.ConsoleController._startup_stage
 
     def observe():
-        observing.set()
         return dict(state)
 
     owner.snapshot.side_effect = observe
+
+    def record_startup_stage(controller, stage):
+        result = original_startup_stage(controller, stage)
+        if stage == 'awaiting_api':
+            # A snapshot starts the observation; the stage transition publishes
+            # its log afterwards. Wait for that effect before inspecting logs.
+            awaiting_api_logged.set()
+        return result
+
+    monkeypatch.setattr(console.ConsoleController, '_startup_stage', record_startup_stage)
 
     def execute(controller, name, parameters=None):
         # The controls must already exist before any potentially slow startup step.
@@ -653,7 +663,7 @@ def test_mount_returns_with_full_controls_while_api_unready_and_stop_remains_cal
                               auto_start=True)
         try:
             controller = mounted.result(timeout=2)
-            assert observing.wait(2)
+            assert awaiting_api_logged.wait(2)
             assert len(shown) == 1
             for component in ('id="board"', 'id="logs-heading"', 'data-action="stop"'):
                 assert component in shown[0]

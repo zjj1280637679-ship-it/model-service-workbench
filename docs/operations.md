@@ -21,13 +21,23 @@
 下面是现有 CLI 入口；依赖安装与硬件预检仍需在目标环境验证。本轮历史成功来自 Colab，不据此宣称独立云镜像已经验收。这里的“模型容器”首先指受管运行时进程，仓库没有声称提供已验证的 Docker/OCI 镜像。
 
 ```bash
-cd runtime/minimax_h3
+# 在仓库根目录执行。以下系统安装命令适用于 Debian / Ubuntu。
+# 其他发行版使用其包管理器安装同时提供 ffmpeg 和 ffprobe 的 FFmpeg 包。
+sudo apt-get update
+sudo apt-get install -y ffmpeg
+command -v ffmpeg && command -v ffprobe
+ffmpeg -version
+ffprobe -version
+(
+cd runtime/minimax_h3 || exit 1
 python -m pip install -r requirements.txt
 # 只在需要 Turbo/风格 LoRA 时安装可选依赖并配置对应资产。
 python -m pip install -r requirements-lora.txt
+# --help 只显示用法，不代表依赖预检通过。
 python lora_preflight.py --help
 python run.py --help
 python run.py --public --install-cloudflared
+)
 ```
 
 独立依赖清单与 Colab 清单不同。单 A100 80 GB resident 为当前常规配置；不要因出现显存压力默认改为量化权重。40 GB staged 路径保留在实现中，具体可行性与本轮 80 GB 证据分开。
@@ -50,6 +60,8 @@ python run.py --public --install-cloudflared
 全部 `/v1/` 使用 Bearer。具体字段和允许动作以 [server.py](../runtime/minimax_h3/server.py)、[generation_options.py](../runtime/minimax_h3/generation_options.py) 为准；字段说明不能替代运行实例的能力查询。
 
 ## 重建笔记本
+
+从仓库根目录执行：
 
 ```bash
 python tools/build_notebook.py --check-only --preload-acceleration lightx2v-ref2va-4step

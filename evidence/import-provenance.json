@@ -258,8 +258,8 @@
     "runtime/minimax_h3/test_notebook_console.py": {
       "original_sha256": "0106bf62946878188d6f9209c4a6796cc8d386f58622c305d75146b577cf12c3",
       "original_lf_sha256": "0106bf62946878188d6f9209c4a6796cc8d386f58622c305d75146b577cf12c3",
-      "repository_sha256": "0106bf62946878188d6f9209c4a6796cc8d386f58622c305d75146b577cf12c3",
-      "normalized_source_equal": true
+      "repository_sha256": "cd7a95a554242e386834467521763d9e2cb51f5e41dfde8489a2a2a6d03c3fac",
+      "normalized_source_equal": false
     },
     "runtime/minimax_h3/test_notebook_ui.py": {
       "original_sha256": "818781d3802b97db435d2d4588f7e4d7849613ee854d0157eccfff5f59e9b8e8",
@@ -368,14 +368,16 @@
     "tools/build_notebook.py: repository paths only",
     "runtime/minimax_h3/test_install_constraints.py: builder location only",
     "runtime/minimax_h3/README.md: repository-local documentation replaces historical workspace links",
-    "test_console_process_lifecycle.py: old private-call fixture now supplies the request/instance identity required by the already-tested runtime, and asserts binding"
+    "test_console_process_lifecycle.py: old private-call fixture now supplies the request/instance identity required by the already-tested runtime, and asserts binding",
+    "test_notebook_console.py: wait for the actual awaiting_api stage log to be published instead of racing the earlier snapshot observation; no production change"
   ],
   "runtime_behavior_change": false,
   "note": "Raw and normalized LF hashes distinguish Windows packaging from Linux execution. New repository CPU checks do not repeat historical GPU acceptance.",
   "verified_source_differences": [
     "runtime/minimax_h3/README.md",
     "runtime/minimax_h3/test_console_process_lifecycle.py",
-    "runtime/minimax_h3/test_install_constraints.py"
+    "runtime/minimax_h3/test_install_constraints.py",
+    "runtime/minimax_h3/test_notebook_console.py"
   ],
   "runtime_executable_sources_unchanged": true,
   "imported_notebook_tests": [
