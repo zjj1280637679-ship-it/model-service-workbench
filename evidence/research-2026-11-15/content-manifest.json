@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "content_scope": "Three newly created procedural reference illustrations; no reuse of earlier test contents.",
+  "parameters": {
+    "seconds": 5,
+    "width": 512,
+    "height": 288,
+    "steps": 5,
+    "acceleration_lora": "lightx2v-ref2va-4step",
+    "attention_backend": "native"
+  },
+  "jobs": [
+    {
+      "name": "coral-cable-car",
+      "reference_file": "assets/coral-cable-car.png",
+      "prompt": "A coral red cable car glides gently along a silver cable above a misty turquoise canyon. The camera slowly follows the car, with clouds drifting between terraced cliffs. Keep the graphic geometric style and all shapes consistent. Soft wind and a quiet cable hum, no speech.",
+      "seed": 611150,
+      "disposition": "retain",
+      "sha256": "df2a443568cdeec8b502ed9137ca73d6ff1b41b4f8db32b8cf832e6a5cf92ef0"
+    },
+    {
+      "name": "brass-dragonfly",
+      "reference_file": "assets/brass-dragonfly.png",
+      "prompt": "A small brass mechanical dragonfly perched on a celadon lotus bowl slowly unfolds its translucent blue wings and hovers above the bowl. Tiny water ripples expand, soft afternoon light shifts on the copper joints. Keep the geometric illustration style. Gentle wing flutter and water sound, no speech.",
+      "seed": 611151,
+      "disposition": "retain",
+      "sha256": "5682eb514bca72ed749ba425366710b03afcce085b1ce049cc3715670526f3c6"
+    },
+    {
+      "name": "amber-lighthouse",
+      "reference_file": "assets/amber-lighthouse.png",
+      "prompt": "An amber lighthouse on a floating cubic island turns its blue beacon through a violet night sky while the island slowly rotates. Delicate stars twinkle. Keep the geometric illustration style. Gentle wind, no speech.",
+      "seed": 611152,
+      "disposition": "cancel",
+      "sha256": "678ea0ae7bbe0e98f76c040dc57133708eefdf27ba88261ab49f8b2f4fc81cc6"
+    }
+  ]
+}

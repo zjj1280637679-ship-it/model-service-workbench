@@ -670,5 +670,5 @@ args.output = args.output or DESTINATION
 if args.check_only:
     print(f"Validated {len(cells)} cells with AST parsing; final notebook was not written.")
 else:
-    args.output.write_text(json.dumps(notebook, ensure_ascii=False, indent=1), encoding="utf-8")
+    args.output.write_text(json.dumps(notebook, ensure_ascii=False, indent=1), encoding="utf-8", newline="\n")
     print(f"Built {args.output} with {len(cells)} cells; all Python cells passed AST parsing.")

@@ -55,7 +55,13 @@ flowchart LR
 | `MC-REC-GPU-OVERLAP` | 同一物理 GPU 租约同时有两个不同所有者的时间区间数；单位 count；检查范围为全部已记录 acquire/release 区间。 | 当前单 GPU 独占方案的一次实例；不是 GPU kernel 活跃率。 | 区间缺端点、身份或时间顺序不可信时 unknown。 | 当前独占方案要求 0；未来多租约方案必须另立资源隔离与容量合约，不能沿用此阈值。 |
 | `MC-EXP-CONSISTENCY` | 相同实例/任务/尝试/事件版本的表达字段一致率 = 符合源事件语义的字段数 / 比较字段数；单位比例，覆盖 requested/effective/phase/artifact/cleanup。 | 冻结一组源事件后比较 API、面板投射和日志解释；异步不同时刻的值不直接比较。 | 来源版本无法绑定或字段缺失时 unknown，缺失计数另报。 | 当前合约字段要求逐项一致；可选显示字段的覆盖目标由面板策略设定。 |
 
-## 当前证据与未实现部分
+## 本轮研究观测与指标对应
+
+独立于下述历史基线，[2026-11-15 研究结果](../research/2026-11-15-results.md)的封闭批次包含两项模型执行成功。[提交轨迹](../../evidence/research-2026-11-15/trace.json)与[客户端验收](../../evidence/research-2026-11-15/client-receipt.json)核对了这两项产物的长度、SHA 和完整音视频解码，因此 `MC-CORE-ARTIFACT` 可记录 **2/2**；这不评价内容语义质量或长期成功率。
+
+[轨迹分析](../../evidence/research-2026-11-15/analysis.json)观察到两段 GPU 阶段不相交，[阶段时间线](../../evidence/research-2026-11-15/timeline.json)记录跨任务 CPU/GPU 重叠。但 `MC-REC-GPU-OVERLAP` 定义要求全部 acquire/release 租约边界，当前 stage 包围事件不完全覆盖这些边界，该指标仍为 unknown。局部 cleanup 回执及进程退出也未形成逐子资源、租约和临时文件的完整枚举，因此 `MC-REC-CLEANUP` 继续 unknown；三项主任务不等于三项模型尝试。私有 status p95 和含 UI 的同源表达指标本轮没有相应样本。
+
+## 历史证据与未实现部分
 
 [2026-11-15 验收摘要](../../evidence/acceptance-2026-11-15.json)记录 A100 80GB 原生 BF16 的三条成功视频、两条取消和一条早期依赖失败；成功产物经网页下载、哈希和完整解码核对，最终服务及平台会话释放。该有限样本支持指定路径，不证明任意模型、所有输入、语义质量或性能最优。
 

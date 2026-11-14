@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "run_id": "2db671caf93347179d8d9160854be0d0",
+  "instance_id": "a5c0e7ff255341c994921cdb5216821c",
+  "manifest_sha256": "e46a34b1393fd7ad5e8deb91ccd51185d4118b49949c969a9baea536aa76422f",
+  "state": "completed",
+  "started_at": 1794698814.551488,
+  "updated_at": 1794699871.7445176,
+  "finished_at": 1794699871.7445176,
+  "reason": "retained_artifacts_verified_and_cancelled_job_terminal",
+  "parameters": {
+    "seconds": 5,
+    "width": 512,
+    "height": 288,
+    "steps": 5,
+    "acceleration_lora": "lightx2v-ref2va-4step",
+    "attention_backend": "native"
+  },
+  "cold_queue_precondition": {
+    "model_ready": false,
+    "public_api_ready": true,
+    "observed_at": 1794698815.3933873
+  },
+  "jobs": [
+    {
+      "name": "coral-cable-car",
+      "disposition": "retain",
+      "state": "succeeded",
+      "job_id": "63b5f94748134995b14510aa2248e3e1",
+      "reference_sha256": "df2a443568cdeec8b502ed9137ca73d6ff1b41b4f8db32b8cf832e6a5cf92ef0",
+      "pre_submit_observation": {
+        "model_ready": false,
+        "observed_at": 1794698815.8436825
+      },
+      "submission_http_status": 202,
+      "admission_state": "queued",
+      "attempt_id": "67774dd25b444e2099c40e5a64ee08bf",
+      "cleanup_complete": true,
+      "download": {
+        "verified": true,
+        "sha256": "d87907b5353b6e263b10b87967e4970d8f34379d2f06c65090344809cc6b6dcd",
+        "expected_sha256": "d87907b5353b6e263b10b87967e4970d8f34379d2f06c65090344809cc6b6dcd",
+        "bytes": 215537,
+        "state": "verified",
+        "media": {
+          "frames": 124,
+          "fps": 24.0,
+          "width": 512,
+          "height": 288,
+          "audio_channels": 2,
+          "full_decode_passed": true
+        }
+      }
+    },
+    {
+      "name": "brass-dragonfly",
+      "disposition": "retain",
+      "state": "succeeded",
+      "job_id": "fb99f3b62b0f432fa1a4d53127af68f4",
+      "reference_sha256": "5682eb514bca72ed749ba425366710b03afcce085b1ce049cc3715670526f3c6",
+      "pre_submit_observation": {
+        "model_ready": false,
+        "observed_at": 1794698816.3525038
+      },
+      "submission_http_status": 202,
+      "admission_state": "queued",
+      "attempt_id": "70a1d97517ea494da26d513f073bd4d2",
+      "cleanup_complete": true,
+      "download": {
+        "verified": true,
+        "sha256": "4e132f1ff022810216e4ad922f9b46ca336c752deebe45d3fda76b0b814717e5",
+        "expected_sha256": "4e132f1ff022810216e4ad922f9b46ca336c752deebe45d3fda76b0b814717e5",
+        "bytes": 291368,
+        "state": "verified",
+        "media": {
+          "frames": 124,
+          "fps": 24.0,
+          "width": 512,
+          "height": 288,
+          "audio_channels": 2,
+          "full_decode_passed": true
+        }
+      }
+    },
+    {
+      "name": "amber-lighthouse",
+      "disposition": "cancel",
+      "state": "cancelled",
+      "job_id": "691ace28634f45898ee9f8af19d33b1d",
+      "reference_sha256": "678ea0ae7bbe0e98f76c040dc57133708eefdf27ba88261ab49f8b2f4fc81cc6",
+      "pre_submit_observation": {
+        "model_ready": false,
+        "observed_at": 1794698817.043403
+      },
+      "submission_http_status": 202,
+      "admission_state": "queued",
+      "attempt_id": null,
+      "cleanup_complete": true,
+      "cancel_intent": {
+        "source": "planned_queued_cancellation",
+        "observed_at": 1794698817.904217
+      },
+      "cancel_http_status": 202
+    }
+  ]
+}

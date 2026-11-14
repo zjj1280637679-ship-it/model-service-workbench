@@ -170,7 +170,8 @@ class ModelContainer:
         with self._lock:
             self._sequence += 1
             event = {"sequence": self._sequence, "event_id": uuid.uuid4().hex,
-                     "instance_id": self.instance_id, "type": kind, "observed_at": time.time(), **data}
+                     "instance_id": self.instance_id, "type": kind, "observed_at": time.time(),
+                     "monotonic_ns": time.monotonic_ns(), **data}
             try:
                 with self.events_path.open("a", encoding="utf-8") as output:
                     output.write(json.dumps(event, ensure_ascii=False) + "\n")

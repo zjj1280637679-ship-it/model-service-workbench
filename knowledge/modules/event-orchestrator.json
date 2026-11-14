@@ -13,7 +13,8 @@
         "global_manager.py 将任务、命令和事件持久化到 SQLite；管理器实例、模型子实例、job 和 attempt 分别标识不同责任。",
         "API、模型和隧道的活性、就绪与退出由独立探测和 process_owner 观察；进程存活不等于可服务，缺失观察不等于成功。",
         "主结果先持久化，再向模型 ack_results；清理未确认的执行保持租约和所有权，源码与针对性反例测试可定位该顺序。",
-        "主队列 job_count_limit 为 null，但上传字节和实际磁盘资源仍约束准入，不能把不设条数上限解释为无限资源。"
+        "主队列 job_count_limit 为 null，但上传字节和实际磁盘资源仍约束准入，不能把不设条数上限解释为无限资源。",
+        "2026-11-15 新研究封闭批次的接纳账本、终态和清理记录对齐：三项任务中两成功、一排队取消，统一截止复核下主事件完整率为 3/3；该比例不表示长期可靠性。"
       ],
       "strategies": [
         "选择 durable FIFO、启动/生成截止时间、排空和故障隔离规则，把所选策略版本绑定实例。",
@@ -28,7 +29,33 @@
           "unit": "ratio",
           "scope": "封闭验收批次，从首项接纳至统一截止点；不删掉失败样本或用 HTTP 200 数量代替主任务数。",
           "unknown_rule": "接纳账本缺失、统一截止点未定或所有者观察缺失时为 unknown。",
-          "threshold_policy": "该批次完成验收要求每个任务可对账；未完成项不能被高平均率掩盖，统计是否启用不解除主事件完整性义务。"
+          "threshold_policy": "该批次完成验收要求每个任务可对账；未完成项不能被高平均率掩盖，统计是否启用不解除主事件完整性义务。",
+          "observations": [
+            {
+              "experiment_id": "2db671caf93347179d8d9160854be0d0",
+              "protocol_id": "a100-bf16-architecture-2026-11-15",
+              "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+              "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef",
+              "window": "Retrospective closed-batch review: first admission 2026-11-14T23:26:56.130141+00:00 through final owner observation 2026-11-14T23:47:04.323147+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "measured",
+              "value": 1.0,
+              "numerator": 3,
+              "denominator": 3,
+              "evidence": "evidence/research-2026-11-15/trace.json",
+              "corroborating_evidence": [
+                "evidence/research-2026-11-15/analysis.json",
+                "evidence/research-2026-11-15/client-receipt.json"
+              ],
+              "scope": "All three admitted jobs at the common final-owner cutoff: two succeeded, one queue-cancelled, zero running/unknown. Admission, causal stages where applicable, terminal receipts and cleanup are present; no general reliability inference.",
+              "outcomes": {
+                "succeeded": 2,
+                "cancelled": 1,
+                "failed": 0,
+                "running": 0,
+                "unknown": 0
+              }
+            }
+          ]
         }
       ]
     },
@@ -56,7 +83,20 @@
           "unit": "s",
           "scope": "区分本地/公网、冷/热启动及探测能力；使用同一可信时钟和明确起止窗口，记录交付时 model_ready。",
           "unknown_rule": "实例身份不匹配、时钟边界不明或探测未完成时为 unknown/右删失，不能填 0。",
-          "threshold_policy": "时延上限由交互场景预先选择；180 秒前台观察是宿主策略，不是已测得服务 SLO。"
+          "threshold_policy": "时延上限由交互场景预先选择；180 秒前台观察是宿主策略，不是已测得服务 SLO。",
+          "observations": [
+            {
+              "experiment_id": "2db671caf93347179d8d9160854be0d0",
+              "protocol_id": "a100-bf16-architecture-2026-11-15",
+              "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+              "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef",
+              "window": "Retrospective closed-batch review: first admission 2026-11-14T23:26:56.130141+00:00 through final owner observation 2026-11-14T23:47:04.323147+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "reason": "有公网可达及模型未 ready 的接纳见证，但缺启动请求接收至首次业务探测成功的同一可信时钟完整边界；不以 manager.created 代替用户启动接收。",
+              "evidence": "evidence/research-2026-11-15/analysis.json"
+            }
+          ]
         }
       ]
     },
@@ -69,7 +109,8 @@
         "同一任务的取消与派发在同一控制边界仲裁，主结果提交先于模型丢弃；这些顺序不要求独立准备分支串行。",
         "当前固定执行图为 prepare→GPU 与 CPU 交接→encode_validate；多个 running 尝试不表示多个 GPU 所有者。",
         "共享 CPU/GPU/RAM/磁盘约束由真实资源池和预算快照描述；CPU 容量读取 affinity/cgroup，RAM/磁盘是准入估算而非 OS 强制配额。",
-        "performance_model.py 保留未知工作量和容量；完整 H3 FLOPs、主机传输及实测带宽尚未全部接入跨任务调度。"
+        "performance_model.py 保留未知工作量和容量；完整 H3 FLOPs、主机传输及实测带宽尚未全部接入跨任务调度。",
+        "新研究的 1083 个有效预算样本未见声明 CPU/RAM/磁盘预算超限；阶段声明 CPU 并发峰值为 2、预算为 12。它们不覆盖采样间隙、全部租约边界或真实物理用量，不能替代共享资源超借总指标。"
       ],
       "strategies": [
         "可选择拓扑就绪队列、预算内阶段流水、失败传播或补偿；当前实现是固定服务树，不接受任意用户 DAG。",
@@ -85,7 +126,21 @@
           "unit": "ratio",
           "scope": "固定 DAG、硬件拓扑、精度和起止窗口；完整覆盖与部分覆盖分开，启动下载与纯推理不可混为同一测量边界。",
           "unknown_rule": "任何必需工作量、共享池容量、单位或可信时钟未知时不给完整比值；部分覆盖只保留部分下界，不能补齐虚构工作量。",
-          "threshold_policy": "不设未经论证的最优阈值；相同边界内比较策略并同时满足质量和资源约束。下界不保证可达，比值小不证明算法全局最优。"
+          "threshold_policy": "不设未经论证的最优阈值；相同边界内比较策略并同时满足质量和资源约束。下界不保证可达，比值小不证明算法全局最优。",
+          "observations": [
+            {
+              "experiment_id": "2db671caf93347179d8d9160854be0d0",
+              "protocol_id": "a100-bf16-architecture-2026-11-15",
+              "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+              "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef",
+              "window": "Retrospective closed-batch review: first admission 2026-11-14T23:26:56.130141+00:00 through final owner observation 2026-11-14T23:47:04.323147+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "reason": "设备微基准不提供完整 H3 FLOPs、各层字节工作量和共享物理容量上界；没有与完整 makespan 同范围的正物理下界，不能给完整比值。",
+              "evidence": "evidence/research-2026-11-15/analysis.json",
+              "denominator": null
+            }
+          ]
         },
         {
           "id": "EO-REC-OVERCOMMIT",
@@ -94,7 +149,20 @@
           "unit": "count",
           "scope": "一个受管实例完整资源事件序列，容量变化和预算变化须带版本；不是通过 RSS 推测所有租约。",
           "unknown_rule": "租约端点、身份或容量版本缺失时为 unknown；RAM 估算误差另报，不伪称 OS 强隔离。",
-          "threshold_policy": "当前独占 GPU 和 CPU 通道合约要求 0；RAM/磁盘估算安全余量属于部署策略，不能用该策略代替真实容量。"
+          "threshold_policy": "当前独占 GPU 和 CPU 通道合约要求 0；RAM/磁盘估算安全余量属于部署策略，不能用该策略代替真实容量。",
+          "observations": [
+            {
+              "experiment_id": "2db671caf93347179d8d9160854be0d0",
+              "protocol_id": "a100-bf16-architecture-2026-11-15",
+              "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+              "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef",
+              "window": "Retrospective closed-batch review: first admission 2026-11-14T23:26:56.130141+00:00 through final owner observation 2026-11-14T23:47:04.323147+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "reason": "GPU stage 互斥与 1083 个预算样本不覆盖全部资源的 acquire/release 及容量版本事件；不能把局部未见超限提升为全资源零超借。",
+              "evidence": "evidence/research-2026-11-15/analysis.json"
+            }
+          ]
         }
       ]
     },
@@ -122,7 +190,20 @@
           "unit": "count",
           "scope": "每次合约或投射变化的一轮有限回归集，至少含下载完成但未加载、旧实例迟到、取消竞争与清理缺回执；记录轨迹版本和验证窗口。",
           "unknown_rule": "轨迹覆盖未声明或任一投射规则缺失时为 unknown；零反例仅覆盖所测集合。",
-          "threshold_policy": "声明轨迹集内要求 0；扩充样例提高覆盖，不自动构成所有表达的全称等价或形式正确性证明。"
+          "threshold_policy": "声明轨迹集内要求 0；扩充样例提高覆盖，不自动构成所有表达的全称等价或形式正确性证明。",
+          "observations": [
+            {
+              "experiment_id": "2db671caf93347179d8d9160854be0d0",
+              "protocol_id": "a100-bf16-architecture-2026-11-15",
+              "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+              "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef",
+              "window": "Retrospective closed-batch review: first admission 2026-11-14T23:26:56.130141+00:00 through final owner observation 2026-11-14T23:47:04.323147+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "reason": "未冻结并逐一核对图、布尔前提、状态表及 API/面板的完整指定轨迹集合；有限模型反例实验不是该跨表达指标。",
+              "evidence": "evidence/research-2026-11-15/analysis.json"
+            }
+          ]
         }
       ]
     }
@@ -137,12 +218,21 @@
     "runtime/minimax_h3/test_global_manager.py",
     "runtime/minimax_h3/test_process_owner.py",
     "runtime/minimax_h3/test_startup_delivery.py",
-    "evidence/acceptance-2026-11-15.json"
+    "evidence/acceptance-2026-11-15.json",
+    "docs/research/2026-11-15-results.md",
+    "evidence/research-2026-11-15/trace.json",
+    "evidence/research-2026-11-15/analysis.json",
+    "evidence/research-2026-11-15/client-receipt.json",
+    "evidence/research-2026-11-15/timeline.json",
+    "evidence/research-2026-11-15/calibration.json",
+    "evidence/research-2026-11-15/finite-model.json"
   ],
   "gaps": [
     "当前是 MiniMax-H3 固定服务树和固定阶段，尚未实现任意 DAG、跨机器一致性或通用多模型公平调度。",
     "部分反馈与超时策略存在，但未证明所有工作负载下的控制稳定性。",
     "全模型工作量、主机传输和带宽未完整标定，不能声称达到全局数学最优或硬件物理极限。",
-    "有限 CPU 反例与 GPU 验收路径不构成所有并发轨迹、平台或模型的全称证明。"
+    "有限 CPU 反例与 GPU 验收路径不构成所有并发轨迹、平台或模型的全称证明。",
+    "本轮虽执行设备微基准，仍缺完整 H3 FLOPs/HBM 流量与全资源容量版本；物理下界差距比和共享资源超借总指标继续 unknown。",
+    "有限模型穷举只在声明模型 tick 与离散调度空间内最优；真实阶段重叠及微基准不证明云推理全局最优。"
   ]
 }

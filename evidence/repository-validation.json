@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "started_at": "2026-11-14T23:00:21.574630+00:00",
-  "finished_at": "2026-11-14T23:00:55.409929+00:00",
+  "repository_version": "0.2.0",
+  "recorded_at": "2026-11-14T23:58:15.877276+00:00",
   "platform": "Windows, Python 3.12 and Node 24",
   "runs": [
     {
@@ -14,11 +14,12 @@
         "-ra"
       ],
       "exit_code": 0,
-      "local_stdout_sha256": "e90473b2b005de16fa06124543366a53e825ff8ec7ff95a6a25eace31d1ad084",
-      "passed": 644,
+      "passed": 781,
       "skipped": 8,
-      "skipped_reason": "Eight Windows symbolic-link permission cases; CI on Linux exercises them when supported.",
-      "warning": "Existing Starlette httpx TestClient deprecation warning."
+      "warning_count": 1,
+      "skipped_reason": "Windows symbolic-link permission unavailable; Linux CI covers these independently.",
+      "warning": "Existing Starlette httpx TestClient deprecation.",
+      "local_stdout_sha256": "d82ca31162f2e0992bc17070e879330a302c13023102be75132a57af46287f91"
     },
     {
       "name": "javascript",
@@ -28,7 +29,8 @@
         "tests/test_console_delivery.cjs"
       ],
       "exit_code": 0,
-      "local_stdout_sha256": "414e76c9ce4daaff3fc1d547af6c429927ce1db361f1b9b0c636a57b8229ee20"
+      "passed": 2,
+      "local_stdout_sha256": "81753c49b31475d77b970ced7e3d009e1f66843dbaf5fa8b41071fae711f6923"
     },
     {
       "name": "notebook",
@@ -40,55 +42,35 @@
         "lightx2v-ref2va-4step"
       ],
       "exit_code": 0,
-      "local_stdout_sha256": "21c7f4190c657ae9665bb3d01022ebfe3f8dfdbdfd036fe81b3183e2ce55e167"
-    },
-    {
-      "name": "manifest",
-      "command": [
-        "python",
-        "tools/freeze_sources.py"
-      ],
-      "exit_code": 0,
-      "local_stdout_sha256": "e3f4398c8fad04172fdbbf2ebff8dddcdd39324fa75139a1123fd009ef7ace7d"
+      "cells": 1
     },
     {
       "name": "knowledge",
-      "command": [
-        "python",
-        "tools/check_knowledge.py"
-      ],
       "exit_code": 0,
-      "local_stdout_sha256": "e915a32d94f133ec284b1b2eaf4aa5ecac0f2e078f9e2f2884675968c22c877b",
-      "result": {
-        "status": "PASS",
-        "modules": 4,
-        "perspectives": 16,
-        "metrics": 27,
-        "references": 29,
-        "fingerprints": 94,
-        "scope": "Structure, safe source paths, explicit unknown measurements and recorded byte identities only; not semantic completeness, mathematical optimality, fresh GPU validation or a universal adapter implementation."
-      }
+      "modules": 4,
+      "perspectives": 16,
+      "metrics": 27
     },
     {
       "name": "publication",
-      "command": [
-        "python",
-        "tools/check_publication.py"
-      ],
       "exit_code": 0,
-      "local_stdout_sha256": "03d9f0599dab7853ad783538f3cb7eb6bf9d152fbac7c7a6ea07c8af5a0a8f67",
-      "result": {
-        "status": "PASS",
-        "checked_files": 96,
-        "issues": [],
-        "scope": "Selected private/runtime filenames, model-weight extensions, symlinks, 32 MiB size limit, token signatures, supplied known secrets and personal home paths outside test fixtures; not an exhaustive secret detector."
+      "known_private_key_and_origin_checked": true
+    },
+    {
+      "name": "research_trace_replay",
+      "exit_code": 0,
+      "counts": {
+        "pass": 13,
+        "fail": 0,
+        "unknown": 0
       }
     }
   ],
-  "new_gpu_run": false,
-  "runtime_executable_sources_unchanged": true,
-  "notebook_bundle_changes": [
-    "README.md"
+  "new_gpu_run": true,
+  "gpu_evidence": "evidence/research-2026-11-15/provenance.json",
+  "runtime_executable_sources_unchanged": false,
+  "runtime_changes": [
+    "manager/model audit event monotonic_ns"
   ],
-  "scope": "CPU tests, knowledge/source identity and publication checks. Historic GPU observations remain independently attributed; no weights, GPU or public tunnel started."
+  "scope": "Local verification receipts; research observation is separately attributed. CI runs independently on the committed revision; no CI outcome is preclaimed."
 }

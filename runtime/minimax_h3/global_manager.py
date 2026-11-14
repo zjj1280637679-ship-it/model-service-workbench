@@ -173,7 +173,8 @@ class GlobalManager:
         event = {"event_id": uuid.uuid4().hex, "instance_id": self.instance_id,
                  "job_id": job.get("job_id") if job else None,
                  "attempt_id": job.get("attempt_id") if job else None,
-                 "type": kind, "observed_at": time.time(), "data": data or {}}
+                 "type": kind, "observed_at": time.time(),
+                 "monotonic_ns": time.monotonic_ns(), "data": data or {}}
         cursor = self._db.execute("INSERT INTO events(event_id, record) VALUES (?, ?)",
                                   (event["event_id"], json.dumps(event)))
         event["sequence"] = cursor.lastrowid

@@ -1,0 +1,636 @@
+{
+  "schema_version": 1,
+  "status": "completed",
+  "started_at": "2026-11-14T23:17:53.480706+00:00",
+  "environment": {
+    "python": "3.13.16",
+    "os": "Linux",
+    "machine": "x86_64",
+    "logical_cpu_count": 12
+  },
+  "configuration": {
+    "gpu": true,
+    "transfers": true,
+    "buffer_mib": 128,
+    "matrix_size": 8192,
+    "samples": 7,
+    "iterations": 5,
+    "disk_mib": 32
+  },
+  "source_sha256": "9e7c6f29c7f2b23b42a9677eaf2e75e11d439aa67e69ad7c28296ca566911022",
+  "gpu": {
+    "status": "measured",
+    "name": "NVIDIA A100-SXM4-80GB",
+    "compute_capability": [
+      8,
+      0
+    ],
+    "multiprocessors": 108,
+    "total_memory_bytes": 85094825984,
+    "free_memory_bytes_before": 84646100992,
+    "runtime_total_memory_bytes": 85094825984,
+    "native_bf16_supported": true,
+    "other_compute_processes_at_preflight": 0,
+    "torch": "2.14.1+cu130",
+    "torch_cuda": "13.0",
+    "isolation_limit": "A point-in-time process observation; no external GPU lock or guarantee against later contenders.",
+    "peak_allocated_bytes": 411174912,
+    "peak_reserved_bytes": 425721856,
+    "final_allocated_bytes": 8519680,
+    "explicit_allocations_released": false,
+    "context_release": "requires_process_exit_not_cuda_empty_cache"
+  },
+  "benchmarks": {
+    "host_copy": {
+      "status": "measured",
+      "samples": [
+        {
+          "iterations": 5,
+          "wall_seconds": 0.12891326900000877,
+          "process_cpu_seconds": 0.12889136700000003
+        },
+        {
+          "iterations": 5,
+          "wall_seconds": 0.12825513199993566,
+          "process_cpu_seconds": 0.12824571100000004
+        },
+        {
+          "iterations": 5,
+          "wall_seconds": 0.13030081599993082,
+          "process_cpu_seconds": 0.13029126699999993
+        },
+        {
+          "iterations": 5,
+          "wall_seconds": 0.12911517999998523,
+          "process_cpu_seconds": 0.12910582699999984
+        },
+        {
+          "iterations": 5,
+          "wall_seconds": 0.12885302899996987,
+          "process_cpu_seconds": 0.12883599199999995
+        },
+        {
+          "iterations": 5,
+          "wall_seconds": 0.12884316899999249,
+          "process_cpu_seconds": 0.12883403599999999
+        },
+        {
+          "iterations": 5,
+          "wall_seconds": 0.12876597500007847,
+          "process_cpu_seconds": 0.12875799799999998
+        }
+      ],
+      "warmup_iterations": 2,
+      "payload_bytes_per_iteration": 134217728,
+      "logical_read_plus_write_bytes_per_iteration": 268435456,
+      "rate": {
+        "kind": "empirical_microbenchmark",
+        "unit": "byte/s",
+        "duration_key": "wall_seconds",
+        "work_per_iteration": 268435456,
+        "samples": [
+          10411475020.464407,
+          10464901162.79069,
+          10300605331.59449,
+          10395193500.873821,
+          10416342482.723583,
+          10417139615.683298,
+          10423384593.633389
+        ],
+        "summary": {
+          "count": 7,
+          "min": 10300605331.59449,
+          "median": 10416342482.723583,
+          "max": 10464901162.79069,
+          "mean": 10404148815.394812,
+          "sample_stdev": 50387553.47307558
+        },
+        "physical_peak": null,
+        "model_capacity": null
+      },
+      "verified": true,
+      "interpretation": "Single memoryview copy stream; logical read+write, not measured memory-bus traffic. CPU caches, write allocation and NUMA remain unmeasured."
+    },
+    "cpu_sha256": {
+      "status": "measured",
+      "samples": [
+        {
+          "iterations": 5,
+          "wall_seconds": 0.2254534960000001,
+          "process_cpu_seconds": 0.22543230300000006
+        },
+        {
+          "iterations": 5,
+          "wall_seconds": 0.22637271299993245,
+          "process_cpu_seconds": 0.22635431899999992
+        },
+        {
+          "iterations": 5,
+          "wall_seconds": 0.22701928999993015,
+          "process_cpu_seconds": 0.22699102500000023
+        },
+        {
+          "iterations": 5,
+          "wall_seconds": 0.2275525300000254,
+          "process_cpu_seconds": 0.22752378100000037
+        },
+        {
+          "iterations": 5,
+          "wall_seconds": 0.22632056700001613,
+          "process_cpu_seconds": 0.2263010900000002
+        },
+        {
+          "iterations": 5,
+          "wall_seconds": 0.22663405700006933,
+          "process_cpu_seconds": 0.22660852200000026
+        },
+        {
+          "iterations": 5,
+          "wall_seconds": 0.22512524499995834,
+          "process_cpu_seconds": 0.2250972
+        }
+      ],
+      "warmup_iterations": 2,
+      "rate": {
+        "kind": "empirical_microbenchmark",
+        "unit": "byte/s",
+        "duration_key": "wall_seconds",
+        "work_per_iteration": 16777216,
+        "samples": [
+          372077086.79753613,
+          370566217.49294066,
+          369510802.364089,
+          368644901.46512824,
+          370651598.8005369,
+          370138897.5266605,
+          372619605.588949
+        ],
+        "summary": {
+          "count": 7,
+          "min": 368644901.46512824,
+          "median": 370566217.49294066,
+          "max": 372619605.588949,
+          "mean": 370601301.4336915,
+          "sample_stdev": 1383579.972529823
+        },
+        "physical_peak": null,
+        "model_capacity": null
+      },
+      "interpretation": "SHA256 input-byte rate including Python calls; neither generic CPU work capacity nor CPU-memory bandwidth."
+    },
+    "disk": {
+      "status": "measured",
+      "file_bytes": 33554432,
+      "total_bytes_written": 234881024,
+      "write_fsync": {
+        "samples": [
+          {
+            "iterations": 1,
+            "wall_seconds": 0.08856982899999366
+          },
+          {
+            "iterations": 1,
+            "wall_seconds": 0.08396452800002407
+          },
+          {
+            "iterations": 1,
+            "wall_seconds": 0.07738671599997815
+          },
+          {
+            "iterations": 1,
+            "wall_seconds": 0.07866982600000938
+          },
+          {
+            "iterations": 1,
+            "wall_seconds": 0.07867994600007933
+          },
+          {
+            "iterations": 1,
+            "wall_seconds": 0.08052532700003212
+          },
+          {
+            "iterations": 1,
+            "wall_seconds": 0.07806891199993515
+          }
+        ],
+        "rate": {
+          "kind": "empirical_microbenchmark",
+          "unit": "byte/s",
+          "duration_key": "wall_seconds",
+          "work_per_iteration": 33554432,
+          "samples": [
+            378847203.1486298,
+            399626280.27862406,
+            433594210.14854115,
+            426522260.262734,
+            426467399.9644861,
+            416694141.4592035,
+            429805298.17077345
+          ],
+          "summary": {
+            "count": 7,
+            "min": 378847203.1486298,
+            "median": 426467399.9644861,
+            "max": 433594210.14854115,
+            "mean": 415936684.7761417,
+            "sample_stdev": 19871712.279116612
+          },
+          "physical_peak": null,
+          "model_capacity": null
+        }
+      },
+      "read_after_write": {
+        "samples": [
+          {
+            "iterations": 1,
+            "wall_seconds": 0.01959703099998933
+          },
+          {
+            "iterations": 1,
+            "wall_seconds": 0.021052395999959117
+          },
+          {
+            "iterations": 1,
+            "wall_seconds": 0.021165816999996423
+          },
+          {
+            "iterations": 1,
+            "wall_seconds": 0.021280047000004743
+          },
+          {
+            "iterations": 1,
+            "wall_seconds": 0.021047079000027225
+          },
+          {
+            "iterations": 1,
+            "wall_seconds": 0.021260648000065885
+          },
+          {
+            "iterations": 1,
+            "wall_seconds": 0.02134652000006554
+          }
+        ],
+        "rate": {
+          "kind": "empirical_microbenchmark",
+          "unit": "byte/s",
+          "duration_key": "wall_seconds",
+          "work_per_iteration": 33554432,
+          "samples": [
+            1712220182.7418792,
+            1593853355.22214,
+            1585312393.0914488,
+            1576802532.4376643,
+            1594256001.0325706,
+            1578241265.2660453,
+            1571892374.021479
+          ],
+          "summary": {
+            "count": 7,
+            "min": 1571892374.021479,
+            "median": 1585312393.0914488,
+            "max": 1712220182.7418792,
+            "mean": 1601796871.973318,
+            "sample_stdev": 49428184.28781481
+          },
+          "physical_peak": null,
+          "model_capacity": null
+        }
+      },
+      "verified": true,
+      "owned_file_removed": true,
+      "cache_state": "uncontrolled_likely_warm",
+      "interpretation": "Application-visible file I/O. Write includes fsync; read immediately follows write and may be served from page cache. No cold physical-disk bandwidth claim; backing storage/durability are unknown."
+    },
+    "bf16_gemm": {
+      "status": "measured",
+      "shape": [
+        8192,
+        8192,
+        8192
+      ],
+      "input_output_dtype": "bfloat16",
+      "samples": [
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.0194969596862793,
+          "wall_seconds": 0.019575134999968213
+        },
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.01941094398498535,
+          "wall_seconds": 0.01946639600009803
+        },
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.01940787124633789,
+          "wall_seconds": 0.01947376800001166
+        },
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.019398656845092774,
+          "wall_seconds": 0.019445229000098152
+        },
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.01939148712158203,
+          "wall_seconds": 0.019428125999979784
+        },
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.020720640182495118,
+          "wall_seconds": 0.020774047999907452
+        },
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.02105036735534668,
+          "wall_seconds": 0.02113204800002677
+        }
+      ],
+      "warmup_iterations": 2,
+      "flops_per_iteration": 1099511627776,
+      "rate": {
+        "kind": "empirical_microbenchmark",
+        "unit": "FLOP/s",
+        "duration_key": "cuda_event_seconds",
+        "work_per_iteration": 1099511627776,
+        "samples": [
+          281970021343831.7,
+          283219514884615.7,
+          283264355430910.25,
+          283398906572786.9,
+          283503689243173.9,
+          265317967517449.56,
+          261162099742817.56
+        ],
+        "summary": {
+          "count": 7,
+          "min": 261162099742817.56,
+          "median": 283219514884615.7,
+          "max": 283503689243173.9,
+          "mean": 277405222105083.66,
+          "sample_stdev": 9764127699736.658
+        },
+        "physical_peak": null,
+        "model_capacity": null
+      },
+      "explicit_device_tensor_bytes": 402653184,
+      "finite_8x8_output_sample": true,
+      "interpretation": "Dense square GEMM, 2 FLOPs per multiply-add. cuBLAS chooses the implementation; accumulation path is not hardware-profiled. Does not measure the model's mixed BF16/FP32 workload."
+    },
+    "device_copy": {
+      "status": "measured",
+      "samples": [
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.0007925760149955749,
+          "wall_seconds": 0.0008472189999793045
+        },
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.0008069120049476623,
+          "wall_seconds": 0.0008436449999180695
+        },
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.0008017920255661011,
+          "wall_seconds": 0.0008320200000753175
+        },
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.0007997440099716186,
+          "wall_seconds": 0.0008422969999628549
+        },
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.0007956479787826538,
+          "wall_seconds": 0.0008205469999893467
+        },
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.0007976959943771363,
+          "wall_seconds": 0.0008223680000583045
+        },
+        {
+          "iterations": 5,
+          "cuda_event_seconds": 0.0007956479787826538,
+          "wall_seconds": 0.0008197399999971822
+        }
+      ],
+      "warmup_iterations": 2,
+      "payload_bytes_per_iteration": 134217728,
+      "logical_read_plus_write_bytes_per_iteration": 268435456,
+      "payload_rate": {
+        "kind": "empirical_microbenchmark",
+        "unit": "byte/s",
+        "duration_key": "cuda_event_seconds",
+        "work_per_iteration": 134217728,
+        "samples": [
+          846718330233.2797,
+          831675121804.0535,
+          836985924780.4084,
+          839129310920.1476,
+          843449185941.2119,
+          841283702977.6051,
+          843449185941.2119
+        ],
+        "summary": {
+          "count": 7,
+          "min": 831675121804.0535,
+          "median": 841283702977.6051,
+          "max": 846718330233.2797,
+          "mean": 840384394656.8455,
+          "sample_stdev": 4978112977.277241
+        },
+        "physical_peak": null,
+        "model_capacity": null
+      },
+      "logical_traffic_rate": {
+        "kind": "empirical_microbenchmark",
+        "unit": "byte/s",
+        "duration_key": "cuda_event_seconds",
+        "work_per_iteration": 268435456,
+        "samples": [
+          1693436660466.5593,
+          1663350243608.107,
+          1673971849560.817,
+          1678258621840.2952,
+          1686898371882.4238,
+          1682567405955.2102,
+          1686898371882.4238
+        ],
+        "summary": {
+          "count": 7,
+          "min": 1663350243608.107,
+          "median": 1682567405955.2102,
+          "max": 1693436660466.5593,
+          "mean": 1680768789313.691,
+          "sample_stdev": 9956225954.554482
+        },
+        "physical_peak": null,
+        "model_capacity": null
+      },
+      "explicit_device_tensor_bytes": 268435456,
+      "verified_sample_bytes": 1024,
+      "interpretation": "Repeated device copy; logical read+write is not an HBM traffic counter. Buffer exceeds A100 L2 but caching and actual bus traffic remain unmeasured."
+    },
+    "pinned_transfers": {
+      "status": "measured",
+      "host_to_device": {
+        "status": "measured",
+        "samples": [
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.054531425476074216,
+            "wall_seconds": 0.05464871200001653
+          },
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.054556800842285154,
+            "wall_seconds": 0.05468441300001814
+          },
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.05455500793457031,
+            "wall_seconds": 0.054677226999956474
+          },
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.05455791854858399,
+            "wall_seconds": 0.05467368199992961
+          },
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.054550399780273436,
+            "wall_seconds": 0.05466667700000016
+          },
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.05452761459350586,
+            "wall_seconds": 0.05462197400004243
+          },
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.054524734497070314,
+            "wall_seconds": 0.054592147999983354
+          }
+        ],
+        "rate": {
+          "kind": "empirical_microbenchmark",
+          "unit": "byte/s",
+          "duration_key": "cuda_event_seconds",
+          "work_per_iteration": 134217728,
+          "samples": [
+            12306456949.203384,
+            12300732990.9246,
+            12301137244.904438,
+            12300480990.71803,
+            12302176385.564816,
+            12307317035.649776,
+            12307967130.698425
+          ],
+          "summary": {
+            "count": 7,
+            "min": 12300480990.71803,
+            "median": 12302176385.564816,
+            "max": 12307967130.698425,
+            "mean": 12303752675.380495,
+            "sample_stdev": 3339834.7156484495
+          },
+          "physical_peak": null,
+          "model_capacity": null
+        }
+      },
+      "device_to_host": {
+        "status": "measured",
+        "samples": [
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.050937023162841794,
+            "wall_seconds": 0.051016952000054516
+          },
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.05097296142578125,
+            "wall_seconds": 0.05108098699997754
+          },
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.05095999908447266,
+            "wall_seconds": 0.05103881700006241
+          },
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.05096588897705078,
+            "wall_seconds": 0.05106524500001797
+          },
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.0509730224609375,
+            "wall_seconds": 0.05108541099991726
+          },
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.05095532989501953,
+            "wall_seconds": 0.05102469200005544
+          },
+          {
+            "iterations": 5,
+            "cuda_event_seconds": 0.050961185455322265,
+            "wall_seconds": 0.05105021899998974
+          }
+        ],
+        "rate": {
+          "kind": "empirical_microbenchmark",
+          "unit": "byte/s",
+          "duration_key": "cuda_event_seconds",
+          "work_per_iteration": 134217728,
+          "samples": [
+            13174869639.605373,
+            13165580755.53709,
+            13168929592.945744,
+            13167407720.52817,
+            13165564991.055412,
+            13170136301.395891,
+            13168623021.698431
+          ],
+          "summary": {
+            "count": 7,
+            "min": 13165564991.055412,
+            "median": 13168623021.698431,
+            "max": 13174869639.605373,
+            "mean": 13168730288.966587,
+            "sample_stdev": 3199155.7356212977
+          },
+          "physical_peak": null,
+          "model_capacity": null
+        }
+      },
+      "payload_bytes_per_iteration": 134217728,
+      "explicit_pinned_host_bytes": 134217728,
+      "explicit_device_tensor_bytes": 134217728,
+      "warmup_iterations": 2,
+      "verified_sample_bytes": 1024,
+      "interpretation": "Pinned one-way transfers measured sequentially, with completion synchronization. Directions are never added and presented as a one-way rate; topology is not inferred."
+    }
+  },
+  "scope": "Empirical microbenchmarks under this run's conditions, not physical maxima, model latency predictions, architecture acceptance or global scheduling optimality.",
+  "physical_peak_reference": null,
+  "theoretical_model_seconds": null,
+  "sources": [
+    "https://docs.pytorch.org/docs/stable/notes/cuda.html",
+    "https://docs.pytorch.org/docs/stable/generated/torch.cuda.Event.html",
+    "https://docs.pytorch.org/docs/stable/generated/torch.cuda.is_bf16_supported.html"
+  ],
+  "limits": {
+    "explicit_device_tensors_bytes": 402653184,
+    "explicit_cpu_buffers_bytes": 402653184,
+    "disk_file_bytes": 33554432,
+    "cuda_context_library_allocator_overhead": "Not included in tensor budget; allocated/reserved peaks are observed, not a hard process cap."
+  },
+  "notes": [
+    "Repeated samples describe within-run variation, not independent machines or statistical confidence intervals.",
+    "Short warmup does not guarantee steady clocks; clocks and power are not changed.",
+    "A caller should bound process wall time and own its lifecycle; CUDA/OS calls can block beyond nominal work limits."
+  ],
+  "finished_at": "2026-11-14T23:18:08.612653+00:00"
+}

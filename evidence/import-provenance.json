@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "repository_identity_scope": "Historical v0.1.0 import at db7d10051f7259ad8ce1e8bf0d155a33fa329ff5. Recorded repository_sha256 values are not current-source assertions after later changes.",
   "source": "2026-11-15 final Colab A100 BF16 acceptance, API 0.4.0",
   "original_notebook_sha256": "d0059be5d52278667fad0b70869e89bd27439a99cadb772584ac122e7a7a0885",
   "files": {

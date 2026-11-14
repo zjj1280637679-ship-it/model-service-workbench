@@ -96,7 +96,13 @@ flowchart TD
 | `EO-REC-OVERCOMMIT` | 资源超借数 = 时点/区间内实际发放的互斥租约或确认预算超出共享池的违规次数；单位 count，另报涉及资源与持续时间。 | 一个受管实例的完整资源事件序列；容量与预算调整需带版本。 | 租约端点或容量版本缺失时 unknown；RAM 估算误差另报，不能伪称 OS 强隔离。 | 当前独占 GPU 与 CPU 通道合同要求 0；RAM/磁盘估算阈值按部署余量策略选择。 |
 | `EO-EXP-PROJECTION` | 表达等效反例数 = 同一带身份事件轨迹在图、布尔前提、状态表、API/面板投射中产生矛盾判断的样例数；单位 count，分母为声明的轨迹集合。 | 每次合约或投射变更的有限回归集，至少含下载完成但未加载、旧实例迟到、取消竞争与清理缺回执。 | 轨迹覆盖未声明或投射规则缺失时 unknown；零反例不声称全称等价。 | 对已声明轨迹要求 0；新增轨迹扩大覆盖而非自动完成形式证明。 |
 
-## 实现、证据与缺口
+## 本轮研究观测与指标对应
+
+[2026-11-15 研究结果](../research/2026-11-15-results.md)在同一管理器实例内接纳三项新内容任务，两成功、一排队取消。[主账本与执行轨迹](../../evidence/research-2026-11-15/trace.json)、[完整性与清理分析](../../evidence/research-2026-11-15/analysis.json)及[客户端记录](../../evidence/research-2026-11-15/client-receipt.json)在统一终态复核截止点能够逐项对账，故 `EO-CORE-CLOSURE` 记录 **3/3**。这个回顾性分析截止点不是预先声明的延迟 SLO，也不构成长期可靠性证明。
+
+分析器的 13 项检查通过不等于所有候选指标已测量。1083 个有效预算样本和两个 GPU 阶段不能覆盖全资源 acquire/release、容量版本与采样间隙，`EO-REC-OVERCOMMIT` 保持 unknown。[设备微基准](../../evidence/research-2026-11-15/calibration.json)没有给出完整模型工作量，`EO-REC-BOUND-GAP` 也保持 unknown；不得用阶段占有率或微基准吞吐替代它。API 交付精确时延及跨表达反例总指标缺少各自定义的完整测量边界。
+
+## 实现、历史证据与缺口
 
 - [global_manager.py](../../runtime/minimax_h3/global_manager.py) 与 [test_global_manager.py](../../runtime/minimax_h3/test_global_manager.py)：持久队列、派发/取消仲裁、独立准备、结果确认、实例隔离和最终回执。
 - [process_owner.py](../../runtime/minimax_h3/process_owner.py) 与 [test_process_owner.py](../../runtime/minimax_h3/test_process_owner.py)：进程所有权、PID 世代和退出观察。

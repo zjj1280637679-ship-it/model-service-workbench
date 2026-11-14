@@ -12,7 +12,8 @@
       "conditions": [
         "当前 Colab console.html 提供左上快照看板、左下常用控制与折叠高级控制、右侧动态日志；控制整卡滚动。",
         "ConsoleController.snapshot() 从当前绑定宿主读取带观察时间的状态；DOM 中的旧文字不是主任务事实源。",
-        "URL、密钥可用性、模型下载和 LoRA 下载具有分开的显示字段。"
+        "URL、密钥可用性、模型下载和 LoRA 下载具有分开的显示字段。",
+        "2026-11-15 新研究通过受管 API 客户端执行生成与下载，未重新进行网页 UI/控制台交互指标测量；本轮 API 成功不构成面板指标的新样本。"
       ],
       "strategies": [
         "当前选固定三块布局、常用动作直接可见、高级策略折叠，正常流程仅运行唯一启动单元。",
@@ -26,7 +27,20 @@
           "unit": "次/启动轮次",
           "scope": "无异常正常路径；不包含无关浏览，另报条件不满足、断连和确认场景。",
           "unknown_rule": "没有完整操作记录，或正常路径边界不确定时为 unknown。",
-          "threshold_policy": "本参考实例的正常路径目标为 1 次；扩展宿主按其入口和场景预先约定，不用减少必要确认来凑数。"
+          "threshold_policy": "本参考实例的正常路径目标为 1 次；扩展宿主按其入口和场景预先约定，不用减少必要确认来凑数。",
+          "observations": [
+            {
+              "experiment_id": "2db671caf93347179d8d9160854be0d0",
+              "protocol_id": "a100-bf16-architecture-2026-11-15",
+              "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+              "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef",
+              "window": "Retrospective closed-batch review: first admission 2026-11-14T23:26:56.130141+00:00 through final owner observation 2026-11-14T23:47:04.323147+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "reason": "本轮未记录真实用户从界面启动至 API 交付的全部主动操作；API 客户端接纳不替代 UI 操作计数。",
+              "evidence": "evidence/research-2026-11-15/client-receipt.json"
+            }
+          ]
         },
         {
           "id": "interaction-panel.core.claim-error-rate",
@@ -35,7 +49,21 @@
           "unit": "ratio",
           "scope": "按实例与观察时刻对齐；覆盖可达、就绪、排队、终态和清理命题。",
           "unknown_rule": "分母为 0、证据缺失或时效不可比较时为 unknown，不填 0。",
-          "threshold_policy": "选作正确性验收时已知反例必须为 0；有限样本不能证明全部状态都正确。"
+          "threshold_policy": "选作正确性验收时已知反例必须为 0；有限样本不能证明全部状态都正确。",
+          "observations": [
+            {
+              "experiment_id": "2db671caf93347179d8d9160854be0d0",
+              "protocol_id": "a100-bf16-architecture-2026-11-15",
+              "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+              "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef",
+              "window": "Retrospective closed-batch review: first admission 2026-11-14T23:26:56.130141+00:00 through final owner observation 2026-11-14T23:47:04.323147+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "reason": "本轮未重测面板状态断言及同身份、同时效的独立见证集合，没有可核对断言分母。",
+              "evidence": "evidence/research-2026-11-15/client-receipt.json",
+              "denominator": null
+            }
+          ]
         }
       ]
     },
@@ -62,7 +90,20 @@
           "unit": "次",
           "scope": "重复点击、超时和迟到响应故障注入窗口；只读查询不算副作用。",
           "unknown_rule": "缺少副作用审计或不能归属同一意图时为 unknown。",
-          "threshold_policy": "采用为正确性验收时为 0；重试次数少不等于副作用次数少。"
+          "threshold_policy": "采用为正确性验收时为 0；重试次数少不等于副作用次数少。",
+          "observations": [
+            {
+              "experiment_id": "2db671caf93347179d8d9160854be0d0",
+              "protocol_id": "a100-bf16-architecture-2026-11-15",
+              "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+              "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef",
+              "window": "Retrospective closed-batch review: first admission 2026-11-14T23:26:56.130141+00:00 through final owner observation 2026-11-14T23:47:04.323147+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "reason": "本轮没有重复点击、超时或迟到 UI 响应的故障注入及同一面板意图副作用审计。",
+              "evidence": "evidence/research-2026-11-15/client-receipt.json"
+            }
+          ]
         },
         {
           "id": "interaction-panel.interaction.query-p95",
@@ -71,7 +112,20 @@
           "unit": "ms",
           "scope": "已交还面板控制的可查询窗口，报告样本数和方法；前台不可用窗口时长另报。",
           "unknown_rule": "无匹配回执、样本不足或时钟不可比时为 unknown，不能丢弃超时后只报成功样本。",
-          "threshold_policy": "按宿主、网络和交互目标事先选阈值；没有通用最优毫秒值。"
+          "threshold_policy": "按宿主、网络和交互目标事先选阈值；没有通用最优毫秒值。",
+          "observations": [
+            {
+              "experiment_id": "2db671caf93347179d8d9160854be0d0",
+              "protocol_id": "a100-bf16-architecture-2026-11-15",
+              "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+              "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef",
+              "window": "Retrospective closed-batch review: first admission 2026-11-14T23:26:56.130141+00:00 through final owner observation 2026-11-14T23:47:04.323147+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "reason": "本轮未采集查询到可用面板快照呈现的完整单调时钟与错误样本；API 查询和后台采样不是 UI 呈现时延。",
+              "evidence": "evidence/research-2026-11-15/client-receipt.json"
+            }
+          ]
         }
       ]
     },
@@ -97,7 +151,20 @@
           "unit": "count",
           "scope": "仅已登记且由当前面板拥有的资源，不包括其他应用进程。",
           "unknown_rule": "无法观察或遗漏登记的资源必须列为 unknown；不能当作已退出。",
-          "threshold_policy": "已声明清理完成时为 0；超时但未确认时保留所有权和未确认状态。"
+          "threshold_policy": "已声明清理完成时为 0；超时但未确认时保留所有权和未确认状态。",
+          "observations": [
+            {
+              "experiment_id": "2db671caf93347179d8d9160854be0d0",
+              "protocol_id": "a100-bf16-architecture-2026-11-15",
+              "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+              "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef",
+              "window": "Retrospective closed-batch review: first admission 2026-11-14T23:26:56.130141+00:00 through final owner observation 2026-11-14T23:47:04.323147+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "reason": "服务进程关闭证据不覆盖面板拥有的计时器、回调与监测子进程登记；没有完整面板资源关闭清单。",
+              "evidence": "evidence/research-2026-11-15/client-receipt.json"
+            }
+          ]
         },
         {
           "id": "interaction-panel.recursion.stale-commits",
@@ -106,7 +173,20 @@
           "unit": "次",
           "scope": "重挂载、重启、取消竞争及父子关闭交接场景。",
           "unknown_rule": "缺少身份链或无法判断当前所有者时为 unknown。",
-          "threshold_policy": "采用为正确性验收时为 0；只检查最终像素不能排除中间错误写回。"
+          "threshold_policy": "采用为正确性验收时为 0；只检查最终像素不能排除中间错误写回。",
+          "observations": [
+            {
+              "experiment_id": "2db671caf93347179d8d9160854be0d0",
+              "protocol_id": "a100-bf16-architecture-2026-11-15",
+              "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+              "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef",
+              "window": "Retrospective closed-batch review: first admission 2026-11-14T23:26:56.130141+00:00 through final owner observation 2026-11-14T23:47:04.323147+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "reason": "本轮未执行面板重挂载/关闭与旧结果迟到注入，没有当前意图归属的投射提交审计。",
+              "evidence": "evidence/research-2026-11-15/client-receipt.json"
+            }
+          ]
         }
       ]
     },
@@ -133,7 +213,21 @@
           "unit": "ratio",
           "scope": "预先定义命题映射及输入分类；时间不同的快照不能直接判为矛盾。",
           "unknown_rule": "缺共同身份、版本或可比表达对时为 unknown；无样本不计为 0。",
-          "threshold_policy": "采用为正确性验收时已覆盖类不一致率为 0，保留抽象对应与未覆盖类的义务。"
+          "threshold_policy": "采用为正确性验收时已覆盖类不一致率为 0，保留抽象对应与未覆盖类的义务。",
+          "observations": [
+            {
+              "experiment_id": "2db671caf93347179d8d9160854be0d0",
+              "protocol_id": "a100-bf16-architecture-2026-11-15",
+              "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+              "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef",
+              "window": "Retrospective closed-batch review: first admission 2026-11-14T23:26:56.130141+00:00 through final owner observation 2026-11-14T23:47:04.323147+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "reason": "未重测同事实版本的 UI、JSON 和日志表达对，缺少可比表达对分母。",
+              "evidence": "evidence/research-2026-11-15/client-receipt.json",
+              "denominator": null
+            }
+          ]
         },
         {
           "id": "interaction-panel.expression.observation-age",
@@ -142,7 +236,20 @@
           "unit": "s",
           "scope": "同时间基准或有可量化时钟误差的实例观察。",
           "unknown_rule": "观察时间缺失、来源不明或跨宿主时钟不可比时为 unknown。",
-          "threshold_policy": "按宿主探测周期选择新鲜度门限；超限时降为过期观察，不改写历史完成事实。"
+          "threshold_policy": "按宿主探测周期选择新鲜度门限；超限时降为过期观察，不改写历史完成事实。",
+          "observations": [
+            {
+              "experiment_id": "2db671caf93347179d8d9160854be0d0",
+              "protocol_id": "a100-bf16-architecture-2026-11-15",
+              "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+              "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef",
+              "window": "Retrospective closed-batch review: first admission 2026-11-14T23:26:56.130141+00:00 through final owner observation 2026-11-14T23:47:04.323147+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "reason": "本轮没有面板实际呈现时刻及与事实观察相比较的时钟边界。",
+              "evidence": "evidence/research-2026-11-15/client-receipt.json"
+            }
+          ]
         }
       ]
     }
@@ -155,11 +262,16 @@
     "runtime/minimax_h3/test_console_connection.py",
     "runtime/minimax_h3/test_startup_delivery.py",
     "runtime/minimax_h3/test_console_process_lifecycle.py",
-    "evidence/acceptance-2026-11-15.json"
+    "evidence/acceptance-2026-11-15.json",
+    "docs/research/2026-11-15-results.md",
+    "evidence/research-2026-11-15/client-receipt.json",
+    "evidence/research-2026-11-15/trace.json",
+    "evidence/research-2026-11-15/provenance.json"
   ],
   "gaps": [
     "通用非 Colab 传输与任意嵌套面板树尚未实现。",
     "本文指标尚未全部自动采集；没有认知负荷、用户完成时间 A/B 或可访问性全覆盖测量。",
-    "通用模型能力到动态表单的映射与多宿主等效性需要新增证据。"
+    "通用模型能力到动态表单的映射与多宿主等效性需要新增证据。",
+    "2026-11-15 新研究未重测网页 UI、面板输入次数、呈现延迟、回调清理、认知负荷或同源表达映射；本轮全部面板指标保留 unknown。"
   ]
 }

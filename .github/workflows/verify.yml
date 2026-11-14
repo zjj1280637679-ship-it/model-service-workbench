@@ -36,5 +36,7 @@ jobs:
         run: python tools/build_notebook.py --check-only --preload-acceleration lightx2v-ref2va-4step
       - name: Run CPU ownership and contract counterexamples
         run: python -m pytest runtime/minimax_h3 tests
+      - name: Replay published research evidence without GPU
+        run: python research/analyze_trace.py evidence/research-2026-11-15/trace.json
       - name: Verify actual console delivery JavaScript
         run: node --test tests/test_console_delivery.cjs

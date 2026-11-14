@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "clock": "one_model_instance_monotonic_ns",
+  "stage_makespan_seconds": 698.205961468,
+  "stage_duration_sum_seconds": 701.6982457490002,
+  "cpu_gpu_union_overlap_seconds": 3.501832783000035,
+  "gpu_scope_union_seconds": 696.280550077,
+  "intervals": [
+    {
+      "job_id": "63b5f94748134995b14510aa2248e3e1",
+      "stage": "prepare",
+      "start_seconds": 0.0,
+      "end_seconds": 0.02482591
+    },
+    {
+      "job_id": "fb99f3b62b0f432fa1a4d53127af68f4",
+      "stage": "prepare",
+      "start_seconds": 0.028602518,
+      "end_seconds": 0.107951867
+    },
+    {
+      "job_id": "63b5f94748134995b14510aa2248e3e1",
+      "stage": "gpu",
+      "start_seconds": 0.033722487,
+      "end_seconds": 515.372738579
+    },
+    {
+      "job_id": "63b5f94748134995b14510aa2248e3e1",
+      "stage": "encode_validate",
+      "start_seconds": 515.37566998,
+      "end_seconds": 518.806074963
+    },
+    {
+      "job_id": "fb99f3b62b0f432fa1a4d53127af68f4",
+      "stage": "gpu",
+      "start_seconds": 515.37847156,
+      "end_seconds": 696.320005545
+    },
+    {
+      "job_id": "fb99f3b62b0f432fa1a4d53127af68f4",
+      "stage": "encode_validate",
+      "start_seconds": 696.322846038,
+      "end_seconds": 698.205961468
+    }
+  ],
+  "scope": "Observed host stage scopes, not GPU kernel busy time. Sum of concurrent stage durations is not a measured serial control; no speedup claim."
+}

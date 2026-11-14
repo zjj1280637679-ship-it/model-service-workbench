@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "protocol_id": "a100-bf16-architecture-2026-11-15",
+  "protocol_version": "0.1.0",
+  "status": "planned_not_a_result",
+  "purpose": "Falsifiable operational hypotheses for the current single-host H3 reference; no universal optimality claim.",
+  "source_reference": "v0.1.0; actual instrumented commit and file hashes must be recorded separately before execution",
+  "fixed_constraints": {
+    "gpu": "Full NVIDIA A100; record exact assigned form factor, memory, driver and topology",
+    "precision": "Native BF16 backbone and LoRA with official FP32 exceptions; no silent quantization",
+    "new_content_per_job": true,
+    "shape_matched_survivors": true,
+    "content_identity": "Hash the new prompt/reference manifest; record reference bytes, shapes and modality without publishing private assets",
+    "configuration": "Freeze and record requested and effective attention, LoRA, steps, dimensions, frames and reference parameters before comparing timings",
+    "mainline": "One bounded cloud session, one normal startup, finite batch, download verification, service cleanup and platform release",
+    "minimum_observation_targets": {"successful_jobs": 2, "queued_cancellation": 1},
+    "failure_policy": "No until-pass loop. Record every failed attempt and explicit bounded recovery; reconcile unknown submissions by original identity.",
+    "gpu_session_release_required": true
+  },
+  "identity_fields": ["experiment_id", "host_instance", "clock_scope", "code_revision", "source_hashes", "job_id", "attempt_id", "content_id"],
+  "evidence_layers": ["structural_validation", "cpu_counterexample", "hardware_microbenchmark", "real_gpu_service_run", "platform_release_observation"],
+  "verdicts": ["supported_in_observed_scope", "refuted", "inconclusive", "not_run"],
+  "unknown_rules": [
+    "Missing event, identity, clock domain, budget or effective configuration is unknown, never implicit zero/success.",
+    "No actual pre-ready submission means H1 queue-while-loading is inconclusive.",
+    "No feasible independent work opportunity means H3 is inconclusive, not a scheduler failure or proof of overlap.",
+    "No response-loss injection means H6 covers only observed normal/incident paths.",
+    "No platform observation means resource release is unknown even if API became unreachable.",
+    "No complete matching FLOP/byte workload means whole-inference physical efficiency is unknown."
+  ],
+  "measurement": {
+    "stage_clock": "monotonic_ns within one proven shared host clock domain",
+    "cross_host": "Do not subtract clocks from different hosts; use local request durations and causal receipt brackets",
+    "polling": "State transition time is interval-censored between observations",
+    "gpu": "Lease wall time is not kernel busy time; CUDA event timing must cover relevant streams and be read after completion",
+    "intrusion": "Do not add device-wide synchronization at every sample; record event/fsync/profiler/query costs and frequency",
+    "samples": "Sampled memory/utilization maxima are observed lower bounds on actual peaks, not exhaustive safety evidence",
+    "overlap": "Use union of intervals before intersection to prevent duplicate overlap accounting",
+    "physics": "Keep physical necessary bounds, empirical microbenchmark references and trace-derived schedule references distinct"
+  },
+  "hypotheses": [
+    {"id":"H1","claim":"API admission does not require model readiness; GPU execution does.","observables":["same-instance public API probe","admission snapshot","model ready event","stage events"],"falsification":"GPU dispatch before valid model readiness, or an identified unnecessary model-readiness barrier on otherwise admissible API submission.","controls":["submit during observed loading","same instance identity"],"scope":"One cold-start observation, not all startup failures"},
+    {"id":"H2","claim":"Attempt stages preserve true dependencies and declared resource ownership.","observables":["paired stage intervals","effective CPU budget","GPU lease ownership","attempt identities"],"falsification":"Stage dependency reversal, overlapping exclusive GPU leases, or declared CPU ownership above budget.","controls":["validate complete event pairs","separate declared reservations from hardware samples"],"scope":"Observed complete event trace and declared resource model"},
+    {"id":"H3","claim":"Feasible independent CPU work can overlap another job's GPU stage.","observables":["cross-job interval intersections","ready work evidence","resource availability"],"falsification":"Sustained ready independent work with available budget is held by an unnecessary all-stage barrier.","controls":["at least two matched-shape survivor jobs","report measurement uncertainty"],"scope":"Capability and observed opportunity, not global throughput optimality"},
+    {"id":"H4","claim":"A queue cancellation accepted before dispatch prevents later GPU ownership and yields a terminal receipt.","observables":["cancellation arbitration","dispatch events","GPU events","terminal cleanup"],"falsification":"A cancelled queued attempt later enters GPU execution or loses its required terminal receipt.","controls":["server ordering, not only client send time","cancel while observed queued"],"scope":"One tested cancellation location; running cancellation separate"},
+    {"id":"H5","claim":"Effective precision and generation configuration follow the selected policy without silent fallback.","observables":["precision preflight","requested options","effective options","generation receipt"],"falsification":"Silent quantization, requested-as-effective reporting or cross-task plugin state leakage.","controls":["record source and adapter identity","native BF16 with declared FP32 exceptions"],"scope":"Executed configurations only"},
+    {"id":"H6","claim":"One accepted attempt commits one result; uncertainty is reconciled under its original identity.","observables":["accepted attempt IDs","terminal events","artifact IDs","client reconciliation record"],"falsification":"Duplicate generation for one unmodified intent after an unknown response, without an explicit new attempt.","controls":["bounded GET retries","no untracked resubmission"],"scope":"Observed paths; fault-tolerance claim requires actual fault exercise"},
+    {"id":"H7","claim":"A successful artifact is completely validated and externally downloadable with identical identity and bytes.","observables":["full media decode receipt","committed hash and size","external download hash and size"],"falsification":"Truncation, hash/identity mismatch or successful state without complete validation.","controls":["download survivors only under original IDs","preview not accepted as full-file proof"],"scope":"The actual produced artifacts, not perceptual or semantic quality"},
+    {"id":"H8","claim":"Task cleanup, service process exit and platform release each have a distinct verifiable receipt.","observables":["task cleanup","process ownership and exit","final host receipt","platform session observation"],"falsification":"Cleanup reports completion while an owned resource survives, or a required receipt is missing.","controls":["save receipts before tunnel shutdown","verify platform separately"],"scope":"Current owned resources and visible platform session"}
+  ],
+  "comparison_policy": {
+    "same_content_replay": false,
+    "reason": "User requires new content for each generation test.",
+    "allowed": "Fixed shapes/modality/steps and randomized assignment of new matched content to strategies in future repeated experiments; report residual content confounding.",
+    "forbidden": "A speedup claim from two different-content single runs, or treating sum of concurrent stage durations as a measured serial run.",
+    "small_sample": "Report all individual samples and ranges; no stable tail quantile or general reliability inference from this exploratory batch."
+  },
+  "remaining_gaps": ["cross-platform replication", "steady arrival and overload stability", "real failure injection", "complete model FLOP and memory-traffic counts", "bandwidth contention calibration", "quality metrics", "arbitrary model adapters"],
+  "sources": [
+    {"title":"NVIDIA GPU Performance Background","url":"https://docs.nvidia.com/deeplearning/performance/dl-performance-gpu-background/index.html","used_for":"Compute, memory and latency limits; arithmetic intensity assumptions"},
+    {"title":"NERSC Roofline Performance Model","url":"https://docs.nersc.gov/tools/performance/roofline/","used_for":"Separate machine capability characterization from application FLOPs, bytes and time"},
+    {"title":"NVIDIA CUDA Asynchronous Execution","url":"https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/asynchronous-execution.html","used_for":"Streams and events for completion-aware timing"},
+    {"title":"NVIDIA CUDA Best Practices timing","url":"https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/#timing","used_for":"Avoid interpreting asynchronous CPU return as device completion"}
+  ]
+}

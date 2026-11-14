@@ -1,0 +1,354 @@
+{
+  "schema_version": 1,
+  "evidence_layer": "finite_model_validation",
+  "executed_at_utc": "2026-11-14T23:20:37.976589+00:00",
+  "source_sha256": "1e6c6833381fb01c46c8d5e6a14caa060ddfe0a360b2c83f5848193ea93cbbf4",
+  "gpu_used": false,
+  "simulation_durations_are_declared_not_measured": true,
+  "model_assumptions": [
+    "integer starts and fixed positive integer durations",
+    "non-preemptive tasks",
+    "constant resource demand over half-open intervals",
+    "all tasks released at zero",
+    "explicit acyclic dependencies",
+    "no setup cost, memory residency, bandwidth contention or uncertainty"
+  ],
+  "exhaustiveness": "All start assignments finishing by sum(durations) were enumerated; a topological serial schedule fits this horizon. Optimality is confined to this grid and these declared tasks.",
+  "cases": {
+    "strict_lower_bound_gap": {
+      "declared_model": {
+        "pools": {
+          "shared": 2
+        },
+        "tasks": [
+          {
+            "id": "A",
+            "duration": 2,
+            "depends_on": [],
+            "demand": {
+              "shared": 1
+            }
+          },
+          {
+            "id": "B",
+            "duration": 2,
+            "depends_on": [],
+            "demand": {
+              "shared": 1
+            }
+          },
+          {
+            "id": "C",
+            "duration": 2,
+            "depends_on": [],
+            "demand": {
+              "shared": 1
+            }
+          }
+        ]
+      },
+      "result": {
+        "unit": "model_tick_not_seconds",
+        "resource_floor_ticks": 3.0,
+        "critical_path_floor_ticks": 2.0,
+        "combined_necessary_floor_ticks": 3.0,
+        "exact_grid_optimum_ticks": 4,
+        "gap_ticks": 1.0,
+        "integer_start_grid": {
+          "min": 0,
+          "latest_finish": 6
+        },
+        "assignments_examined": 125,
+        "feasible_assignments": 96,
+        "witness": [
+          {
+            "task": "A",
+            "start": 0,
+            "end": 2,
+            "canonical_demand": {
+              "shared": 1
+            }
+          },
+          {
+            "task": "B",
+            "start": 0,
+            "end": 2,
+            "canonical_demand": {
+              "shared": 1
+            }
+          },
+          {
+            "task": "C",
+            "start": 2,
+            "end": 4,
+            "canonical_demand": {
+              "shared": 1
+            }
+          }
+        ],
+        "scope": "Exact only for the declared finite integer-start, fixed-duration, non-preemptive model; not real GPU or continuous/general scheduling optimality."
+      }
+    },
+    "alias_invented_capacity": {
+      "declared_model": {
+        "pools": {
+          "gpu_a": 1,
+          "gpu_b": 1
+        },
+        "tasks": [
+          {
+            "id": "A",
+            "duration": 2,
+            "depends_on": [],
+            "demand": {
+              "gpu_a": 1
+            }
+          },
+          {
+            "id": "B",
+            "duration": 2,
+            "depends_on": [],
+            "demand": {
+              "gpu_b": 1
+            }
+          }
+        ]
+      },
+      "result": {
+        "unit": "model_tick_not_seconds",
+        "resource_floor_ticks": 2.0,
+        "critical_path_floor_ticks": 2.0,
+        "combined_necessary_floor_ticks": 2.0,
+        "exact_grid_optimum_ticks": 2,
+        "gap_ticks": 0.0,
+        "integer_start_grid": {
+          "min": 0,
+          "latest_finish": 4
+        },
+        "assignments_examined": 9,
+        "feasible_assignments": 9,
+        "witness": [
+          {
+            "task": "A",
+            "start": 0,
+            "end": 2,
+            "canonical_demand": {
+              "gpu_a": 1
+            }
+          },
+          {
+            "task": "B",
+            "start": 0,
+            "end": 2,
+            "canonical_demand": {
+              "gpu_b": 1
+            }
+          }
+        ],
+        "scope": "Exact only for the declared finite integer-start, fixed-duration, non-preemptive model; not real GPU or continuous/general scheduling optimality."
+      }
+    },
+    "alias_physical_pool": {
+      "declared_model": {
+        "pools": {
+          "gpu": 1
+        },
+        "aliases": {
+          "gpu_a": "gpu",
+          "gpu_b": "gpu"
+        },
+        "tasks": [
+          {
+            "id": "A",
+            "duration": 2,
+            "depends_on": [],
+            "demand": {
+              "gpu_a": 1
+            }
+          },
+          {
+            "id": "B",
+            "duration": 2,
+            "depends_on": [],
+            "demand": {
+              "gpu_b": 1
+            }
+          }
+        ]
+      },
+      "result": {
+        "unit": "model_tick_not_seconds",
+        "resource_floor_ticks": 4.0,
+        "critical_path_floor_ticks": 2.0,
+        "combined_necessary_floor_ticks": 4.0,
+        "exact_grid_optimum_ticks": 4,
+        "gap_ticks": 0.0,
+        "integer_start_grid": {
+          "min": 0,
+          "latest_finish": 4
+        },
+        "assignments_examined": 9,
+        "feasible_assignments": 2,
+        "witness": [
+          {
+            "task": "A",
+            "start": 0,
+            "end": 2,
+            "canonical_demand": {
+              "gpu": 1
+            }
+          },
+          {
+            "task": "B",
+            "start": 2,
+            "end": 4,
+            "canonical_demand": {
+              "gpu": 1
+            }
+          }
+        ],
+        "scope": "Exact only for the declared finite integer-start, fixed-duration, non-preemptive model; not real GPU or continuous/general scheduling optimality."
+      }
+    },
+    "independent_parallel": {
+      "declared_model": {
+        "pools": {
+          "cpu": 1,
+          "gpu": 1
+        },
+        "tasks": [
+          {
+            "id": "A",
+            "duration": 2,
+            "depends_on": [],
+            "demand": {
+              "cpu": 1
+            }
+          },
+          {
+            "id": "B",
+            "duration": 2,
+            "depends_on": [],
+            "demand": {
+              "gpu": 1
+            }
+          }
+        ]
+      },
+      "result": {
+        "unit": "model_tick_not_seconds",
+        "resource_floor_ticks": 2.0,
+        "critical_path_floor_ticks": 2.0,
+        "combined_necessary_floor_ticks": 2.0,
+        "exact_grid_optimum_ticks": 2,
+        "gap_ticks": 0.0,
+        "integer_start_grid": {
+          "min": 0,
+          "latest_finish": 4
+        },
+        "assignments_examined": 9,
+        "feasible_assignments": 9,
+        "witness": [
+          {
+            "task": "A",
+            "start": 0,
+            "end": 2,
+            "canonical_demand": {
+              "cpu": 1
+            }
+          },
+          {
+            "task": "B",
+            "start": 0,
+            "end": 2,
+            "canonical_demand": {
+              "gpu": 1
+            }
+          }
+        ],
+        "scope": "Exact only for the declared finite integer-start, fixed-duration, non-preemptive model; not real GPU or continuous/general scheduling optimality."
+      }
+    },
+    "artificial_serial_barrier": {
+      "declared_model": {
+        "pools": {
+          "cpu": 1,
+          "gpu": 1
+        },
+        "tasks": [
+          {
+            "id": "A",
+            "duration": 2,
+            "depends_on": [],
+            "demand": {
+              "cpu": 1
+            }
+          },
+          {
+            "id": "B",
+            "duration": 2,
+            "depends_on": [
+              "A"
+            ],
+            "demand": {
+              "gpu": 1
+            }
+          }
+        ]
+      },
+      "result": {
+        "unit": "model_tick_not_seconds",
+        "resource_floor_ticks": 2.0,
+        "critical_path_floor_ticks": 4.0,
+        "combined_necessary_floor_ticks": 4.0,
+        "exact_grid_optimum_ticks": 4,
+        "gap_ticks": 0.0,
+        "integer_start_grid": {
+          "min": 0,
+          "latest_finish": 4
+        },
+        "assignments_examined": 9,
+        "feasible_assignments": 1,
+        "witness": [
+          {
+            "task": "A",
+            "start": 0,
+            "end": 2,
+            "canonical_demand": {
+              "cpu": 1
+            }
+          },
+          {
+            "task": "B",
+            "start": 2,
+            "end": 4,
+            "canonical_demand": {
+              "gpu": 1
+            }
+          }
+        ],
+        "scope": "Exact only for the declared finite integer-start, fixed-duration, non-preemptive model; not real GPU or continuous/general scheduling optimality."
+      }
+    }
+  },
+  "findings": {
+    "necessary_not_sufficient": "Three independent duration-2 tasks on capacity 2: resource floor 3, path floor 2, combined floor 3, enumerated optimum 4 ticks.",
+    "aliases_cannot_create_capacity": {
+      "incorrect_model_optimum_ticks": 2,
+      "physical_model_optimum_ticks": 4,
+      "incorrect_witness_violates_physical_pool": true,
+      "interpretation": "The solver is consistent with both declared models; the invented second pool is the modeling error, and its witness is physically inadmissible under the canonical pool."
+    },
+    "unnecessary_serial_dependency": {
+      "independent_optimum_ticks": 2,
+      "artificial_barrier_optimum_ticks": 4,
+      "interpretation": "A false dependency doubles this tiny model's makespan; this is not a measured cloud speedup."
+    }
+  },
+  "real_world_claims": {
+    "gpu_architecture_validated": false,
+    "hardware_efficiency": null,
+    "global_real_schedule_optimum": null,
+    "measured_cloud_speedup": null
+  }
+}
