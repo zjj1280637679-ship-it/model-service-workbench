@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-11-14T22:53:09.863623+00:00",
+  "finished_at": "2026-11-14T22:53:46.202782+00:00",
+  "platform": "Windows, Python 3.12 and Node 24",
+  "runs": [
+    {
+      "name": "python",
+      "command": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra"
+      ],
+      "exit_code": 0,
+      "local_stdout_sha256": "70aeefc85e0b28d6d197678b7fd70409413b7ccaae6e43333e1954bdea0b2938",
+      "passed": 644,
+      "skipped": 8,
+      "skipped_reason": "Eight Windows symbolic-link permission cases; CI on Linux exercises them when supported.",
+      "warning": "Existing Starlette httpx TestClient deprecation warning."
+    },
+    {
+      "name": "javascript",
+      "command": [
+        "node",
+        "--test",
+        "tests/test_console_delivery.cjs"
+      ],
+      "exit_code": 0,
+      "local_stdout_sha256": "8ce32fd5084e347ae07dabae954c1cf4a8ba71444b94a6dce76b24970ce8d4c6"
+    },
+    {
+      "name": "notebook",
+      "command": [
+        "python",
+        "tools/build_notebook.py",
+        "--check-only",
+        "--preload-acceleration",
+        "lightx2v-ref2va-4step"
+      ],
+      "exit_code": 0,
+      "local_stdout_sha256": "21c7f4190c657ae9665bb3d01022ebfe3f8dfdbdfd036fe81b3183e2ce55e167"
+    },
+    {
+      "name": "manifest",
+      "command": [
+        "python",
+        "tools/freeze_sources.py"
+      ],
+      "exit_code": 0,
+      "local_stdout_sha256": "1131a78dc2f7fedad373be9ffeecc82c8c8d3aa579358b52343dde699abd0ad8"
+    },
+    {
+      "name": "knowledge",
+      "command": [
+        "python",
+        "tools/check_knowledge.py"
+      ],
+      "exit_code": 0,
+      "local_stdout_sha256": "065b5c73e5e0652661deb9e136a415553b6898ee0513ff89c3956159658d982b",
+      "result": {
+        "status": "PASS",
+        "modules": 4,
+        "perspectives": 16,
+        "metrics": 27,
+        "references": 29,
+        "fingerprints": 92,
+        "scope": "Structure, safe source paths, explicit unknown measurements and recorded byte identities only; not semantic completeness, mathematical optimality, fresh GPU validation or a universal adapter implementation."
+      }
+    },
+    {
+      "name": "publication",
+      "command": [
+        "python",
+        "tools/check_publication.py"
+      ],
+      "exit_code": 0,
+      "local_stdout_sha256": "5de2cef0e779e2dc3bf5bb8baac0c11a1a5bc10fb2a5db3186ed539f0dd51a55",
+      "result": {
+        "status": "PASS",
+        "checked_files": 95,
+        "issues": [],
+        "scope": "Selected private/runtime filenames, model-weight extensions, symlinks, 32 MiB size limit, token signatures, supplied known secrets and personal home paths outside test fixtures; not an exhaustive secret detector."
+      }
+    }
+  ],
+  "new_gpu_run": false,
+  "runtime_executable_sources_unchanged": true,
+  "notebook_bundle_changes": [
+    "README.md"
+  ],
+  "scope": "CPU tests, knowledge/source identity and publication checks. Historic GPU observations remain independently attributed; no weights, GPU or public tunnel started."
+}

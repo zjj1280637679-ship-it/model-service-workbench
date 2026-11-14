@@ -1,0 +1,148 @@
+{
+  "id": "model-container",
+  "name": "通用模型容器模块",
+  "contract_version": "0.1.0",
+  "implementation_status": "specialized_reference",
+  "perspectives": {
+    "core": {
+      "requirements": [
+        "使用者希望模型执行产生符合输入、精度和交付约定的可验证产物，并能定位失败阶段。",
+        "目标属于模型使用场景；进程退出码或媒体格式合格不能代替语义质量和用户满意度。"
+      ],
+      "conditions": [
+        "当前 MiniMax-H3 实例通过 preflight.py 读取 GPU 型号、可用主机 RAM、磁盘与依赖；这些是该时刻的观察，不是永久资源保证。",
+        "model_container.py 分别记录下载、加载、工作线程及 ready；下载完成不能推出模型 ready。",
+        "当前验收 profile 是 A100 80GB 原生 BF16 主干及官方声明的 FP32 例外；model_backend.py 的实际参数审计用于核对精度，不允许把该 profile 静默替换为量化。",
+        "当前 H3 产物验证读取完整音视频解码、尺寸、帧数和 SHA；它不评价所有提示词的语义质量。"
+      ],
+      "strategies": [
+        "部署时选择模型适配器、模型 profile、允许精度、资产版本和 CPU offload 方案，并把选中的配置绑定到实例。",
+        "当前 H3 可选择 resident/staged 路线及已知 Turbo 预加载；稳定第三方适配器注册是设计目标，不能用测试 backend 注入替代已经实现的插件平台。",
+        "拟议通用适配器拆分 describe/prepare/infer/materialize/validate/cleanup；通用产物校验器随模型 profile 变化，不要求所有模型输出 MP4。"
+      ],
+      "metrics": [
+        {
+          "id": "MC-CORE-ARTIFACT",
+          "name": "产物合约合格率",
+          "definition": "验证通过且已提交的成功任务数 / 被声明成功的任务数；逐项核对 profile 规定的产物证据，语义质量另测。",
+          "unit": "ratio",
+          "scope": "固定代码、模型和 profile 的封闭测试批次；窗口从首项接纳到统一截止点，保留成功任务及产物校验回执。",
+          "unknown_rule": "无成功任务、成功清单不完整或任一成功任务缺验证证据时为 unknown，不能报 100%。",
+          "threshold_policy": "当前成功合约要求每项成立，目标比例为 1；任何单项违例仍判失败，不以均值掩盖。统计是否启用不解除产物验证义务。"
+        }
+      ]
+    },
+    "interaction": {
+      "requirements": [
+        "主调度器应能在模型加载、繁忙、失败和关闭时继续查询、取消或排空，控制不被长推理阻塞。",
+        "外部调用者应区分命令接收、执行开始、效果完成和资源释放。"
+      ],
+      "conditions": [
+        "model_container.py 的私有控制接口监听 loopback 并使用独立密钥；公共 API 密钥不代替私有控制凭据。",
+        "每次执行通过模型 instance_id、job_id、attempt_id 联合归属；同身份参数改变和旧实例结果在接纳边界拒绝。",
+        "status 回执观察 ready、accepting、active_phase、取消请求与 cleanup；请求返回不能独自证明取消已生效。",
+        "模型保留未被总管理确认消费的终态结果；ack_results 与持久化主结果的先后顺序可从 global_manager.py 核对。"
+      ],
+      "strategies": [
+        "根据用户操作选择排空、在安全阶段取消或显式强制停止；常规取消不伪装成安全中断任意 CUDA 指令。",
+        "执行传输结果未知时按同一尝试身份核对，保留所有权，不自动创建另一轮生成。",
+        "控制查询与模型执行使用各自受管通道，按部署目标设置观察和截止时间。"
+      ],
+      "metrics": [
+        {
+          "id": "MC-INT-CONTROL-P95",
+          "name": "控制查询 p95 延迟",
+          "definition": "私有 status 从发起到收到同实例响应的延迟样本 p95；分母为窗口内有效请求样本，同时报告全部请求数、错误数和超时数。",
+          "unit": "ms",
+          "scope": "同一客户端单调时钟；加载期、推理期、停止期分别统计，报告测量窗口和样本数。",
+          "unknown_rule": "样本不足、时钟不可靠或缺错误/超时计数时为 unknown；不通过丢弃失败请求美化延迟。",
+          "threshold_policy": "交互延迟预算由部署策略在测量前选择；2 秒轮询间隔不是服务 p95 的测量结果。"
+        }
+      ]
+    },
+    "recursion": {
+      "requirements": [
+        "一个模型任务可组合多个子阶段，组合后仍保持可停止、可解释和资源可回收。",
+        "独立子事件应按真实依赖和共享资源预算并行；递归组合不允许无界创建子生命周期。"
+      ],
+      "conditions": [
+        "当前 pipeline_scheduler.py/model_container.py 的固定图是 CPU prepare → 独占 GPU infer 与 CPU 交接 → CPU encode_validate；stage.started/finished 记录身份与阶段。",
+        "GPU 阶段也消耗主机 CPU；CPU 容量取逻辑核、affinity 和可见 cgroup quota 的约束，RAM/磁盘有预算及实时观察。",
+        "GPU 租约须覆盖 CUDA 同步和 CPU 所有权交接；下一任务不得在共享配置恢复未确认时执行。",
+        "父进程用 PID 与创建时间观察子所有者；子清理、租约归还和进程退出是不同事实，观察失败不能视为已清理。"
+      ],
+      "strategies": [
+        "对有限子图选择串行、预算内并行或阶段流水；同任务真实依赖保持，跨任务准备和编码可与另一任务推理重叠。",
+        "复合模型递归传递子身份、预算、截止时间和取消原因；共享物理资源仅在一个层级实际扣账，其他层引用该租约。",
+        "明确子失败是取消兄弟任务、保留部分已验证产物还是执行补偿；当前仅有固定三阶段和参考媒体子任务，任意递归 DAG 尚未实现。"
+      ],
+      "metrics": [
+        {
+          "id": "MC-REC-CLEANUP",
+          "name": "清理闭合率",
+          "definition": "已核对全部自有子事件、租约及临时文件的终态尝试数 / 应清理的终态尝试数；另报残留资源数。",
+          "unit": "ratio",
+          "scope": "一个容器实例从启动到停止的完整生命周期，包含成功、失败和取消；分母不能只选择成功尝试。",
+          "unknown_rule": "终态清单、资源身份或所有者观察缺失时为 unknown；操作系统查询失败不能解释为空进程列表。",
+          "threshold_policy": "实例关闭验收要求逐项闭合且残留资源为 0；未确认资源继续记账，不以统计均值解除清理义务。"
+        },
+        {
+          "id": "MC-REC-GPU-OVERLAP",
+          "name": "独占 GPU 租约重叠违规数",
+          "definition": "同一物理 GPU 租约同时属于两个不同所有者的时间区间数；检查集合是窗口内全部 acquire/release 区间，不是 GPU kernel 活跃率。",
+          "unit": "count",
+          "scope": "当前单 GPU 独占 profile 的一次实例，资源池和所有者身份必须固定可识别。",
+          "unknown_rule": "区间缺端点、身份或可信时间顺序时为 unknown，不把缺事件计为零违规。",
+          "threshold_policy": "当前独占合约要求 0；未来多租约策略须另立容量与隔离合约，不能默用当前阈值。"
+        }
+      ]
+    },
+    "expression": {
+      "requirements": [
+        "面板、API、日志与测试应对同一次执行作出一致且有范围的陈述。",
+        "使用者应能区分请求配置与实际应用配置、实时观察与历史记录、未知状态与明确失败。"
+      ],
+      "conditions": [
+        "generation_options.requested 保存请求，effective 仅在 GPU 租约内实际配置应用后产生；queued/prepare 时 effective 为 null。",
+        "下载进度、阶段事件、模型子实例、产物 SHA 与清理回执具有不同事实范围；旧实例或过期观察不能投射为当前 ready。",
+        "metrics.adapters 描述预加载部署，逐任务生效配置读取 generation_options；静态标签不替代本次 GPU 执行证据。"
+      ],
+      "strategies": [
+        "选用通用状态字段并附模型专用扩展，为事件摘要和面板字段指定源事件身份。",
+        "把缺失或过期观察明确显示为 unknown/stale；日志详略与历史保留按使用者任务选择，秘密值不进入普通投射。",
+        "对照同一事件版本验证自然语言、API 和面板，不比较异步不同时刻的值来伪造矛盾或一致。"
+      ],
+      "metrics": [
+        {
+          "id": "MC-EXP-CONSISTENCY",
+          "name": "同源表达一致率",
+          "definition": "符合源事件语义的比较字段数 / 全部比较字段数；字段集合含 requested/effective/phase/artifact/cleanup，绑定相同实例、任务、尝试和事件版本。",
+          "unit": "ratio",
+          "scope": "冻结一组事件后比较 API、面板投射和日志解释；每轮合约/投射变化记录样例集合及观察窗口。",
+          "unknown_rule": "源版本无法绑定或必需字段缺失时为 unknown，另报缺失计数，不把缺字段自动记为一致。",
+          "threshold_policy": "当前合约字段要求逐项一致；可选显示字段覆盖率由面板策略选择。零反例不证明所有未来轨迹等效。"
+        }
+      ]
+    }
+  },
+  "sources": [
+    "runtime/minimax_h3/model_container.py",
+    "runtime/minimax_h3/pipeline_scheduler.py",
+    "runtime/minimax_h3/pipeline_backend.py",
+    "runtime/minimax_h3/model_backend.py",
+    "runtime/minimax_h3/generation_options.py",
+    "runtime/minimax_h3/process_owner.py",
+    "runtime/minimax_h3/preflight.py",
+    "runtime/minimax_h3/global_manager.py",
+    "runtime/minimax_h3/test_model_container.py",
+    "runtime/minimax_h3/test_pipeline_scheduler.py",
+    "runtime/minimax_h3/test_pipeline_backend.py",
+    "evidence/acceptance-2026-11-15.json"
+  ],
+  "gaps": [
+    "当前是 MiniMax-H3 专用参考实现，稳定第三方适配器注册、版本协商和其他模型 profile 未实现。",
+    "当前是独立受管进程和准入预算，不等于 Docker 隔离或 OS 级强制 RAM/磁盘配额。",
+    "当前没有任意递归 DAG、多 GPU 执行和完整带宽标定；不可宣称全局物理最优。",
+    "2026-11-15 的有限真实样例不证明所有输入语义质量、所有模型可用性或同输入 A/B 提速倍数。"
+  ]
+}

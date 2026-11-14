@@ -1,0 +1,148 @@
+{
+  "id": "event-orchestrator",
+  "name": "主事件调度模块",
+  "contract_version": "0.1.0",
+  "implementation_status": "specialized_reference",
+  "perspectives": {
+    "core": {
+      "requirements": [
+        "使用者希望主任务拥有唯一可追溯的事实来源，从接收、等待、执行到产物提交和资源回收形成闭环。",
+        "任务失败或观察未知时仍应有可查询身份、控制入口和保留的所有权，不能通过重置状态掩盖未完成效果。"
+      ],
+      "conditions": [
+        "global_manager.py 将任务、命令和事件持久化到 SQLite；管理器实例、模型子实例、job 和 attempt 分别标识不同责任。",
+        "API、模型和隧道的活性、就绪与退出由独立探测和 process_owner 观察；进程存活不等于可服务，缺失观察不等于成功。",
+        "主结果先持久化，再向模型 ack_results；清理未确认的执行保持租约和所有权，源码与针对性反例测试可定位该顺序。",
+        "主队列 job_count_limit 为 null，但上传字节和实际磁盘资源仍约束准入，不能把不设条数上限解释为无限资源。"
+      ],
+      "strategies": [
+        "选择 durable FIFO、启动/生成截止时间、排空和故障隔离规则，把所选策略版本绑定实例。",
+        "当前对结果未知的生成采用同身份核对而非自动重放；控制命令使用稳定 command_id 对账。",
+        "通过观察、解释差距、选择控制、执行和重新观察构成负反馈；已证实的资源压力可减少接纳或撤销能力，不能把无界重试当作闭环。"
+      ],
+      "metrics": [
+        {
+          "id": "EO-CORE-CLOSURE",
+          "name": "主事件完整率",
+          "definition": "具有接纳、因果状态转换、终态结果及清理证据的终态任务数 / 截止点应结束的已接纳任务数；仍运行、超时及未知项另列，成功/失败/取消均保留。",
+          "unit": "ratio",
+          "scope": "封闭验收批次，从首项接纳至统一截止点；不删掉失败样本或用 HTTP 200 数量代替主任务数。",
+          "unknown_rule": "接纳账本缺失、统一截止点未定或所有者观察缺失时为 unknown。",
+          "threshold_policy": "该批次完成验收要求每个任务可对账；未完成项不能被高平均率掩盖，统计是否启用不解除主事件完整性义务。"
+        }
+      ]
+    },
+    "interaction": {
+      "requirements": [
+        "API、面板与模型应以明确命令和回执协作，慢模型不阻塞控制，不混淆不同实例。",
+        "模型下载期应能先交付 API、接纳队列并指定取消；实际派发须等待真实能力与资源满足。"
+      ],
+      "conditions": [
+        "公共任务回执 instance_id 归属管理器，model_instance_id 标识可替换模型；消费结果核对 job_id/attempt_id/model instance。",
+        "派发检查当前 ready、accepting 和资源准入；API 本身可查询且接纳开放时，模型未 ready 仍可保持持久排队。",
+        "API、模型、隧道是独立准备分支；公网业务可达依赖 API 和隧道探测，但模型权重下载不是隧道启动的前置条件。",
+        "API stop/start 意图和探测 epoch 用于拒绝迟到旧探测；旧观察不能重新发布已停止实例的 ready。"
+      ],
+      "strategies": [
+        "选择本地入口或临时公网入口；只在本地使用时不把隧道列为必需能力。",
+        "独立启动与探测可并行，前台交付可以只有限等待 API；模型继续受同一所有者管理。",
+        "控制渠道与生成渠道分别受管；未知命令效果按相同身份核对，不因传输超时生成新副作用。"
+      ],
+      "metrics": [
+        {
+          "id": "EO-INT-API-DELIVERY",
+          "name": "API 交付时延",
+          "definition": "启动请求接收至当前实例所选入口首次业务探测成功的持续时间；一次启动是一条样本，同条件多次启动另报分布与未完成数。",
+          "unit": "s",
+          "scope": "区分本地/公网、冷/热启动及探测能力；使用同一可信时钟和明确起止窗口，记录交付时 model_ready。",
+          "unknown_rule": "实例身份不匹配、时钟边界不明或探测未完成时为 unknown/右删失，不能填 0。",
+          "threshold_policy": "时延上限由交互场景预先选择；180 秒前台观察是宿主策略，不是已测得服务 SLO。"
+        }
+      ]
+    },
+    "recursion": {
+      "requirements": [
+        "复合主事件应按真实依赖展开，独立子事件并行，同时保留父子所有权、失败和取消的闭合。",
+        "以理想重叠下的硬件物理下界为参照，避免无必要串行，但不把局部启发式宣称为全局最优。"
+      ],
+      "conditions": [
+        "同一任务的取消与派发在同一控制边界仲裁，主结果提交先于模型丢弃；这些顺序不要求独立准备分支串行。",
+        "当前固定执行图为 prepare→GPU 与 CPU 交接→encode_validate；多个 running 尝试不表示多个 GPU 所有者。",
+        "共享 CPU/GPU/RAM/磁盘约束由真实资源池和预算快照描述；CPU 容量读取 affinity/cgroup，RAM/磁盘是准入估算而非 OS 强制配额。",
+        "performance_model.py 保留未知工作量和容量；完整 H3 FLOPs、主机传输及实测带宽尚未全部接入跨任务调度。"
+      ],
+      "strategies": [
+        "可选择拓扑就绪队列、预算内阶段流水、失败传播或补偿；当前实现是固定服务树，不接受任意用户 DAG。",
+        "父节点向有限子图传递身份、截止时间和资源引用，子节点可按同一合约组合；每一物理池只实际扣账一次。",
+        "在工作量和带宽已标定时，可用 max(共享资源总工作量/容量, 依赖关键路径) 为乐观下界比较策略；缺测量时明确 unknown。",
+        "FIFO 用于当前持久派发秩序，不强制不同准备成本任务的 GPU 开始或完成顺序相同。"
+      ],
+      "metrics": [
+        {
+          "id": "EO-REC-BOUND-GAP",
+          "name": "物理下界差距比",
+          "definition": "同一工作负载实测 makespan / 正的 T_lb，其中 T_lb=max(max_r Σ_i w(i,r)/p(r), 最长依赖路径 Σ_i max_r w(i,r)/p(r))。",
+          "unit": "ratio",
+          "scope": "固定 DAG、硬件拓扑、精度和起止窗口；完整覆盖与部分覆盖分开，启动下载与纯推理不可混为同一测量边界。",
+          "unknown_rule": "任何必需工作量、共享池容量、单位或可信时钟未知时不给完整比值；部分覆盖只保留部分下界，不能补齐虚构工作量。",
+          "threshold_policy": "不设未经论证的最优阈值；相同边界内比较策略并同时满足质量和资源约束。下界不保证可达，比值小不证明算法全局最优。"
+        },
+        {
+          "id": "EO-REC-OVERCOMMIT",
+          "name": "共享资源超借数",
+          "definition": "窗口内发放的互斥租约或确认预算超过共享资源池的违规区间数，另报涉及资源和持续时间；检查集合为全部租约与容量版本事件。",
+          "unit": "count",
+          "scope": "一个受管实例完整资源事件序列，容量变化和预算变化须带版本；不是通过 RSS 推测所有租约。",
+          "unknown_rule": "租约端点、身份或容量版本缺失时为 unknown；RAM 估算误差另报，不伪称 OS 强隔离。",
+          "threshold_policy": "当前独占 GPU 和 CPU 通道合约要求 0；RAM/磁盘估算安全余量属于部署策略，不能用该策略代替真实容量。"
+        }
+      ]
+    },
+    "expression": {
+      "requirements": [
+        "状态、日志、依赖图与自然语言应表达相同因果事实，保留未发生、不允许、未知和已完成的区别。",
+        "用户应看到当前阻塞原因与可操作状态，不靠猜测历史日志恢复主事件。"
+      ],
+      "conditions": [
+        "waiting_for 是当前阻塞条件，dispatch_reason 是上次拒绝原因；active_phase 绑定当前执行尝试，二者不能互换。",
+        "completed 记录历史结果，ready 表示当前可撤销能力，can_start 还要检查真实依赖、资源、身份和当前策略。",
+        "API 可达、主任务终态、产物验证、局部清理、进程退出与平台释放是不同观察者支持的独立命题。",
+        "2026-11-15 验收摘要包含最终成功、取消、早期依赖失败与短暂 503；证据表达不应把恢复后的成功改写为零故障历史。"
+      ],
+      "strategies": [
+        "使用字段投射、状态表、DAG 或布尔前提表达同一合约，为每种表达写明来源和身份。",
+        "对投射加入反例轨迹：下载完成未加载、旧实例迟到、取消竞争、资源不足和最终清理缺回执。",
+        "按使用场景选择事件摘要和审计保留，不用日志量、颜色或一项 success 标签替代各自事实。"
+      ],
+      "metrics": [
+        {
+          "id": "EO-EXP-PROJECTION",
+          "name": "表达等效反例数",
+          "definition": "同一带身份事件轨迹在图、布尔前提、状态表和 API/面板投射中产生矛盾判断的样例数；分母为明确声明的轨迹集合。",
+          "unit": "count",
+          "scope": "每次合约或投射变化的一轮有限回归集，至少含下载完成但未加载、旧实例迟到、取消竞争与清理缺回执；记录轨迹版本和验证窗口。",
+          "unknown_rule": "轨迹覆盖未声明或任一投射规则缺失时为 unknown；零反例仅覆盖所测集合。",
+          "threshold_policy": "声明轨迹集内要求 0；扩充样例提高覆盖，不自动构成所有表达的全称等价或形式正确性证明。"
+        }
+      ]
+    }
+  },
+  "sources": [
+    "runtime/minimax_h3/global_manager.py",
+    "runtime/minimax_h3/process_owner.py",
+    "runtime/minimax_h3/startup.py",
+    "runtime/minimax_h3/pipeline_scheduler.py",
+    "runtime/minimax_h3/resource_scheduler.py",
+    "runtime/minimax_h3/performance_model.py",
+    "runtime/minimax_h3/test_global_manager.py",
+    "runtime/minimax_h3/test_process_owner.py",
+    "runtime/minimax_h3/test_startup_delivery.py",
+    "evidence/acceptance-2026-11-15.json"
+  ],
+  "gaps": [
+    "当前是 MiniMax-H3 固定服务树和固定阶段，尚未实现任意 DAG、跨机器一致性或通用多模型公平调度。",
+    "部分反馈与超时策略存在，但未证明所有工作负载下的控制稳定性。",
+    "全模型工作量、主机传输和带宽未完整标定，不能声称达到全局数学最优或硬件物理极限。",
+    "有限 CPU 反例与 GPU 验收路径不构成所有并发轨迹、平台或模型的全称证明。"
+  ]
+}

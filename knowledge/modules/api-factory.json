@@ -1,0 +1,180 @@
+{
+  "id": "api-factory",
+  "name": "API 创建模块",
+  "contract_version": "0.1.0",
+  "implementation_status": "specialized_reference",
+  "perspectives": {
+    "core": {
+      "requirements": [
+        "提供有身份、权限、可观察和可回收生命周期的服务入口，将 API 可用性与昂贵模型准备解耦。",
+        "以稳定服务契约承接不同模型能力，不让 API 层加载权重或复制主任务真相。"
+      ],
+      "conditions": [
+        "当前 create_app 是 MiniMax-H3 ref2va 专用实现；需要服务 instance_id、公开 Bearer 密钥、私有 manager 连接与独立控制密钥。",
+        "私有 RPC 只监听 loopback；/v1/ 请求受 Bearer 保护，公开 /health/live 仅报告 API 活性与实例身份。",
+        "模型准备不构成启动 API 或准备隧道的前置条件；相应能力各有当前观察。"
+      ],
+      "strategies": [
+        "当前选 FastAPI、loopback RPC 与可选临时 Cloudflare；可替换传输和部署器，但须保持身份与能力语义。",
+        "能力由已支持且配置的适配器声明，当前不接受任意插件地址；未来通用 schema 生成需单独实现和验证。"
+      ],
+      "metrics": [
+        {
+          "id": "api-factory.core.capability-misclassification",
+          "name": "分层能力误判率",
+          "definition": "API 层能力判定与同身份、同时效独立见证相矛盾次数除以可判定能力观察数。",
+          "unit": "ratio",
+          "scope": "分别按 api_live、public_api_reachable、model_ready、admission 等命题报告。",
+          "unknown_rule": "无独立见证、时效不可比或分母为 0 时为 unknown。",
+          "threshold_policy": "采用为正确性验收时已知反例为 0；unknown 不可转为成功。"
+        },
+        {
+          "id": "api-factory.core.unauthorized-admission",
+          "name": "未授权请求错误接纳率",
+          "definition": "无效或缺失公开凭据仍到达受保护副作用处理器的请求数除以注入的无效受保护请求数。",
+          "unit": "ratio",
+          "scope": "/v1/ 路由与方法矩阵；排除明确公开的活性接口及 CORS 预检。",
+          "unknown_rule": "无有效样本或无法见证处理器触达时为 unknown。",
+          "threshold_policy": "采用为正确性验收时为 0；该指标不单独证明完整安全性或租户隔离。"
+        }
+      ]
+    },
+    "interaction": {
+      "requirements": [
+        "允许模型准备时排队，保留任务身份供进度查询、指定取消、可靠取回产物。",
+        "传输结果与业务结果独立表达，未知提交先对账，不能因网络错误重复昂贵执行。"
+      ],
+      "conditions": [
+        "接收 POST、入持久队列、GPU 执行和产物提交是不同事件；任务、命令及执行尝试具有身份。",
+        "幂等语义包含输入和加速参数指纹；最终实测包含 job ID 的 503 后同 ID 查询和取消，未自动重发。",
+        "当前上传并发最多 3 份，总参考最多 64 MiB；主队列无固定条数上限但仍受真实磁盘和准入条件约束。",
+        "CORS 来源策略与 Bearer 鉴权是独立条件；HTTP 202 不表示视频完成。"
+      ],
+      "strategies": [
+        "当前采用异步 202 与按 ID 查询，未知提交保留输入及身份，先对账不盲重发。",
+        "完成后使用鉴权下载、长度和 SHA 检查；未来可选事件流须保留恢复游标与同样终态判据。",
+        "取消排队与执行中取消分别处理，后者等待安全边界和局部清理，不把取消请求当完成。"
+      ],
+      "metrics": [
+        {
+          "id": "api-factory.interaction.extra-executions",
+          "name": "未知提交后的额外执行次数",
+          "definition": "按语义幂等请求累计实际执行次数超出允许次数的正差。",
+          "unit": "次",
+          "scope": "断连、超时、携 job ID 的 503、重复提交和恢复故障注入窗口，以持久记录及 attempt 对账。",
+          "unknown_rule": "没有执行审计或无法关联语义请求时为 unknown。",
+          "threshold_policy": "采用为正确性验收时为 0；HTTP 重试次数不是执行次数。"
+        },
+        {
+          "id": "api-factory.interaction.queue-cancel-latency",
+          "name": "排队取消确认延迟",
+          "definition": "取消命令被管理器接收至任务 cancelled 且 cleanup_complete 的单调时钟间隔，报告样本数及分位数。",
+          "unit": "ms",
+          "scope": "排队取消与运行中安全边界取消分别统计，不能共用排队延迟阈值。",
+          "unknown_rule": "缺任一见证或时钟不可比较时为 unknown；未结束样本单列，不删除。",
+          "threshold_policy": "按队列存储、控制周期与场景选择阈值；不可为了延迟达标提前报告取消。"
+        },
+        {
+          "id": "api-factory.interaction.verified-download-rate",
+          "name": "已提交产物下载完整率",
+          "definition": "长度、SHA 和完整解码均通过的下载数除以已请求且已有已提交产物的下载数。",
+          "unit": "ratio",
+          "scope": "固定网络与测试窗口，另报中断、失败、未知数量，覆盖下载端见证而非仅服务端。",
+          "unknown_rule": "没有下载尝试或缺文件验证时为 unknown。",
+          "threshold_policy": "最小闭环中每个被接受为成功的下载都应验证通过；跨场景服务目标需另选，不预设质量优越性。"
+        }
+      ]
+    },
+    "recursion": {
+      "requirements": [
+        "让多服务或子部署通过相同所有权、身份、取消和清理契约组合，局部失败可被定位。",
+        "父级生命周期不得因一个子模块失效而无界重建全部依赖或不断创建公网入口。"
+      ],
+      "conditions": [
+        "当前 manager 受管启动 API、模型和隧道；API 与隧道观察父进程身份。",
+        "模型子实例可重启，但 API/manager 服务实例归属不能混淆；旧回执需要拒绝。",
+        "stop_api 或 shutdown 可能切断自身响应通道，因此要求稳定 command_id 并从存活管理入口对账。",
+        "当前没有通用多实例集群 API 工厂或生产租户隔离实现。"
+      ],
+      "strategies": [
+        "通用设计由父编排器持有子工厂句柄，按真实依赖汇总观察和回收，不以文件或进程数代替模块边界。",
+        "公私控制通道分开；子实例身份明确，父级等待关闭见证后才归还资源。",
+        "失败恢复可选择局部重启或停止，须由明确策略和资源预算约束，未知结果先对账。"
+      ],
+      "metrics": [
+        {
+          "id": "api-factory.recursion.residual-endpoints",
+          "name": "关闭后受管端点与进程残留",
+          "definition": "约定关闭期限后，本实例所有权树中仍存活的 API/隧道进程及仍可到达的受管端点数，按类型分别报告。",
+          "unit": "count",
+          "scope": "仅已登记的本实例资源；报告探测范围和时间，平台 VM 另有平台观察。",
+          "unknown_rule": "不可观察的资源为 unknown，不把连接失败当成所有进程已退出。",
+          "threshold_policy": "声明清理完成时受管残留必须为 0；VM 释放不能由此单独推出。"
+        },
+        {
+          "id": "api-factory.recursion.cross-instance-acceptance",
+          "name": "跨实例回执错误接纳次数",
+          "definition": "接纳不匹配 expected_instance_id 或当前任务/模型子实例身份的回执次数。",
+          "unit": "次",
+          "scope": "API/模型重启、迟到消息、多实例注入和恢复场景。",
+          "unknown_rule": "身份链缺失或不能确定当前实例时为 unknown。",
+          "threshold_policy": "采用为正确性验收时为 0；相同端口或相似 URL 不是同实例证明。"
+        }
+      ]
+    },
+    "expression": {
+      "requirements": [
+        "让配置、鉴权、活性、公网可达、准入、模型能力、任务结果和清理分别表达本来命题。",
+        "文档、API JSON、客户端视图保持可核对映射，不以统一 success 掩盖未知或部分失败。"
+      ],
+      "conditions": [
+        "隧道候选 URL 分配与连接注册分开；manager 用匹配实例的公网 API 探测确认 public_api_ready。",
+        "supported、configured、ready 分开；任务 requested 与 effective 分开，未执行时 effective 可为 null。",
+        "下载需 succeeded 与已提交产物，服务端再次核对路径归属、字节数和 SHA；HTTP 200 不能单独证明生成可用。"
+      ],
+      "strategies": [
+        "结构化状态按实例与观察时间限定；unknown、stale、明确拒绝、当前失败各有表达。",
+        "OpenAPI、文档、JSON 与面板使用相同命题映射；聚合标签须能展开原条件。",
+        "没有完整分母不造百分比；历史完成记录保留但不替代当前 readiness。"
+      ],
+      "metrics": [
+        {
+          "id": "api-factory.expression.contract-counterexamples",
+          "name": "跨表达契约反例数",
+          "definition": "同一输入类经文档、API JSON、客户端投射后违反指定命题映射的不同反例数量。",
+          "unit": "count",
+          "scope": "冻结契约版本、抽象输入划分及场景，区分传输与业务命题。",
+          "unknown_rule": "未检查的输入类保留 unknown；无共同命题映射无法宣称通过。",
+          "threshold_policy": "已覆盖类的验收目标为 0；零已发现反例不是全称证明。"
+        },
+        {
+          "id": "api-factory.expression.capability-age",
+          "name": "能力观察陈旧度",
+          "definition": "使用能力观察的时刻减去观察产生时刻，报告观察来源和时钟误差。",
+          "unit": "s",
+          "scope": "按服务实例和能力类型分组，使用可比较时间基准。",
+          "unknown_rule": "无观察或跨宿主时钟不可比时为 unknown。",
+          "threshold_policy": "按探测和失效策略选新鲜度门限；超限撤销当前可用推断，不抹去历史成功。"
+        }
+      ]
+    }
+  },
+  "sources": [
+    "runtime/minimax_h3/server.py",
+    "runtime/minimax_h3/global_manager.py",
+    "runtime/minimax_h3/tunnel.py",
+    "runtime/minimax_h3/startup.py",
+    "runtime/minimax_h3/process_owner.py",
+    "runtime/minimax_h3/generation_options.py",
+    "runtime/minimax_h3/test_server.py",
+    "runtime/minimax_h3/test_server_cors.py",
+    "runtime/minimax_h3/test_server_manager_identity.py",
+    "runtime/minimax_h3/test_global_manager.py",
+    "evidence/acceptance-2026-11-15.json"
+  ],
+  "gaps": [
+    "通用模型能力到 API schema 的工厂、持久公网部署器、事件订阅及多实例租户隔离尚未实现。",
+    "所有指标是设计定义，尚无覆盖全部故障条件与生产流量的连续测量。",
+    "没有任意插件执行、任意模型兼容或数学最优吞吐量的保证；当前实测只支持明确记录的 MiniMax-H3 BF16 场景。"
+  ]
+}

@@ -1,0 +1,303 @@
+{
+  "schema_version": 1,
+  "record_kind": "curated_historical_observations",
+  "observed_date": "2026-11-15",
+  "timezone": "Asia/Shanghai",
+  "gpu": "NVIDIA A100-SXM4-80GB",
+  "precision": "native BF16 with official FP32 exceptions",
+  "quantization": false,
+  "api_version": "0.4.0",
+  "web_version": "0.9.0",
+  "original_notebook_sha256": "d0059be5d52278667fad0b70869e89bd27439a99cadb772584ac122e7a7a0885",
+  "published_detailed_report": "https://github.com/zjj1280637679-ship-it/simple-llm-api-web/blob/3a693f121d265849783eb1588dbcae380dd5ce2c/docs/reviews/2026-11-15-bf16-browser.md",
+  "jobs": [
+    {
+      "id": "964f414f33224bb98a13bff87379d3dc",
+      "instance_id": "558799045c724b3b8bb3c4aa4ba24d7f",
+      "status": "failed",
+      "lifecycle": [
+        {
+          "state": "queued",
+          "observed_at": 1794691605.5753748
+        },
+        {
+          "state": "failed",
+          "observed_at": 1794692050.8263042
+        }
+      ],
+      "cleanup_complete": true,
+      "generation_options": {
+        "requested": {
+          "attention_backend": "_native_flash",
+          "acceleration_lora": "lightx2v-ref2va-4step",
+          "steps": 5
+        },
+        "effective": null
+      },
+      "artifact": null,
+      "error": "model_worker_failed",
+      "source_sha256": "a44598c2e65dd059d1922932670c0e1c11418d93933fa8b1b0b6386b09ada667"
+    },
+    {
+      "id": "a91b1b15192b4d6a863a12fc71f30865",
+      "instance_id": "558799045c724b3b8bb3c4aa4ba24d7f",
+      "status": "succeeded",
+      "lifecycle": [
+        {
+          "state": "queued",
+          "observed_at": 1794692342.9320862
+        },
+        {
+          "state": "running",
+          "observed_at": 1794692356.3107626
+        },
+        {
+          "state": "succeeded",
+          "observed_at": 1794692946.5372396
+        }
+      ],
+      "cleanup_complete": true,
+      "generation_options": {
+        "requested": {
+          "attention_backend": "_native_flash",
+          "acceleration_lora": "lightx2v-ref2va-4step",
+          "steps": 5
+        },
+        "effective": {
+          "attention_backend": "_native_flash",
+          "acceleration_lora": "lightx2v-ref2va-4step",
+          "steps": 5,
+          "attention_scope": "transformer_ref",
+          "precision": "bf16",
+          "denoiser_evaluations": 4,
+          "style_lora": "none",
+          "style_scale": 1.0
+        }
+      },
+      "artifact": {
+        "bytes": 274621,
+        "sha256": "234e661b2e4f563b2b9ff4b7033e9ba6e72d8889b1fb315ce6ddf309e73d9327",
+        "media": {
+          "video_codec": "h264",
+          "width": 512,
+          "height": 288,
+          "decoded_frames": 124,
+          "fps": 24.0,
+          "duration_seconds": 5.166667,
+          "audio_codec": "aac",
+          "audio_channels": 2,
+          "audio_sample_rate": "32000",
+          "full_decode_passed": true
+        }
+      },
+      "error": null,
+      "source_sha256": "cbc2b9cea1b123faf564e76a0c80671f93b6eede75e5c355353fff645308930a",
+      "download_verification_sha256": "85204d414856c9309d791037cc3ffaadba0a51d2bf50e7ff4e9003efa923d2d5",
+      "browser_download_full_decode_passed": true
+    },
+    {
+      "id": "7f5ff814b9944ac49965b99f48f2c5c1",
+      "instance_id": "558799045c724b3b8bb3c4aa4ba24d7f",
+      "status": "cancelled",
+      "lifecycle": [
+        {
+          "state": "queued",
+          "observed_at": 1794692369.9215057
+        },
+        {
+          "state": "running",
+          "observed_at": 1794692370.7666283
+        },
+        {
+          "state": "cancel_requested",
+          "observed_at": 1794692388.315607
+        },
+        {
+          "state": "cancelled",
+          "observed_at": 1794692389.4684565
+        }
+      ],
+      "cleanup_complete": true,
+      "generation_options": {
+        "requested": {
+          "attention_backend": "auto",
+          "acceleration_lora": "none",
+          "steps": 8
+        },
+        "effective": null
+      },
+      "artifact": null,
+      "error": "result_not_committed",
+      "source_sha256": "59a2eaf10b7139827ddacf5ae3d2c7ba4927e4f4ad3694060953f479fcfce51d"
+    },
+    {
+      "id": "e68d7fde2943474192e307b97e2b6844",
+      "instance_id": "558799045c724b3b8bb3c4aa4ba24d7f",
+      "status": "succeeded",
+      "lifecycle": [
+        {
+          "state": "queued",
+          "observed_at": 1794692530.7951052
+        },
+        {
+          "state": "running",
+          "observed_at": 1794692530.9844818
+        },
+        {
+          "state": "succeeded",
+          "observed_at": 1794693146.3789825
+        }
+      ],
+      "cleanup_complete": true,
+      "generation_options": {
+        "requested": {
+          "attention_backend": "auto",
+          "acceleration_lora": "none",
+          "steps": 8
+        },
+        "effective": {
+          "attention_backend": "native",
+          "acceleration_lora": "none",
+          "steps": 8,
+          "attention_scope": "transformer_ref",
+          "precision": "bf16",
+          "denoiser_evaluations": 7,
+          "style_lora": "none",
+          "style_scale": 1.0
+        }
+      },
+      "artifact": {
+        "bytes": 180139,
+        "sha256": "e78e2e6c0a1c4d420f028e0f9386c998eae87d0b942e50a823c9108c31f284de",
+        "media": {
+          "video_codec": "h264",
+          "width": 512,
+          "height": 288,
+          "decoded_frames": 124,
+          "fps": 24.0,
+          "duration_seconds": 5.166667,
+          "audio_codec": "aac",
+          "audio_channels": 2,
+          "audio_sample_rate": "32000",
+          "full_decode_passed": true
+        }
+      },
+      "error": null,
+      "source_sha256": "0739d15091e99526da7089a3d1f381ed93b02cfc5297d65a1c7eda8d25421a82",
+      "download_verification_sha256": "4891276f92a33e3416dea08d8028ac32d70818ac720692284bd6fcc2ef04a2a8",
+      "browser_download_full_decode_passed": true
+    },
+    {
+      "id": "354bfe1ca7ed44b2a5e543d805e2291a",
+      "instance_id": "0480a438ebc2486e8faa09a4671264ce",
+      "status": "succeeded",
+      "lifecycle": [
+        {
+          "state": "queued",
+          "observed_at": 1794694065.973213
+        },
+        {
+          "state": "running",
+          "observed_at": 1794694403.0767376
+        },
+        {
+          "state": "succeeded",
+          "observed_at": 1794694763.5723732
+        }
+      ],
+      "cleanup_complete": true,
+      "generation_options": {
+        "requested": {
+          "attention_backend": "_native_flash",
+          "acceleration_lora": "lightx2v-ref2va-4step",
+          "steps": 5
+        },
+        "effective": {
+          "attention_backend": "_native_flash",
+          "acceleration_lora": "lightx2v-ref2va-4step",
+          "steps": 5,
+          "attention_scope": "transformer_ref",
+          "precision": "bf16",
+          "denoiser_evaluations": 4,
+          "style_lora": "none",
+          "style_scale": 1.0
+        }
+      },
+      "artifact": {
+        "bytes": 210125,
+        "sha256": "09511fe9fff586fe8baa89fdcf98bc04f68344ec06f9927b3716ee188d63fbf6",
+        "media": {
+          "video_codec": "h264",
+          "width": 512,
+          "height": 288,
+          "decoded_frames": 124,
+          "fps": 24.0,
+          "duration_seconds": 5.166667,
+          "audio_codec": "aac",
+          "audio_channels": 2,
+          "audio_sample_rate": "32000",
+          "full_decode_passed": true
+        }
+      },
+      "error": null,
+      "source_sha256": "76eb4d394a54e42f88714b77088479f9b84d5c3ea36171a2fdbad1e4f604d303",
+      "download_verification_sha256": "4c89ec3871759412db1106390c17a4bfe9ebf65e5cdcaa7cae7862420ffe5948",
+      "browser_download_full_decode_passed": true
+    },
+    {
+      "id": "76354718dd73479bac67f811e4e1e435",
+      "instance_id": "0480a438ebc2486e8faa09a4671264ce",
+      "status": "cancelled",
+      "lifecycle": [
+        {
+          "state": "queued",
+          "observed_at": 1794694171.2838554
+        },
+        {
+          "state": "cancelled",
+          "observed_at": 1794694263.4389346
+        }
+      ],
+      "cleanup_complete": true,
+      "generation_options": {
+        "requested": {
+          "attention_backend": "auto",
+          "acceleration_lora": "none",
+          "steps": 8
+        },
+        "effective": null
+      },
+      "artifact": null,
+      "error": null,
+      "source_sha256": "d3a00fd99838aab5296ff39378d4dbd9d11c0423539f2f60cc13842419d2c059"
+    }
+  ],
+  "startup": {
+    "one_click_beijing": "2026-11-15 06:03:00",
+    "public_api_delivery_beijing": "2026-11-15 06:05:00",
+    "model_ready_at_api_delivery": false,
+    "automatic_queue_dispatch_observed": true
+  },
+  "cleanup": {
+    "cleanup_complete": true,
+    "shutdown_complete": true,
+    "manager_alive": false,
+    "server_alive": false,
+    "model_alive": false,
+    "tunnel_alive": false,
+    "gpu_used_mib": 0,
+    "kernel_children": [],
+    "gpu_compute_processes": [],
+    "platform_sessions_observation": "没有正在进行的会话",
+    "platform_observed_beijing": "2026-11-15 06:22",
+    "service_receipt_sha256": "c9384f7cdb27d452852c089c2e0738b02343771e3af63873292906802360e953",
+    "platform_text_sha256": "7c725df13c12a1365cde38001c25ad4fae4c1ca455b089cdadf1151c80c83f37"
+  },
+  "limits": [
+    "Historical acceptance, not a new GPU run for this repository migration.",
+    "Three successful generations, two cancellations, one early dependency failure; transient HTTP 503 reconciled by the same job ID.",
+    "No matched-input A/B speedup or image-quality benchmark.",
+    "Raw logs, databases, private connection files, signed URLs and host-specific paths are intentionally not published.",
+    "Hashes identify local originals; they do not independently certify the truth of observations."
+  ]
+}

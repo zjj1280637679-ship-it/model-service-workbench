@@ -1,0 +1,50 @@
+# Model Service Workbench
+
+可查询、可控制、可审计的模型服务工程与模块知识库。仓库封装版本 **0.1.0**；当前参考实现为 MiniMax-H3 ref2va API **0.4.0**，配套网页为独立项目 **0.9.0**。
+
+从同一份契约看四件事：模块的核心能力、对外交互、内部递归组合、对外表达。每个视角分别写清 **主观抽象的需求 → 客观具象的条件 → 主观具象的可选策略 → 客观抽象的可选验证指标**。这四类是不同责任，不是可信度等级，也不能互相替代。
+
+## 从哪里开始
+
+| 要做的事 | 入口 |
+| --- | --- |
+| 理解四类知识与四个视角 | [知识模型](docs/knowledge-model.md) |
+| 理解模块关系、状态与并行边界 | [架构与生命周期](docs/architecture.md) |
+| 运行现有 A100 BF16 实例 | [运行说明](docs/operations.md) |
+| 查看真实生成和资源释放证据 | [验证范围](docs/validation.md)、[历史验收摘要](evidence/acceptance-2026-11-15.json) |
+| 修改代码或增加新模型 | [维护入口](AGENTS.md)、[知识索引](knowledge/index.json) |
+
+## 四个模块
+
+| 模块 | 当前职责 | 详细契约 |
+| --- | --- | --- |
+| 通用模型容器 | 持有模型与执行尝试，完成预处理、GPU 推理、编码校验和清理 | [模型容器](docs/modules/model-container.md) |
+| 交互面板 | 看板呈现事实，控制提交意图，日志呈现事件与必要确认 | [交互面板](docs/modules/interaction-panel.md) |
+| 主事件调度 | 持有主任务状态、进程所有权、依赖图、资源准入与终态对账 | [主事件调度](docs/modules/event-orchestrator.md) |
+| API 创建 | 配置并维护服务入口、鉴权、传输、可达性与任务接口 | [API 创建](docs/modules/api-factory.md) |
+
+这些是逻辑责任。当前运行时仍是总管理、API 后台、大模型容器三个受管进程，加可选公网隧道；面板使用 Colab 宿主。**通用契约已整理，任意模型插件注册、任意平台部署、多机调度尚未实现。** 现有代码作为第一个专用实例保留，文档不会让它自动成为通用框架。
+
+## 已完成的真实基线
+
+2026-11-15 在 Colab A100 80 GB、原生 BF16 下跑通：一键启动、公网 API 先上线、模型下载期间排队、指定取消、模型就绪后自动处理、三个全新视频的网页预览和下载校验、服务进程清理、平台会话释放。共 3 成功、2 取消、1 个早期依赖失败；短暂 503 按原任务 ID 对账恢复。没有用不同内容的运行时间推导加速倍数。
+
+本次建仓只做本地和 CI 的 CPU 验证，不重新申请 GPU。历史观察与本次验证分别记账。参考实现保持 BF16 主干、官方 FP32 例外，以及逐任务注意力后端、加速 LoRA 和步数控制。
+
+## 使用
+
+在 Colab 打开 [自包含笔记本](https://colab.research.google.com/github/zjj1280637679-ship-it/model-service-workbench/blob/main/notebooks/minimax-h3-ref2va.ipynb)，选择 A100 / 高 RAM 后运行唯一启动单元。源码与构建入口均在本仓库；模型权重由运行时按配置下载，不存入 Git。
+
+已有的[极简网页](https://zjj1280637679-ship-it.github.io/simple-llm-api-web/)保留文本、图片和视频功能；在视频设置中导入本次 API 连接文件。其[独立源码](https://github.com/zjj1280637679-ship-it/simple-llm-api-web/tree/v0.9.0)继续维护，不在此复制第二套业务状态。
+
+本地仅验证工程：
+
+```bash
+python -m pip install -r requirements-test.txt
+python -m pytest
+python tools/check_knowledge.py
+python tools/check_publication.py
+python tools/build_notebook.py --check-only --preload-acceleration lightx2v-ref2va-4step
+```
+
+详细资源、公开 API 和释放步骤见[运行说明](docs/operations.md)。模型、第三方库与外部客户端的来源边界见 [NOTICE](NOTICE.md)。

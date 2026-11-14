@@ -1,0 +1,13 @@
+# CPU-only regression environment. No torch, diffusers, weights, GPU or public tunnel.
+# Direct dependencies reproduce the locally observed test environment.
+pytest==9.2.0
+fastapi==0.162.5
+httpx==0.28.1
+python-multipart==0.0.33
+psutil==7.2.2
+requests==2.34.2
+uvicorn==0.54.0
+numpy==2.5.4
+Pillow==13.0.0
+av==16.1.0
+threadpoolctl==3.8.0

@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "knowledge_version": "0.1.0",
+  "taxonomy": {
+    "requirements": "主观抽象的需求",
+    "conditions": "客观具象的条件",
+    "strategies": "主观具象的可选策略",
+    "metrics": "客观抽象的可选验证指标"
+  },
+  "perspectives": {
+    "core": "核心",
+    "interaction": "交互",
+    "recursion": "递归",
+    "expression": "表达"
+  },
+  "modules": [
+    {"id": "model-container", "path": "knowledge/modules/model-container.json"},
+    {"id": "interaction-panel", "path": "knowledge/modules/interaction-panel.json"},
+    {"id": "event-orchestrator", "path": "knowledge/modules/event-orchestrator.json"},
+    {"id": "api-factory", "path": "knowledge/modules/api-factory.json"}
+  ],
+  "scope": "Design contracts and traceability for a specialized reference implementation; no automatic runtime interpreter or proof of semantic completeness."
+}

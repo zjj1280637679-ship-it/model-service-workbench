@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "hardware": "a100-sxm-40gb",
+  "coverage": "partial",
+  "observed_seconds": null,
+  "resources": {
+    "gpu_bf16_dense_flop": {
+      "work_unit": "FLOP",
+      "capacity_per_second": 312000000000000.0,
+      "note": "BF16 dense Tensor Core work only; 624 TFLOP/s sparsity peak does not apply. One multiply-add counts as 2 FLOPs.",
+      "source": "https://images.nvidia.com/data-center/a100/a100-datasheet.pdf"
+    },
+    "gpu_fp32_flop": {
+      "work_unit": "FLOP",
+      "capacity_per_second": null,
+      "note": "Keep FP32-layer work separate. Determine actual instruction path first; do not divide it by the BF16 peak. FP32 CUDA-core peak is 19.5e12 FLOP/s, TF32 is a different path.",
+      "source": "https://images.nvidia.com/data-center/a100/a100-datasheet.pdf"
+    },
+    "gpu_hbm_bytes": {
+      "work_unit": "byte",
+      "capacity_per_second": 1555000000000.0,
+      "note": "Total HBM traffic, not model-file size or PCIe traffic. Decimal GB/s; theoretical peak, not measured bandwidth.",
+      "source": "https://developer.nvidia.com/blog/nvidia-ampere-architecture-in-depth/"
+    },
+    "host_memory_bytes": {
+      "work_unit": "byte",
+      "capacity_per_second": null,
+      "note": "Host RAM topology and bandwidth are unknown.",
+      "source": null
+    },
+    "pcie_host_to_gpu_bytes": {
+      "work_unit": "byte",
+      "capacity_per_second": null,
+      "note": "Actual host-to-GPU topology/link width unknown. 64 GB/s bidirectional must not be used as one-way capacity.",
+      "source": null
+    },
+    "pcie_gpu_to_host_bytes": {
+      "work_unit": "byte",
+      "capacity_per_second": null,
+      "note": "Actual GPU-to-host topology/link width unknown. Keep transfer directions explicit.",
+      "source": null
+    },
+    "storage_read_bytes": {
+      "work_unit": "byte",
+      "capacity_per_second": null,
+      "note": "Backing-storage read bandwidth is unknown; distinguish page-cache hits from physical reads.",
+      "source": null
+    },
+    "network_bytes": {
+      "work_unit": "byte",
+      "capacity_per_second": null,
+      "note": "External network path and bandwidth are unknown.",
+      "source": null
+    },
+    "cpu_work": {
+      "work_unit": "operation",
+      "capacity_per_second": null,
+      "note": "Choose a measured CPU operation definition and matching peak before supplying work.",
+      "source": null
+    }
+  },
+  "stages": [],
+  "notes": [
+    "This template contains no MiniMax-H3 FLOP or byte estimates and predicts no generation time.",
+    "Add stage objects with id, depends_on, and work entries of {amount, unit}; null amount means unknown.",
+    "Use distinct stages for non-overlappable work and preserve true dependencies. A fused stage assumes ideal overlap among its resources.",
+    "Resource capacities describe shared resource pools. Do not duplicate one physical pool under different names to invent extra capacity.",
+    "Omitted resource work is assumed zero for the declared model. coverage=complete is an explicit assertion by the profiler, not automatic discovery.",
+    "Only use this full-GPU profile when the assigned GPU is the matching full A100, not a MIG slice.",
+    "GPU matrix, memory, launch, decode, I/O and transfer work still need profiling. Available RAM and VRAM capacity are feasibility constraints, not bandwidth."
+  ],
+  "method_source": "https://docs.nvidia.com/deeplearning/performance/dl-performance-gpu-background/"
+}

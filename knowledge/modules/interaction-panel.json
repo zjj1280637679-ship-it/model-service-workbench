@@ -1,0 +1,165 @@
+{
+  "id": "interaction-panel",
+  "name": "交互面板模块",
+  "contract_version": "0.1.0",
+  "implementation_status": "specialized_reference",
+  "perspectives": {
+    "core": {
+      "requirements": [
+        "降低人判断当前事实、可用动作与下一步的认知成本；事实正确性优先于单纯减少点击。",
+        "保持看板、控制与日志各自职责稳定，让不同信息按使用需要分配空间。"
+      ],
+      "conditions": [
+        "当前 Colab console.html 提供左上快照看板、左下常用控制与折叠高级控制、右侧动态日志；控制整卡滚动。",
+        "ConsoleController.snapshot() 从当前绑定宿主读取带观察时间的状态；DOM 中的旧文字不是主任务事实源。",
+        "URL、密钥可用性、模型下载和 LoRA 下载具有分开的显示字段。"
+      ],
+      "strategies": [
+        "当前选固定三块布局、常用动作直接可见、高级策略折叠，正常流程仅运行唯一启动单元。",
+        "可按屏幕与使用频率调整信息密度；调整不得把状态查询混成控制副作用，也不得隐藏未知状态。"
+      ],
+      "metrics": [
+        {
+          "id": "interaction-panel.core.start-actions",
+          "name": "正常路径人工启动操作数",
+          "definition": "从已分配且满足资源条件的运行时开始，到 API 交付前必须由用户完成的启动点击或等价键盘操作次数。",
+          "unit": "次/启动轮次",
+          "scope": "无异常正常路径；不包含无关浏览，另报条件不满足、断连和确认场景。",
+          "unknown_rule": "没有完整操作记录，或正常路径边界不确定时为 unknown。",
+          "threshold_policy": "本参考实例的正常路径目标为 1 次；扩展宿主按其入口和场景预先约定，不用减少必要确认来凑数。"
+        },
+        {
+          "id": "interaction-panel.core.claim-error-rate",
+          "name": "可核对状态命题错误率",
+          "definition": "同一测试窗口内，被独立事实见证反驳的状态命题数除以可核对的状态命题总数。",
+          "unit": "ratio",
+          "scope": "按实例与观察时刻对齐；覆盖可达、就绪、排队、终态和清理命题。",
+          "unknown_rule": "分母为 0、证据缺失或时效不可比较时为 unknown，不填 0。",
+          "threshold_policy": "选作正确性验收时已知反例必须为 0；有限样本不能证明全部状态都正确。"
+        }
+      ]
+    },
+    "interaction": {
+      "requirements": [
+        "使操作被接收、执行和完成分别可查询；长时任务不诱发重复执行。",
+        "让已授权普通操作直接完成，必要确认在日志区提供，并保留可对账的结果未知状态。"
+      ],
+      "conditions": [
+        "控制器具有 setup、generate、control 执行通道；操作具 request_id、指纹和 accepted/started/finished 事件。",
+        "当前 Colab 主单元默认前台观察最多 180 秒：此期间由宿主推送状态，RPC 按钮不可用，需要取消时用单元停止按钮；交还控制后恢复面板操作。",
+        "RPC 超时不能证明命令未被执行，当前浏览器保留未确认请求的原身份。"
+      ],
+      "strategies": [
+        "当前采用普通已授权操作直接执行；释放实例或强停模型在右侧日志区确认。",
+        "超时先查询和对账，不自动重发业务命令；人工重试相同意图时复用 request_id。",
+        "未来可选择订阅式传输，但必须保留命令身份、结果未知和断线恢复语义。"
+      ],
+      "metrics": [
+        {
+          "id": "interaction-panel.interaction.extra-effects",
+          "name": "同意图额外副作用次数",
+          "definition": "对每个相同 request_id 与 fingerprint，累计实际副作用次数超出契约允许次数的正差。",
+          "unit": "次",
+          "scope": "重复点击、超时和迟到响应故障注入窗口；只读查询不算副作用。",
+          "unknown_rule": "缺少副作用审计或不能归属同一意图时为 unknown。",
+          "threshold_policy": "采用为正确性验收时为 0；重试次数少不等于副作用次数少。"
+        },
+        {
+          "id": "interaction-panel.interaction.query-p95",
+          "name": "查询反馈延迟 p95",
+          "definition": "查询发起至匹配请求及实例的可用快照呈现的单调时钟间隔，按固定百分位方法取 p95。",
+          "unit": "ms",
+          "scope": "已交还面板控制的可查询窗口，报告样本数和方法；前台不可用窗口时长另报。",
+          "unknown_rule": "无匹配回执、样本不足或时钟不可比时为 unknown，不能丢弃超时后只报成功样本。",
+          "threshold_policy": "按宿主、网络和交互目标事先选阈值；没有通用最优毫秒值。"
+        }
+      ]
+    },
+    "recursion": {
+      "requirements": [
+        "让父面板与子模块共享可观察、可控制、可清理的契约，组合后仍有明确资源所有者。",
+        "递归组合不得产生无界轮询、弹窗、重试或脱离父级的监测子进程。"
+      ],
+      "conditions": [
+        "当前重复挂载复用控制器并停用旧面板回调，状态读取同一时间最多一个在途；隐藏或暂停时停止轮询。",
+        "启动观察绑定本次 request_id 对应的宿主对象与 instance_id；旧宿主终态不能完成新请求。",
+        "控制器登记监测子进程并在停止流程中回收；当前没有任意层级的通用面板树。"
+      ],
+      "strategies": [
+        "通用设计可由父面板汇总同契约子模块的有界快照，按预算展开子视图。",
+        "父级关闭先取消并等待受管子工作，再回收父资源；晚到结果依据身份与挂载版本拒绝写回。"
+      ],
+      "metrics": [
+        {
+          "id": "interaction-panel.recursion.residual-resources",
+          "name": "关闭后受管视图资源残留",
+          "definition": "到达约定关闭观察期限后，当前面板所有权树中仍活跃的计时器、回调和监测子进程数量，按类型列出。",
+          "unit": "count",
+          "scope": "仅已登记且由当前面板拥有的资源，不包括其他应用进程。",
+          "unknown_rule": "无法观察或遗漏登记的资源必须列为 unknown；不能当作已退出。",
+          "threshold_policy": "已声明清理完成时为 0；超时但未确认时保留所有权和未确认状态。"
+        },
+        {
+          "id": "interaction-panel.recursion.stale-commits",
+          "name": "旧身份结果错误写回次数",
+          "definition": "不匹配当前挂载、请求或实例的迟到结果被写成当前事实的次数。",
+          "unit": "次",
+          "scope": "重挂载、重启、取消竞争及父子关闭交接场景。",
+          "unknown_rule": "缺少身份链或无法判断当前所有者时为 unknown。",
+          "threshold_policy": "采用为正确性验收时为 0；只检查最终像素不能排除中间错误写回。"
+        }
+      ]
+    },
+    "expression": {
+      "requirements": [
+        "同一事实在看板、日志、结构化状态中保持等价命题；未知和过期观察保持可辨识。",
+        "让用户在稳定位置看到 URL、凭据状态和模型进度，同时避免凭据进入持久日志或快照。"
+      ],
+      "conditions": [
+        "候选 URL 与可达 URL 分开；下载完成与模型 ready 分开；只有已知完整分母时显示下载百分比。",
+        "普通快照和日志脱敏，密钥仅由专用回调取回；隐藏、断连或凭据变化清空前端明文。",
+        "保存的静态输出是离线投射，不代表当前服务仍运行；观察带实例和时间。"
+      ],
+      "strategies": [
+        "简短事实放看板，原因、必要确认和下载入口放日志区，避免常规成功弹窗。",
+        "过期时撤销当前可用表达；历史成功可表达为上次已加载，不延续为当前 ready。",
+        "组合标签必须可展开为原字段，显示规则不能凭同样颜色或词语替代命题映射。"
+      ],
+      "metrics": [
+        {
+          "id": "interaction-panel.expression.projection-mismatch",
+          "name": "跨表达投射不一致率",
+          "definition": "同一实例与事实版本上，UI、JSON、日志对指定命题的非等价表达对数除以可比较表达对总数。",
+          "unit": "ratio",
+          "scope": "预先定义命题映射及输入分类；时间不同的快照不能直接判为矛盾。",
+          "unknown_rule": "缺共同身份、版本或可比表达对时为 unknown；无样本不计为 0。",
+          "threshold_policy": "采用为正确性验收时已覆盖类不一致率为 0，保留抽象对应与未覆盖类的义务。"
+        },
+        {
+          "id": "interaction-panel.expression.observation-age",
+          "name": "当前状态观察年龄",
+          "definition": "状态呈现时刻减去事实观察时刻，报告分布和最大值。",
+          "unit": "s",
+          "scope": "同时间基准或有可量化时钟误差的实例观察。",
+          "unknown_rule": "观察时间缺失、来源不明或跨宿主时钟不可比时为 unknown。",
+          "threshold_policy": "按宿主探测周期选择新鲜度门限；超限时降为过期观察，不改写历史完成事实。"
+        }
+      ]
+    }
+  },
+  "sources": [
+    "runtime/minimax_h3/notebook_console.py",
+    "runtime/minimax_h3/console.html",
+    "runtime/minimax_h3/notebook_ui.py",
+    "runtime/minimax_h3/test_notebook_console.py",
+    "runtime/minimax_h3/test_console_connection.py",
+    "runtime/minimax_h3/test_startup_delivery.py",
+    "runtime/minimax_h3/test_console_process_lifecycle.py",
+    "evidence/acceptance-2026-11-15.json"
+  ],
+  "gaps": [
+    "通用非 Colab 传输与任意嵌套面板树尚未实现。",
+    "本文指标尚未全部自动采集；没有认知负荷、用户完成时间 A/B 或可访问性全覆盖测量。",
+    "通用模型能力到动态表单的映射与多宿主等效性需要新增证据。"
+  ]
+}
