@@ -129,8 +129,20 @@
     "Initial full regression: 1316 passed, 3 failed, 8 skipped. Three old fixtures/assertions lacked identity or assumed readiness before an observation; corrected without weakening runtime checks. Final regression above includes the later default-pagination test."
   ],
   "ci": {
-    "status": "pending",
-    "scope": "Linux CI must run on the published commit; no future result prefilled."
+    "status": "success",
+    "workflow": "Verify source and knowledge",
+    "run_id": 43667706282,
+    "job_id": 132670677566,
+    "source_commit": "827bf7ce1f5b28f9ed84765f16f6aaa3e4d0e83a",
+    "url": "https://github.com/zjj1280637679-ship-it/model-service-workbench/actions/runs/43667706282",
+    "platform": "ubuntu-latest, Python 3.12, Node 24",
+    "python_passed": 1328,
+    "python_skipped": 0,
+    "python_warnings": 1,
+    "python_duration_seconds": 32.05,
+    "javascript_passed": 12,
+    "all_steps_succeeded": true,
+    "scope": "Observed completed Linux workflow for the named source commit. This receipt update changes only this excluded validation output; it does not claim a new GPU run or prefill a future CI result."
   },
   "limits": [
     "No new GPU, CUDA or public tunnel run in v0.5.0.",
