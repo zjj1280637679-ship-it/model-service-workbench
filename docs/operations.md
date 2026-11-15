@@ -50,6 +50,7 @@ python run.py --public --install-cloudflared
 | --- | --- |
 | `GET /health/live` | API 自身活性；不证明模型可生成 |
 | `GET /v1/system` | 组件状态、实例、排队和资源观察 |
+| `GET /v1/audit/budget` | 按模型/预算实例及固定截止序号读取持久租约页，每页最多256端点 |
 | `GET /v1/capabilities` | supported/configured/ready 及可接受参数 |
 | `POST /v1/jobs` | multipart 上传并接收异步任务 |
 | `GET /v1/jobs/{id}` | 按原 ID 查询阶段、请求/实际配置、终态与清理 |
@@ -58,6 +59,10 @@ python run.py --public --install-cloudflared
 | `POST /v1/control` | 显式生命周期命令；会中断连接的命令使用稳定 command_id |
 
 全部 `/v1/` 使用 Bearer。具体字段和允许动作以 [server.py](../runtime/minimax_h3/server.py)、[generation_options.py](../runtime/minimax_h3/generation_options.py) 为准；字段说明不能替代运行实例的能力查询。
+
+当前单任务查询的 `execution_observation` 区分当前、历史、过期和未知；`condition_summary.last_decision` 是过去决策，不能当作当前许可。普通状态查询不复制整段租约历史；长期采集需使用审计分页并核对最终 count/tail，不以最后一页或当前零占用声称全程完整。审计写盘失败会阻断新的资源授予，释放证据缺失时清理不能显示成功。
+
+默认 `H3_QUEUE_POLICY=bounded_backfill`。资源不足且确定未接纳的任务允许有界考察后继；身份未知、409、未确认接纳、当前宿主压力均不能绕过。`H3_QUEUE_MAX_BYPASSES=2`、`H3_QUEUE_LOOKAHEAD=8`、`H3_QUEUE_HEAD_AGE_SECONDS=30` 约束成功越过次数、候选扫描和新越过的年龄窗口；这些不是队列条数限制，也不是完成时限。设 `H3_QUEUE_POLICY=fifo` 可选择严格 FIFO。长任务已经接纳后仍可能延迟前序任务；控制取消也可能等待正在进行的有界 RPC 与对账，不承诺0.25秒完成。
 
 ## 重建笔记本
 

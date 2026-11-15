@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "experiment_id": "3732565998754d26919f0706b838ebff",
+  "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+  "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+  "model_instance_id": "23de982643984911a92c5b2459eded28",
+  "trace_semantic_sha256": "e2fac97dc2cf4be8c32cb9f9bd222110badec6d1d9595bb632916c678891f42d",
+  "client_semantic_sha256": "af1b36053ea6a1c5dcb190c3b29dabd90092b7f9090b7b000b914784b64d0731",
+  "job_ids": [
+    "0607835d15b64e23b9755e8d61a5dab9",
+    "5783d0f311be4ddb917fa90392cc2c5c",
+    "bad5f458e5f943f794a357f2e4a7de7c"
+  ],
+  "artifact_profile": {
+    "width": 512,
+    "height": 288,
+    "frames": 124,
+    "fps": 24.0,
+    "audio_channels": 2,
+    "video_codec": "h264",
+    "audio_codec": "aac"
+  },
+  "metric_ids": [
+    "MC-CORE-ARTIFACT",
+    "EO-CORE-CLOSURE",
+    "MC-REC-GPU-OVERLAP",
+    "EO-REC-CPU-GPU-OVERCOMMIT",
+    "EO-REC-OVERCOMMIT"
+  ],
+  "window": {
+    "manager_sequence_start": 1,
+    "manager_sequence_end": 41,
+    "model_sequence_start": 1,
+    "model_sequence_end": 44,
+    "owner_observed_at": 1794705439.495141
+  }
+}

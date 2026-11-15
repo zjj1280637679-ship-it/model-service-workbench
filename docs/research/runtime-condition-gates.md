@@ -97,11 +97,11 @@ source_sha256 定位源码字节，capacity_version 定位预算配置；二者�
 
 ## 6. 有界历史不等于完整历史
 
-预算 lease_history 最多保留 512 个端点事件，每次获取与释放各占一个事件。count 是实例生命周期累计事件数，dropped 是被截断数量；history_complete 只有累计事件全部仍在缓存时才为 True。事件 sequence 贯穿同一预算实例连续递增，不因缓存截断重置。
+预算 lease_history 最多保留 512 个端点事件，每次获取与释放各占一个事件。count 是实例生命周期累计事件数，dropped 表示本次快照未包含的端点数；普通status使用included=False而不复制历史，不能把该省略视为磁盘数据丢失。事件sequence贯穿同一预算实例连续递增。0.5.0将每个端点先持久化至独立SQLite日志，内存尾只用于诊断。
 
-释放见证查询最多保留最近 256 份；按 attempt / kind 查询的条件回执最多保留最近 128 项。最近值便于控制和诊断，不能代替完整历史。最终 worker 事件也只能保存当时仍可用的有界预算历史，不能把已经被截断的数据恢复出来。
+释放见证查询最多保留最近 256 份；按 attempt / kind 查询的条件回执最多保留最近 128 项。最近值不能代替完整历史。0.4最终worker事件仅有当时有界尾；0.5.0另有lease_journal的最终count/tail见证，收集器通过固定截止分页恢复完整端点，磁盘读不占主状态锁，重启只恢复历史读取而不恢复执行权。
 
-模型持久 lease 事件可以补充观察；研究分析仍须验证实例绑定、连续性、终结尾序号和所有者退出观察。只看到“当前 GPU 无占用”不足以证明整次运行从未超卖。缺失租约端点、缺少最后快照或 history_complete=False 时，应输出 unknown 或明确限定覆盖区间，不把“没看到违规”写成完整通过。
+模型持久lease页须验证实例绑定、请求游标/上限、链摘要、连续性、终结尾序号和所有者退出观察。同内容重叠页可去重，冲突页失败，缺页unknown。仅有history_complete=False的尾无法证明完整；但已验证分页与最终count/tail共同覆盖时可恢复完整CPU/GPU账本。当前GPU无占用仍不足以证明全程无超借。写盘失败锁存，释放证据缺失不得报告cleanup成功；全RAM/磁盘账本仍未完整。
 
 独立分析入口为 [analyze_condition_gates.py](../../research/analyze_condition_gates.py)，它补充条件与预算审计，不改变旧 [analyze_trace.py](../../research/analyze_trace.py) 的历史检查定义。
 

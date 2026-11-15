@@ -1,11 +1,12 @@
 {
   "schema_version": 1,
-  "repository_version": "0.4.1",
-  "recorded_at": "2026-11-15T01:50:19.497596+00:00",
+  "repository_version": "0.5.0",
+  "recorded_at": "2026-11-15T02:25:04.599349+00:00",
   "platform": "Windows, Python 3.12",
   "new_gpu_run": false,
-  "runtime_executable_sources_unchanged_from": "v0.4.0",
-  "notebook_unchanged_from": "v0.4.0",
+  "source_manifest_sha256": "4f7473e2afaff3681675a34a6bdf9ed885d65d30aa58ab592c9255a73788a2d8",
+  "layout_css_and_dom_unchanged_from": "v0.4.1",
+  "bf16_execution_sources_unchanged_from": "v0.4.1",
   "historical_gpu_evidence_unchanged_from": "v0.4.0",
   "runs": [
     {
@@ -19,18 +20,18 @@
         "-q"
       ],
       "exit_code": 0,
-      "passed": 1093,
+      "passed": 1320,
       "skipped": 8,
       "warnings": 1,
-      "duration_seconds": 43.69,
+      "duration_seconds": 59.318,
       "skip_reason": "Windows account cannot create symbolic links.",
       "warning": "Existing Starlette TestClient httpx deprecation."
     },
     {
-      "name": "condition_review_counterexamples",
+      "name": "actual_console_javascript",
       "exit_code": 0,
-      "passed": 23,
-      "scope": "Includes missing declared source, conflicting baseline and omitted perspective-debt association."
+      "passed": 12,
+      "shared_python_js_fixtures": 10
     },
     {
       "name": "unchanged_requirements",
@@ -39,9 +40,9 @@
       "perspectives": 16
     },
     {
-      "name": "published_trace_and_condition_replay",
+      "name": "historical_trace_replay",
       "exit_code": 0,
-      "historical_counts": {
+      "base_counts": {
         "pass": 13,
         "fail": 0,
         "unknown": 0
@@ -51,7 +52,26 @@
         "fail": 0,
         "unknown": 2
       },
-      "published_results_exactly_unchanged": true
+      "published_condition_result_exactly_unchanged": true,
+      "source_binding": "research/source-bindings/runtime-conditions-v040.json"
+    },
+    {
+      "name": "selected_knowledge_metric_replay",
+      "exit_code": 0,
+      "counts": {
+        "measured": 4,
+        "unknown": 1,
+        "conflict": 0
+      },
+      "knowledge_verification": "pass",
+      "evidence": "evidence/debt-resolution-2026-11-15/metric-replay.json",
+      "scope": "Five selected v0.4 observations only; expected unknown matches without becoming measured or pass."
+    },
+    {
+      "name": "bounded_condition_search",
+      "exit_code": 0,
+      "models": 8,
+      "counterexamples": 3
     },
     {
       "name": "condition_strategy_metric_review",
@@ -59,22 +79,12 @@
       "review_status": "current",
       "drift": [],
       "perspectives": 16,
-      "reviewed_sources": 76,
+      "reviewed_sources": 108,
       "debt_counts": {
-        "open": 8,
-        "resolved": 4
+        "open": 0,
+        "resolved": 12
       },
-      "open_debts": [
-        "TD-004",
-        "TD-005",
-        "TD-006",
-        "TD-007",
-        "TD-008",
-        "TD-010",
-        "TD-011",
-        "TD-012"
-      ],
-      "scope": "Freshness of this declared review only; current does not mean all debt resolved, complete condition discovery, runtime acceptance or semantic proof. No automatic refresh is provided."
+      "newly_resolved": 8
     },
     {
       "name": "knowledge_structure_and_source_identity",
@@ -82,26 +92,49 @@
       "modules": 4,
       "perspectives": 16,
       "metrics": 28,
-      "fingerprints": 176
+      "fingerprints": 200
     },
     {
-      "name": "local_document_links",
+      "name": "publication_boundary_scan",
       "exit_code": 0,
-      "checked": 231
+      "status": "PASS",
+      "checked_files": 202,
+      "issues": []
     },
     {
-      "name": "notebook_ast",
+      "name": "notebook_build_and_ast",
       "exit_code": 0,
       "cells": 1,
-      "sha256": "33a94b6e2075b3b2c975cc5029cb7be7afa09dbc6f09f8554a9ae4b99582241e"
+      "embedded_files": 35,
+      "preload_acceleration": "lightx2v-ref2va-4step"
     },
     {
-      "name": "publication_and_known_secret_check",
-      "exit_code": 0,
-      "checked_files": 178,
-      "known_secrets_supplied": true,
-      "scope": "Declared publication checks; not an exhaustive secret detector."
+      "name": "long_lifetime_audit_counterexamples",
+      "scope": "Included in full CPU regression; 86 complete three-stage attempts, 516 endpoints, bounded 512-event tail, restart read-only, gaps, conflicts, final release and write-failure closure."
+    },
+    {
+      "name": "budget_query_microbenchmark",
+      "evidence": "evidence/debt-resolution-2026-11-15/budget-query-benchmark.json",
+      "scope": "Local CPU budget/accepting fragment; 300 samples per group. No network, full status RPC or A100 inference claim."
+    },
+    {
+      "name": "queue_policy_finite_study",
+      "evidence": "evidence/debt-resolution-2026-11-15/queue-policy-study.json",
+      "scope": "Finite model_tick comparison only; all skipped predecessors charged, worse maximum wait cases retained. No global optimality or completion-time bound."
     }
   ],
-  "scope": "Offline condition/strategy/metric debt audit and bounded counterexamples. Four resolved debts and eight open debts; fresh review is not semantic completeness, universal metric replay or new GPU acceptance. Historical GPU files and requirements retained; current knowledge fixes the former aggregate-versus-subset metric interpretation."
+  "integration_corrections": [
+    "Independent review found terminal receipt ownership, audit request-range/progress and unknown-version projection gaps; all gained rejecting counterexamples.",
+    "Queue study input arrival ordering and fairness accounting for every skipped predecessor corrected before final regression.",
+    "Initial full regression: 1316 passed, 3 failed, 8 skipped. Three old fixtures/assertions lacked identity or assumed readiness before an observation; corrected without weakening runtime checks. Final regression above includes the later default-pagination test."
+  ],
+  "ci": {
+    "status": "pending",
+    "scope": "Linux CI must run on the published commit; no future result prefilled."
+  },
+  "limits": [
+    "No new GPU, CUDA or public tunnel run in v0.5.0.",
+    "Historical media receipts are replayed, not newly decoded.",
+    "No claim of full-resource audit, semantic quality, A100 speedup, universal fairness, or global optimality."
+  ]
 }

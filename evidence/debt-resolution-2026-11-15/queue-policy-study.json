@@ -1,0 +1,1223 @@
+{
+  "schema_version": 2,
+  "time_unit": "model_tick",
+  "cases": {
+    "short_successors": {
+      "capacity": 12,
+      "jobs": [
+        {
+          "id": "resident",
+          "arrival": 0,
+          "duration": 10,
+          "size": 8
+        },
+        {
+          "id": "head",
+          "arrival": 0,
+          "duration": 4,
+          "size": 8
+        },
+        {
+          "id": "small0",
+          "arrival": 0,
+          "duration": 2,
+          "size": 2
+        },
+        {
+          "id": "small1",
+          "arrival": 0,
+          "duration": 2,
+          "size": 2
+        },
+        {
+          "id": "small2",
+          "arrival": 0,
+          "duration": 2,
+          "size": 2
+        },
+        {
+          "id": "small3",
+          "arrival": 0,
+          "duration": 2,
+          "size": 2
+        }
+      ],
+      "fifo": {
+        "policy": {
+          "mode": "fifo",
+          "max_bypasses": 2,
+          "lookahead": 8,
+          "max_head_age_seconds": 30.0,
+          "scope": "Successful later admissions are charged to every still-queued predecessor; no finite completion-time guarantee or queue length limit."
+        },
+        "admissions": [
+          {
+            "id": "resident",
+            "arrival": 0,
+            "duration": 10,
+            "size": 8,
+            "order": 0,
+            "start": 0,
+            "finish": 10
+          },
+          {
+            "id": "head",
+            "arrival": 0,
+            "duration": 4,
+            "size": 8,
+            "order": 1,
+            "start": 10,
+            "finish": 14
+          },
+          {
+            "id": "small0",
+            "arrival": 0,
+            "duration": 2,
+            "size": 2,
+            "order": 2,
+            "start": 10,
+            "finish": 12
+          },
+          {
+            "id": "small1",
+            "arrival": 0,
+            "duration": 2,
+            "size": 2,
+            "order": 3,
+            "start": 10,
+            "finish": 12
+          },
+          {
+            "id": "small2",
+            "arrival": 0,
+            "duration": 2,
+            "size": 2,
+            "order": 4,
+            "start": 12,
+            "finish": 14
+          },
+          {
+            "id": "small3",
+            "arrival": 0,
+            "duration": 2,
+            "size": 2,
+            "order": 5,
+            "start": 12,
+            "finish": 14
+          }
+        ],
+        "wait_ticks_by_job": {
+          "resident": 0,
+          "head": 10,
+          "small0": 10,
+          "small1": 10,
+          "small2": 12,
+          "small3": 12
+        },
+        "max_wait_ticks": 12,
+        "mean_wait_ticks": 9.0,
+        "makespan_ticks": 14,
+        "runnable_successor_blocked_job_ticks": 40,
+        "runnable_successor_blocked_union_ticks": 10,
+        "successful_overtakes_by_job": {},
+        "completed": 6,
+        "unfinished": 0
+      },
+      "bounded_backfill": {
+        "policy": {
+          "mode": "bounded_backfill",
+          "max_bypasses": 2,
+          "lookahead": 8,
+          "max_head_age_seconds": 30.0,
+          "scope": "Successful later admissions are charged to every still-queued predecessor; no finite completion-time guarantee or queue length limit."
+        },
+        "admissions": [
+          {
+            "id": "resident",
+            "arrival": 0,
+            "duration": 10,
+            "size": 8,
+            "order": 0,
+            "start": 0,
+            "finish": 10
+          },
+          {
+            "id": "small0",
+            "arrival": 0,
+            "duration": 2,
+            "size": 2,
+            "order": 2,
+            "start": 0,
+            "finish": 2
+          },
+          {
+            "id": "small1",
+            "arrival": 0,
+            "duration": 2,
+            "size": 2,
+            "order": 3,
+            "start": 0,
+            "finish": 2
+          },
+          {
+            "id": "head",
+            "arrival": 0,
+            "duration": 4,
+            "size": 8,
+            "order": 1,
+            "start": 10,
+            "finish": 14
+          },
+          {
+            "id": "small2",
+            "arrival": 0,
+            "duration": 2,
+            "size": 2,
+            "order": 4,
+            "start": 10,
+            "finish": 12
+          },
+          {
+            "id": "small3",
+            "arrival": 0,
+            "duration": 2,
+            "size": 2,
+            "order": 5,
+            "start": 10,
+            "finish": 12
+          }
+        ],
+        "wait_ticks_by_job": {
+          "resident": 0,
+          "small0": 0,
+          "small1": 0,
+          "head": 10,
+          "small2": 10,
+          "small3": 10
+        },
+        "max_wait_ticks": 10,
+        "mean_wait_ticks": 5.0,
+        "makespan_ticks": 14,
+        "runnable_successor_blocked_job_ticks": 16,
+        "runnable_successor_blocked_union_ticks": 8,
+        "successful_overtakes_by_job": {
+          "head": 2
+        },
+        "completed": 6,
+        "unfinished": 0
+      }
+    },
+    "long_successor_tradeoff": {
+      "capacity": 12,
+      "jobs": [
+        {
+          "id": "resident",
+          "arrival": 0,
+          "duration": 10,
+          "size": 8
+        },
+        {
+          "id": "head",
+          "arrival": 0,
+          "duration": 5,
+          "size": 10
+        },
+        {
+          "id": "long0",
+          "arrival": 0,
+          "duration": 20,
+          "size": 2
+        },
+        {
+          "id": "long1",
+          "arrival": 0,
+          "duration": 20,
+          "size": 2
+        }
+      ],
+      "fifo": {
+        "policy": {
+          "mode": "fifo",
+          "max_bypasses": 2,
+          "lookahead": 8,
+          "max_head_age_seconds": 30.0,
+          "scope": "Successful later admissions are charged to every still-queued predecessor; no finite completion-time guarantee or queue length limit."
+        },
+        "admissions": [
+          {
+            "id": "resident",
+            "arrival": 0,
+            "duration": 10,
+            "size": 8,
+            "order": 0,
+            "start": 0,
+            "finish": 10
+          },
+          {
+            "id": "head",
+            "arrival": 0,
+            "duration": 5,
+            "size": 10,
+            "order": 1,
+            "start": 10,
+            "finish": 15
+          },
+          {
+            "id": "long0",
+            "arrival": 0,
+            "duration": 20,
+            "size": 2,
+            "order": 2,
+            "start": 10,
+            "finish": 30
+          },
+          {
+            "id": "long1",
+            "arrival": 0,
+            "duration": 20,
+            "size": 2,
+            "order": 3,
+            "start": 15,
+            "finish": 35
+          }
+        ],
+        "wait_ticks_by_job": {
+          "resident": 0,
+          "head": 10,
+          "long0": 10,
+          "long1": 15
+        },
+        "max_wait_ticks": 15,
+        "mean_wait_ticks": 8.75,
+        "makespan_ticks": 35,
+        "runnable_successor_blocked_job_ticks": 20,
+        "runnable_successor_blocked_union_ticks": 10,
+        "successful_overtakes_by_job": {},
+        "completed": 4,
+        "unfinished": 0
+      },
+      "bounded_backfill": {
+        "policy": {
+          "mode": "bounded_backfill",
+          "max_bypasses": 2,
+          "lookahead": 8,
+          "max_head_age_seconds": 30.0,
+          "scope": "Successful later admissions are charged to every still-queued predecessor; no finite completion-time guarantee or queue length limit."
+        },
+        "admissions": [
+          {
+            "id": "resident",
+            "arrival": 0,
+            "duration": 10,
+            "size": 8,
+            "order": 0,
+            "start": 0,
+            "finish": 10
+          },
+          {
+            "id": "long0",
+            "arrival": 0,
+            "duration": 20,
+            "size": 2,
+            "order": 2,
+            "start": 0,
+            "finish": 20
+          },
+          {
+            "id": "long1",
+            "arrival": 0,
+            "duration": 20,
+            "size": 2,
+            "order": 3,
+            "start": 0,
+            "finish": 20
+          },
+          {
+            "id": "head",
+            "arrival": 0,
+            "duration": 5,
+            "size": 10,
+            "order": 1,
+            "start": 20,
+            "finish": 25
+          }
+        ],
+        "wait_ticks_by_job": {
+          "resident": 0,
+          "long0": 0,
+          "long1": 0,
+          "head": 20
+        },
+        "max_wait_ticks": 20,
+        "mean_wait_ticks": 5.0,
+        "makespan_ticks": 25,
+        "runnable_successor_blocked_job_ticks": 0,
+        "runnable_successor_blocked_union_ticks": 0,
+        "successful_overtakes_by_job": {
+          "head": 2
+        },
+        "completed": 4,
+        "unfinished": 0
+      }
+    },
+    "finite_arrival_stream": {
+      "capacity": 12,
+      "jobs": [
+        {
+          "id": "resident",
+          "arrival": 0,
+          "duration": 10,
+          "size": 8
+        },
+        {
+          "id": "head",
+          "arrival": 0,
+          "duration": 4,
+          "size": 12
+        },
+        {
+          "id": "new0",
+          "arrival": 0,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new1",
+          "arrival": 1,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new2",
+          "arrival": 2,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new3",
+          "arrival": 3,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new4",
+          "arrival": 4,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new5",
+          "arrival": 5,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new6",
+          "arrival": 6,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new7",
+          "arrival": 7,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new8",
+          "arrival": 8,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new9",
+          "arrival": 9,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new10",
+          "arrival": 10,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new11",
+          "arrival": 11,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new12",
+          "arrival": 12,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new13",
+          "arrival": 13,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new14",
+          "arrival": 14,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new15",
+          "arrival": 15,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new16",
+          "arrival": 16,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new17",
+          "arrival": 17,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new18",
+          "arrival": 18,
+          "duration": 3,
+          "size": 2
+        },
+        {
+          "id": "new19",
+          "arrival": 19,
+          "duration": 3,
+          "size": 2
+        }
+      ],
+      "fifo": {
+        "policy": {
+          "mode": "fifo",
+          "max_bypasses": 2,
+          "lookahead": 8,
+          "max_head_age_seconds": 30.0,
+          "scope": "Successful later admissions are charged to every still-queued predecessor; no finite completion-time guarantee or queue length limit."
+        },
+        "admissions": [
+          {
+            "id": "resident",
+            "arrival": 0,
+            "duration": 10,
+            "size": 8,
+            "order": 0,
+            "start": 0,
+            "finish": 10
+          },
+          {
+            "id": "head",
+            "arrival": 0,
+            "duration": 4,
+            "size": 12,
+            "order": 1,
+            "start": 10,
+            "finish": 14
+          },
+          {
+            "id": "new0",
+            "arrival": 0,
+            "duration": 3,
+            "size": 2,
+            "order": 2,
+            "start": 14,
+            "finish": 17
+          },
+          {
+            "id": "new1",
+            "arrival": 1,
+            "duration": 3,
+            "size": 2,
+            "order": 3,
+            "start": 14,
+            "finish": 17
+          },
+          {
+            "id": "new2",
+            "arrival": 2,
+            "duration": 3,
+            "size": 2,
+            "order": 4,
+            "start": 14,
+            "finish": 17
+          },
+          {
+            "id": "new3",
+            "arrival": 3,
+            "duration": 3,
+            "size": 2,
+            "order": 5,
+            "start": 14,
+            "finish": 17
+          },
+          {
+            "id": "new4",
+            "arrival": 4,
+            "duration": 3,
+            "size": 2,
+            "order": 6,
+            "start": 14,
+            "finish": 17
+          },
+          {
+            "id": "new5",
+            "arrival": 5,
+            "duration": 3,
+            "size": 2,
+            "order": 7,
+            "start": 14,
+            "finish": 17
+          },
+          {
+            "id": "new6",
+            "arrival": 6,
+            "duration": 3,
+            "size": 2,
+            "order": 8,
+            "start": 17,
+            "finish": 20
+          },
+          {
+            "id": "new7",
+            "arrival": 7,
+            "duration": 3,
+            "size": 2,
+            "order": 9,
+            "start": 17,
+            "finish": 20
+          },
+          {
+            "id": "new8",
+            "arrival": 8,
+            "duration": 3,
+            "size": 2,
+            "order": 10,
+            "start": 17,
+            "finish": 20
+          },
+          {
+            "id": "new9",
+            "arrival": 9,
+            "duration": 3,
+            "size": 2,
+            "order": 11,
+            "start": 17,
+            "finish": 20
+          },
+          {
+            "id": "new10",
+            "arrival": 10,
+            "duration": 3,
+            "size": 2,
+            "order": 12,
+            "start": 17,
+            "finish": 20
+          },
+          {
+            "id": "new11",
+            "arrival": 11,
+            "duration": 3,
+            "size": 2,
+            "order": 13,
+            "start": 17,
+            "finish": 20
+          },
+          {
+            "id": "new12",
+            "arrival": 12,
+            "duration": 3,
+            "size": 2,
+            "order": 14,
+            "start": 20,
+            "finish": 23
+          },
+          {
+            "id": "new13",
+            "arrival": 13,
+            "duration": 3,
+            "size": 2,
+            "order": 15,
+            "start": 20,
+            "finish": 23
+          },
+          {
+            "id": "new14",
+            "arrival": 14,
+            "duration": 3,
+            "size": 2,
+            "order": 16,
+            "start": 20,
+            "finish": 23
+          },
+          {
+            "id": "new15",
+            "arrival": 15,
+            "duration": 3,
+            "size": 2,
+            "order": 17,
+            "start": 20,
+            "finish": 23
+          },
+          {
+            "id": "new16",
+            "arrival": 16,
+            "duration": 3,
+            "size": 2,
+            "order": 18,
+            "start": 20,
+            "finish": 23
+          },
+          {
+            "id": "new17",
+            "arrival": 17,
+            "duration": 3,
+            "size": 2,
+            "order": 19,
+            "start": 20,
+            "finish": 23
+          },
+          {
+            "id": "new18",
+            "arrival": 18,
+            "duration": 3,
+            "size": 2,
+            "order": 20,
+            "start": 23,
+            "finish": 26
+          },
+          {
+            "id": "new19",
+            "arrival": 19,
+            "duration": 3,
+            "size": 2,
+            "order": 21,
+            "start": 23,
+            "finish": 26
+          }
+        ],
+        "wait_ticks_by_job": {
+          "resident": 0,
+          "head": 10,
+          "new0": 14,
+          "new1": 13,
+          "new2": 12,
+          "new3": 11,
+          "new4": 10,
+          "new5": 9,
+          "new6": 11,
+          "new7": 10,
+          "new8": 9,
+          "new9": 8,
+          "new10": 7,
+          "new11": 6,
+          "new12": 8,
+          "new13": 7,
+          "new14": 6,
+          "new15": 5,
+          "new16": 4,
+          "new17": 3,
+          "new18": 5,
+          "new19": 4
+        },
+        "max_wait_ticks": 14,
+        "mean_wait_ticks": 7.818181818181818,
+        "makespan_ticks": 26,
+        "runnable_successor_blocked_job_ticks": 55,
+        "runnable_successor_blocked_union_ticks": 10,
+        "successful_overtakes_by_job": {},
+        "completed": 22,
+        "unfinished": 0
+      },
+      "bounded_backfill": {
+        "policy": {
+          "mode": "bounded_backfill",
+          "max_bypasses": 2,
+          "lookahead": 8,
+          "max_head_age_seconds": 30.0,
+          "scope": "Successful later admissions are charged to every still-queued predecessor; no finite completion-time guarantee or queue length limit."
+        },
+        "admissions": [
+          {
+            "id": "resident",
+            "arrival": 0,
+            "duration": 10,
+            "size": 8,
+            "order": 0,
+            "start": 0,
+            "finish": 10
+          },
+          {
+            "id": "new0",
+            "arrival": 0,
+            "duration": 3,
+            "size": 2,
+            "order": 2,
+            "start": 0,
+            "finish": 3
+          },
+          {
+            "id": "new1",
+            "arrival": 1,
+            "duration": 3,
+            "size": 2,
+            "order": 3,
+            "start": 1,
+            "finish": 4
+          },
+          {
+            "id": "head",
+            "arrival": 0,
+            "duration": 4,
+            "size": 12,
+            "order": 1,
+            "start": 10,
+            "finish": 14
+          },
+          {
+            "id": "new2",
+            "arrival": 2,
+            "duration": 3,
+            "size": 2,
+            "order": 4,
+            "start": 14,
+            "finish": 17
+          },
+          {
+            "id": "new3",
+            "arrival": 3,
+            "duration": 3,
+            "size": 2,
+            "order": 5,
+            "start": 14,
+            "finish": 17
+          },
+          {
+            "id": "new4",
+            "arrival": 4,
+            "duration": 3,
+            "size": 2,
+            "order": 6,
+            "start": 14,
+            "finish": 17
+          },
+          {
+            "id": "new5",
+            "arrival": 5,
+            "duration": 3,
+            "size": 2,
+            "order": 7,
+            "start": 14,
+            "finish": 17
+          },
+          {
+            "id": "new6",
+            "arrival": 6,
+            "duration": 3,
+            "size": 2,
+            "order": 8,
+            "start": 14,
+            "finish": 17
+          },
+          {
+            "id": "new7",
+            "arrival": 7,
+            "duration": 3,
+            "size": 2,
+            "order": 9,
+            "start": 14,
+            "finish": 17
+          },
+          {
+            "id": "new8",
+            "arrival": 8,
+            "duration": 3,
+            "size": 2,
+            "order": 10,
+            "start": 17,
+            "finish": 20
+          },
+          {
+            "id": "new9",
+            "arrival": 9,
+            "duration": 3,
+            "size": 2,
+            "order": 11,
+            "start": 17,
+            "finish": 20
+          },
+          {
+            "id": "new10",
+            "arrival": 10,
+            "duration": 3,
+            "size": 2,
+            "order": 12,
+            "start": 17,
+            "finish": 20
+          },
+          {
+            "id": "new11",
+            "arrival": 11,
+            "duration": 3,
+            "size": 2,
+            "order": 13,
+            "start": 17,
+            "finish": 20
+          },
+          {
+            "id": "new12",
+            "arrival": 12,
+            "duration": 3,
+            "size": 2,
+            "order": 14,
+            "start": 17,
+            "finish": 20
+          },
+          {
+            "id": "new13",
+            "arrival": 13,
+            "duration": 3,
+            "size": 2,
+            "order": 15,
+            "start": 17,
+            "finish": 20
+          },
+          {
+            "id": "new14",
+            "arrival": 14,
+            "duration": 3,
+            "size": 2,
+            "order": 16,
+            "start": 20,
+            "finish": 23
+          },
+          {
+            "id": "new15",
+            "arrival": 15,
+            "duration": 3,
+            "size": 2,
+            "order": 17,
+            "start": 20,
+            "finish": 23
+          },
+          {
+            "id": "new16",
+            "arrival": 16,
+            "duration": 3,
+            "size": 2,
+            "order": 18,
+            "start": 20,
+            "finish": 23
+          },
+          {
+            "id": "new17",
+            "arrival": 17,
+            "duration": 3,
+            "size": 2,
+            "order": 19,
+            "start": 20,
+            "finish": 23
+          },
+          {
+            "id": "new18",
+            "arrival": 18,
+            "duration": 3,
+            "size": 2,
+            "order": 20,
+            "start": 20,
+            "finish": 23
+          },
+          {
+            "id": "new19",
+            "arrival": 19,
+            "duration": 3,
+            "size": 2,
+            "order": 21,
+            "start": 20,
+            "finish": 23
+          }
+        ],
+        "wait_ticks_by_job": {
+          "resident": 0,
+          "new0": 0,
+          "new1": 0,
+          "head": 10,
+          "new2": 12,
+          "new3": 11,
+          "new4": 10,
+          "new5": 9,
+          "new6": 8,
+          "new7": 7,
+          "new8": 9,
+          "new9": 8,
+          "new10": 7,
+          "new11": 6,
+          "new12": 5,
+          "new13": 4,
+          "new14": 6,
+          "new15": 5,
+          "new16": 4,
+          "new17": 3,
+          "new18": 2,
+          "new19": 1
+        },
+        "max_wait_ticks": 12,
+        "mean_wait_ticks": 5.7727272727272725,
+        "makespan_ticks": 23,
+        "runnable_successor_blocked_job_ticks": 35,
+        "runnable_successor_blocked_union_ticks": 7,
+        "successful_overtakes_by_job": {
+          "head": 2
+        },
+        "completed": 22,
+        "unfinished": 0
+      }
+    },
+    "two_blocked_predecessors": {
+      "capacity": 12,
+      "jobs": [
+        {
+          "id": "resident",
+          "arrival": 0,
+          "duration": 10,
+          "size": 8
+        },
+        {
+          "id": "head",
+          "arrival": 0,
+          "duration": 4,
+          "size": 8
+        },
+        {
+          "id": "second",
+          "arrival": 0,
+          "duration": 2,
+          "size": 10
+        },
+        {
+          "id": "small0",
+          "arrival": 0,
+          "duration": 20,
+          "size": 2
+        },
+        {
+          "id": "small1",
+          "arrival": 0,
+          "duration": 20,
+          "size": 2
+        },
+        {
+          "id": "small2",
+          "arrival": 0,
+          "duration": 20,
+          "size": 2
+        },
+        {
+          "id": "small3",
+          "arrival": 0,
+          "duration": 20,
+          "size": 2
+        }
+      ],
+      "fifo": {
+        "policy": {
+          "mode": "fifo",
+          "max_bypasses": 2,
+          "lookahead": 8,
+          "max_head_age_seconds": 30.0,
+          "scope": "Successful later admissions are charged to every still-queued predecessor; no finite completion-time guarantee or queue length limit."
+        },
+        "admissions": [
+          {
+            "id": "resident",
+            "arrival": 0,
+            "duration": 10,
+            "size": 8,
+            "order": 0,
+            "start": 0,
+            "finish": 10
+          },
+          {
+            "id": "head",
+            "arrival": 0,
+            "duration": 4,
+            "size": 8,
+            "order": 1,
+            "start": 10,
+            "finish": 14
+          },
+          {
+            "id": "second",
+            "arrival": 0,
+            "duration": 2,
+            "size": 10,
+            "order": 2,
+            "start": 14,
+            "finish": 16
+          },
+          {
+            "id": "small0",
+            "arrival": 0,
+            "duration": 20,
+            "size": 2,
+            "order": 3,
+            "start": 14,
+            "finish": 34
+          },
+          {
+            "id": "small1",
+            "arrival": 0,
+            "duration": 20,
+            "size": 2,
+            "order": 4,
+            "start": 16,
+            "finish": 36
+          },
+          {
+            "id": "small2",
+            "arrival": 0,
+            "duration": 20,
+            "size": 2,
+            "order": 5,
+            "start": 16,
+            "finish": 36
+          },
+          {
+            "id": "small3",
+            "arrival": 0,
+            "duration": 20,
+            "size": 2,
+            "order": 6,
+            "start": 16,
+            "finish": 36
+          }
+        ],
+        "wait_ticks_by_job": {
+          "resident": 0,
+          "head": 10,
+          "second": 14,
+          "small0": 14,
+          "small1": 16,
+          "small2": 16,
+          "small3": 16
+        },
+        "max_wait_ticks": 16,
+        "mean_wait_ticks": 12.285714285714286,
+        "makespan_ticks": 36,
+        "runnable_successor_blocked_job_ticks": 56,
+        "runnable_successor_blocked_union_ticks": 14,
+        "successful_overtakes_by_job": {},
+        "completed": 7,
+        "unfinished": 0
+      },
+      "bounded_backfill": {
+        "policy": {
+          "mode": "bounded_backfill",
+          "max_bypasses": 2,
+          "lookahead": 8,
+          "max_head_age_seconds": 30.0,
+          "scope": "Successful later admissions are charged to every still-queued predecessor; no finite completion-time guarantee or queue length limit."
+        },
+        "admissions": [
+          {
+            "id": "resident",
+            "arrival": 0,
+            "duration": 10,
+            "size": 8,
+            "order": 0,
+            "start": 0,
+            "finish": 10
+          },
+          {
+            "id": "small0",
+            "arrival": 0,
+            "duration": 20,
+            "size": 2,
+            "order": 3,
+            "start": 0,
+            "finish": 20
+          },
+          {
+            "id": "small1",
+            "arrival": 0,
+            "duration": 20,
+            "size": 2,
+            "order": 4,
+            "start": 0,
+            "finish": 20
+          },
+          {
+            "id": "head",
+            "arrival": 0,
+            "duration": 4,
+            "size": 8,
+            "order": 1,
+            "start": 10,
+            "finish": 14
+          },
+          {
+            "id": "second",
+            "arrival": 0,
+            "duration": 2,
+            "size": 10,
+            "order": 2,
+            "start": 20,
+            "finish": 22
+          },
+          {
+            "id": "small2",
+            "arrival": 0,
+            "duration": 20,
+            "size": 2,
+            "order": 5,
+            "start": 20,
+            "finish": 40
+          },
+          {
+            "id": "small3",
+            "arrival": 0,
+            "duration": 20,
+            "size": 2,
+            "order": 6,
+            "start": 22,
+            "finish": 42
+          }
+        ],
+        "wait_ticks_by_job": {
+          "resident": 0,
+          "small0": 0,
+          "small1": 0,
+          "head": 10,
+          "second": 20,
+          "small2": 20,
+          "small3": 22
+        },
+        "max_wait_ticks": 22,
+        "mean_wait_ticks": 10.285714285714286,
+        "makespan_ticks": 42,
+        "runnable_successor_blocked_job_ticks": 12,
+        "runnable_successor_blocked_union_ticks": 6,
+        "successful_overtakes_by_job": {
+          "head": 2,
+          "second": 2
+        },
+        "completed": 7,
+        "unfinished": 0
+      }
+    }
+  },
+  "source_sha256": {
+    "runtime/minimax_h3/queue_policy.py": "21613115dfdac84bcd556ac5e535aa0096b24f82beb32411b8741ea57b11c623",
+    "research/study_queue_policy.py": "182678475f2c51b3d16ad89fac2c0f3534208d73098b591e95f6ce0725e1011e"
+  },
+  "global_wait_time_upper_bound": null,
+  "scope": "Finite admission working-set capacity model using the production policy predicate. Clock values and age cutoff are model ticks, not measured seconds. Not a GPU/stage simulation, speedup, global optimum or arbitrary arrival starvation proof. Each successful later admission is charged to every still-queued predecessor, including before that predecessor becomes the head. Already admitted long jobs can delay the head."
+}

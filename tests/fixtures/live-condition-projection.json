@@ -1,0 +1,367 @@
+[
+  {
+    "name": "loading",
+    "state": {
+      "instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ready": true,
+      "queue": {
+        "queued": 1
+      },
+      "condition_summary": {
+        "status": "current",
+        "manager_instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "job_id": "cccccccccccccccccccccccccccccccc",
+        "observed_at": 999,
+        "observation_age_seconds": 1,
+        "conditions": {
+          "manager_open": "true",
+          "job_queued": "true",
+          "attempt_unassigned": "true",
+          "model_identity_current": "true",
+          "model_observation_fresh": "true",
+          "model_process_alive": "true",
+          "model_ready": "false",
+          "worker_alive": "true",
+          "worker_accepting": "true",
+          "supervisor_alive": "true"
+        }
+      }
+    },
+    "status": "current",
+    "headline": "任务等待调度条件",
+    "detail": "模型就绪：未满足"
+  },
+  {
+    "name": "missing",
+    "state": {
+      "instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ready": true,
+      "queue": {
+        "queued": 1
+      },
+      "condition_summary": {
+        "status": "current",
+        "manager_instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "job_id": "cccccccccccccccccccccccccccccccc",
+        "observed_at": 999,
+        "observation_age_seconds": 1,
+        "conditions": {
+          "manager_open": "true",
+          "job_queued": "true",
+          "attempt_unassigned": "true",
+          "model_identity_current": "true",
+          "model_observation_fresh": "true",
+          "model_process_alive": "true",
+          "model_ready": "true",
+          "worker_accepting": "true",
+          "supervisor_alive": "true"
+        }
+      }
+    },
+    "status": "current",
+    "headline": "等待条件核实",
+    "detail": "执行线程：未知"
+  },
+  {
+    "name": "conflict",
+    "state": {
+      "instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ready": true,
+      "queue": {
+        "queued": 1
+      },
+      "condition_summary": {
+        "status": "current",
+        "manager_instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "job_id": "cccccccccccccccccccccccccccccccc",
+        "observed_at": 999,
+        "observation_age_seconds": 1,
+        "conditions": {
+          "manager_open": "true",
+          "job_queued": "true",
+          "attempt_unassigned": "true",
+          "model_identity_current": "true",
+          "model_observation_fresh": "true",
+          "model_process_alive": "true",
+          "model_ready": "true",
+          "worker_alive": "true",
+          "worker_accepting": "conflict",
+          "supervisor_alive": "true"
+        }
+      }
+    },
+    "status": "current",
+    "headline": "等待条件核实",
+    "detail": "模型容量：冲突"
+  },
+  {
+    "name": "coercion",
+    "state": {
+      "instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ready": true,
+      "queue": {
+        "queued": 1
+      },
+      "condition_summary": {
+        "status": "current",
+        "manager_instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "job_id": "cccccccccccccccccccccccccccccccc",
+        "observed_at": 999,
+        "observation_age_seconds": 1,
+        "conditions": {
+          "manager_open": "true",
+          "job_queued": "true",
+          "attempt_unassigned": "true",
+          "model_identity_current": "true",
+          "model_observation_fresh": "true",
+          "model_process_alive": "true",
+          "model_ready": true,
+          "worker_alive": "true",
+          "worker_accepting": "true",
+          "supervisor_alive": "true"
+        }
+      }
+    },
+    "status": "current",
+    "headline": "等待条件核实",
+    "detail": "模型就绪：未知"
+  },
+  {
+    "name": "missing_age",
+    "state": {
+      "instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ready": true,
+      "queue": {
+        "queued": 1
+      },
+      "condition_summary": {
+        "status": "current",
+        "manager_instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "job_id": "cccccccccccccccccccccccccccccccc",
+        "observed_at": 999,
+        "conditions": {
+          "manager_open": "true",
+          "job_queued": "true",
+          "attempt_unassigned": "true",
+          "model_identity_current": "true",
+          "model_observation_fresh": "true",
+          "model_process_alive": "true",
+          "model_ready": "true",
+          "worker_alive": "true",
+          "worker_accepting": "true",
+          "supervisor_alive": "true"
+        }
+      }
+    },
+    "status": "unknown",
+    "headline": "等待当前条件确认",
+    "detail": null
+  },
+  {
+    "name": "stale",
+    "state": {
+      "instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ready": true,
+      "queue": {
+        "queued": 1
+      },
+      "condition_summary": {
+        "status": "stale",
+        "manager_instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "job_id": "cccccccccccccccccccccccccccccccc",
+        "observed_at": 999,
+        "observation_age_seconds": 1,
+        "conditions": {
+          "manager_open": "true",
+          "job_queued": "true",
+          "attempt_unassigned": "true",
+          "model_identity_current": "true",
+          "model_observation_fresh": "true",
+          "model_process_alive": "true",
+          "model_ready": "true",
+          "worker_alive": "true",
+          "worker_accepting": "true",
+          "supervisor_alive": "true"
+        }
+      }
+    },
+    "status": "stale",
+    "headline": "等待当前条件确认",
+    "detail": null
+  },
+  {
+    "name": "different_manager",
+    "state": {
+      "instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ready": true,
+      "queue": {
+        "queued": 1
+      },
+      "condition_summary": {
+        "status": "current",
+        "manager_instance_id": "dddddddddddddddddddddddddddddddd",
+        "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "job_id": "cccccccccccccccccccccccccccccccc",
+        "observed_at": 999,
+        "observation_age_seconds": 1,
+        "conditions": {
+          "manager_open": "true",
+          "job_queued": "true",
+          "attempt_unassigned": "true",
+          "model_identity_current": "true",
+          "model_observation_fresh": "true",
+          "model_process_alive": "true",
+          "model_ready": "true",
+          "worker_alive": "true",
+          "worker_accepting": "true",
+          "supervisor_alive": "true"
+        }
+      }
+    },
+    "status": "identity_mismatch",
+    "headline": "等待当前条件确认",
+    "detail": null
+  },
+  {
+    "name": "historical_for_queue",
+    "state": {
+      "instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ready": true,
+      "queue": {
+        "queued": 1
+      },
+      "condition_summary": {
+        "status": "historical",
+        "manager_instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "job_id": "cccccccccccccccccccccccccccccccc",
+        "observed_at": 999,
+        "observation_age_seconds": 1,
+        "conditions": {
+          "manager_open": "true",
+          "job_queued": "true",
+          "attempt_unassigned": "true",
+          "model_identity_current": "true",
+          "model_observation_fresh": "true",
+          "model_process_alive": "true",
+          "model_ready": "true",
+          "worker_alive": "true",
+          "worker_accepting": "true",
+          "supervisor_alive": "true"
+        }
+      }
+    },
+    "status": "historical",
+    "headline": "等待当前条件确认",
+    "detail": null
+  },
+  {
+    "name": "no_queue_history",
+    "state": {
+      "instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ready": true,
+      "queue": {
+        "queued": 0
+      },
+      "condition_summary": {
+        "status": "historical",
+        "manager_instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "job_id": "cccccccccccccccccccccccccccccccc",
+        "observed_at": 999,
+        "observation_age_seconds": 1,
+        "conditions": {
+          "manager_open": "true",
+          "job_queued": "true",
+          "attempt_unassigned": "true",
+          "model_identity_current": "true",
+          "model_observation_fresh": "true",
+          "model_process_alive": "true",
+          "model_ready": "true",
+          "worker_alive": "true",
+          "worker_accepting": "true",
+          "supervisor_alive": "true"
+        }
+      }
+    },
+    "status": "historical",
+    "headline": "可以生成",
+    "detail": null
+  },
+  {
+    "name": "unknown_version_history",
+    "state": {
+      "instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "ready": true,
+      "queue": {
+        "queued": 1
+      },
+      "condition_summary": {
+        "status": "current",
+        "manager_instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "job_id": "cccccccccccccccccccccccccccccccc",
+        "observed_at": 999,
+        "observation_age_seconds": 1,
+        "conditions": {
+          "manager_open": "true",
+          "job_queued": "true",
+          "attempt_unassigned": "true",
+          "model_identity_current": "true",
+          "model_observation_fresh": "true",
+          "model_process_alive": "true",
+          "model_ready": "true",
+          "worker_accepting": "true",
+          "supervisor_alive": "true"
+        },
+        "last_decision": {
+          "schema_version": "99.0",
+          "gate_version": "99.0",
+          "gate_id": "manager.dispatch",
+          "decision_id": "dddddddddddddddddddddddddddddddd",
+          "observed_at": 998,
+          "allowed": true,
+          "conditions": {
+            "manager_open": "true",
+            "job_queued": "true",
+            "attempt_unassigned": "true",
+            "model_identity_current": "true",
+            "model_observation_fresh": "true",
+            "model_process_alive": "true",
+            "model_ready": "true",
+            "worker_accepting": "true",
+            "supervisor_alive": "true",
+            "worker_alive": "true"
+          },
+          "blocked": [],
+          "context": {
+            "manager_instance_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "model_instance_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "job_id": "cccccccccccccccccccccccccccccccc",
+            "attempt_id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          }
+        }
+      }
+    },
+    "status": "current",
+    "headline": "等待条件核实",
+    "detail": "执行线程：未知",
+    "unknown_version": true
+  }
+]

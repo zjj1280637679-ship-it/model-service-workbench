@@ -264,6 +264,13 @@ class StartupSession:
     def events(self, after=0, limit=100):
         return rpc_call(self.manager_url, self._control_key, "events", {"after": after, "limit": limit})
 
+    def budget_audit(self, model_instance_id, budget_instance_id, after_sequence=0, through_sequence=None, limit=100):
+        payload = {"instance_id": self.instance_id, "model_instance_id": model_instance_id,
+                   "budget_instance_id": budget_instance_id, "after_sequence": after_sequence, "limit": limit}
+        if through_sequence is not None:
+            payload["through_sequence"] = through_sequence
+        return rpc_call(self.manager_url, self._control_key, "budget_audit", payload, timeout=self.probe_timeout)
+
     def wait_ready(self, on_update=None):
         while True:
             state = self.snapshot()

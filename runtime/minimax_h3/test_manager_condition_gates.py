@@ -114,7 +114,13 @@ def test_cancel_does_not_hide_container_gate_failure_after_result_ack(rig):
     accepted = rig.submit()
     rig.ready()
     rig.manager.cancel(accepted["job_id"])
-    condition_gates = {"model.stage.gpu": {"allowed": False, "conditions": {"prior_stage_succeeded": "unknown"}}}
+    from condition_guard import evaluate_gate
+    from condition_projection import PUBLIC_STAGE_CONDITIONS
+    gate = evaluate_gate("model.stage.gpu", PUBLIC_STAGE_CONDITIONS,
+        {**dict.fromkeys(PUBLIC_STAGE_CONDITIONS, True), "predecessor_completed": None},
+        {"instance_id": rig.manager.model_instance_id, "job_id": accepted["job_id"],
+         "attempt_id": rig.active["attempt_id"]})
+    condition_gates = {"model.stage.gpu": gate}
     completions = {"prepare": None, "gpu": None, "encode_validate": None}
     rig.complete(status="failed", error="condition_gate_blocked", condition_gates=condition_gates,
                  stage_completions=completions)
@@ -122,6 +128,8 @@ def test_cancel_does_not_hide_container_gate_failure_after_result_ack(rig):
     result = rig.manager.dispatch("job", {"job_id": accepted["job_id"]})
     assert result["status"] == "failed" and result["cancellation_requested"] is True
     assert result["execution_condition_gates"] == condition_gates
+    assert result["execution_condition_gates"]["model.stage.gpu"]["conditions"]["predecessor_completed"] == "unknown"
+    assert result["execution_condition_gates"]["model.stage.gpu"]["allowed"] is False
     assert result["stage_completions"] == completions
     assert result["error"] == "condition_gate_blocked" and result["artifact"] is None
     assert rig.results == []  # Receipt survived acknowledgement/removal from container status.

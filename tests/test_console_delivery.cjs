@@ -65,3 +65,13 @@ test('completed handoff restores normal short polling while model still prepares
   assert.equal(ui.node('action-stop').disabled, false);
   assert.equal(ui.node('action-bootstrap').disabled, true);
 });
+
+const conditionFixtures=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/live-condition-projection.json'),'utf8'));
+for(const fixture of conditionFixtures){
+  test('shared condition projection: '+fixture.name,()=>{
+    const ui=mount({ui:{connected:true},state:fixture.state});
+    assert.equal(ui.node('headline').textContent,fixture.headline);
+    if(fixture.detail)assert.ok(ui.node('next-step').textContent.includes(fixture.detail));
+    assert.equal(ui.node('notice-zone').textContent,'');
+  });
+}

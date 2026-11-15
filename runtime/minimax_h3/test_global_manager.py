@@ -112,6 +112,7 @@ class Rig:
             if self.status_error:
                 raise TimeoutError()
             return {"instance_id": self.manager.model_instance_id, "phase": self.model_phase,
+                    "observed_at": time.time(),
                     "ready": self.model_ready, "accepting": len(self.inflight) < self.capacity, "worker_alive": self.model_phase != "failed",
                     "attempts": [{**p, "status": "gpu_wait"} for p in self.inflight.values()],
                     "results": self.results.copy(),
@@ -1334,7 +1335,7 @@ def test_actual_private_rpc_pipeline_public_api_and_cancelled_queue(rig, monkeyp
                 assert response.status_code == 202
                 accepted = response.json()
                 jobs[name] = accepted["id"]
-                assert accepted["status"] == "queued" and accepted["waiting_for"] == "model_ready"
+                assert accepted["status"] == "queued" and accepted["waiting_for"] == "current_observation"
                 assert accepted["queue_position"] == len(jobs)
                 assert accepted["cancel_url"] == accepted["status_url"] + "/cancel"
                 assert accepted["poll_after_seconds"] == 2

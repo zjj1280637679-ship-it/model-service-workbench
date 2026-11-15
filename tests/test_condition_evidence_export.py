@@ -27,6 +27,23 @@ def write(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
+def declare_experiment(source):
+    protocol = {'protocol_id': 'synthetic-protocol', 'status': 'planned_not_a_result'}
+    write(source / 'protocol.json', protocol)
+    trace = exporter.read_json(source / 'trace-complete.private.json')
+    state = exporter.read_json(source / 'client/state.json')
+    intervention = source / 'cloud/collection/api-query-update.json'
+    declaration = {'schema_version': 1, 'experiment_id': state['run_id'],
+        'protocol': {'id': 'synthetic-protocol', 'file': 'protocol.json', 'sha256': exporter.digest(source / 'protocol.json')},
+        'baseline_commit': '1' * 40, 'source_revision': {'commit': '2' * 40, 'state': 'modified'},
+        'runtime_changes': 'Synthetic fixture with explicit source declaration; no executed GPU claim.',
+        'runtime_manifest_sha256': exporter.digest(source / 'cloud/collection/runtime-source-manifest.json'),
+        'manager_instance_id': trace['manager_instance_id'], 'model_instance_id': trace['model_instance_id'],
+        'interventions': ([{'kind': 'managed_api_replacement', 'evidence_sha256': exporter.digest(intervention)}] if intervention.exists() else [])}
+    write(source / 'experiment.json', declaration)
+    return declaration
+
+
 def synthetic_run(tmp_path):
     runtime = tmp_path / 'runtime'
     runtime.mkdir()
@@ -68,6 +85,7 @@ def synthetic_run(tmp_path):
     # JSONL must have one complete JSON object per physical line.
     (source / 'cloud/collection/gpu_samples.jsonl').write_text(json.dumps({'manager_instance_id': 'manager-1',
         'observation': {'devices': [], 'source': 'synthetic'}}) + '\n', encoding='utf-8')
+    declare_experiment(source)
     return source, runtime, trace
 
 
@@ -158,7 +176,7 @@ def test_full_export_has_only_explicit_artifacts_and_no_historical_calibration(t
     (source / 'calibration.json').write_text('private calibration must not be copied')
     (source / 'finite-model.json').write_text('old finite test must not be copied')
     target = tmp_path / 'public'
-    result = exporter.export(source, target, source_root=runtime)
+    result = exporter.export(source, target, source_root=runtime, experiment=source / 'experiment.json')
     assert result['publication_only'] is True
     assert result['condition_analysis'] == {'pass': 7, 'fail': 0, 'unknown': 2}
     assert result['public_files'] == 14
@@ -167,7 +185,9 @@ def test_full_export_has_only_explicit_artifacts_and_no_historical_calibration(t
         'first.mp4', 'first.png', 'second.mp4', 'second.png', 'third.png']
     provenance = exporter.read_json(target / 'provenance.json')
     assert provenance['analysis_equivalence'] == {'historical_trace': True, 'condition_gates': True}
-    assert provenance['baseline_commit'] == exporter.BASELINE_COMMIT
+    assert provenance['baseline_commit'] == '1' * 40
+    assert provenance['protocol_id'] == 'synthetic-protocol'
+    assert provenance['source_revision'] == {'commit': '2' * 40, 'state': 'modified'}
     exported = exporter.read_json(target / 'trace.json')
     assert exporter.analysis_equivalence(trace, exported, runtime)
     assert exporter.read_json(target / 'gpu-after-cleanup.json')['compute_processes_output_empty'] is True
@@ -207,7 +227,7 @@ def test_cross_bound_identity_or_byte_change_stops_export_before_publication(tmp
     write(source / 'trace-complete.private.json', trace)
     target = tmp_path / 'public'
     with pytest.raises(ValueError):
-        exporter.export(source, target, source_root=runtime)
+        exporter.export(source, target, source_root=runtime, experiment=source / 'experiment.json')
     assert not target.exists()
 
 
@@ -226,14 +246,14 @@ def test_existing_public_evidence_is_not_overwritten(tmp_path):
     marker = target / 'existing.json'
     marker.write_text('retain original evidence')
     with pytest.raises(ValueError, match='never overwritten'):
-        exporter.export(source, target, source_root=runtime)
+        exporter.export(source, target, source_root=runtime, experiment=source / 'experiment.json')
     assert marker.read_text() == 'retain original evidence'
 
 
 def test_source_paths_cannot_escape_or_replace_private_tree(tmp_path):
     source, runtime, _ = synthetic_run(tmp_path)
     with pytest.raises(ValueError, match='separate directories'):
-        exporter.export(source, source / 'public', source_root=runtime)
+        exporter.export(source, source / 'public', source_root=runtime, experiment=source / 'experiment.json')
     with pytest.raises(ValueError, match='relative path'):
         exporter.owned_file(source, '../outside.txt')
 
@@ -267,6 +287,7 @@ def add_api_update(source, runtime, trace):
     write(source / 'trace-complete.private.json', trace)
     write(source / 'cloud/collection/runtime-source-manifest.json', trace['runtime_source_identity'])
     write(source / 'cloud/collection/api-query-update.json', receipt)
+    declare_experiment(source)
     return receipt
 
 
@@ -274,7 +295,7 @@ def test_api_only_replacement_keeps_both_source_versions_and_exact_command_recei
     source, runtime, trace = synthetic_run(tmp_path)
     receipt = add_api_update(source, runtime, trace)
     target = tmp_path / 'public'
-    exporter.export(source, target, source_root=runtime)
+    exporter.export(source, target, source_root=runtime, experiment=source / 'experiment.json')
     exported = exporter.read_json(target / 'api-query-update.json')
     assert exported == receipt
     provenance = exporter.read_json(target / 'provenance.json')['api_query_update']
@@ -299,7 +320,7 @@ def test_api_update_cannot_hide_changed_model_or_gate_source(tmp_path, damage):
         receipt['job_ids_after'] = ['unrelated-job']
     write(source / 'cloud/collection/api-query-update.json', receipt)
     with pytest.raises(ValueError):
-        exporter.export(source, tmp_path / 'public', source_root=runtime)
+        exporter.export(source, tmp_path / 'public', source_root=runtime, experiment=source / 'experiment.json')
     assert not (tmp_path / 'public').exists()
 
 
@@ -311,7 +332,7 @@ def test_public_api_query_keeps_historical_running_state_and_excludes_private_ur
                    'condition_gate': receipt, 'status_url': 'https://private.test/v1/jobs/a', 'api_key': 'never-publish'}
     write(source / 'api-query-observation.private.json', observation)
     target = tmp_path / 'public'
-    exporter.export(source, target, source_root=runtime)
+    exporter.export(source, target, source_root=runtime, experiment=source / 'experiment.json')
     result = exporter.read_json(target / 'api-query-observation.json')
     assert result['status'] == 'running'
     assert result['condition_gate'] == receipt
@@ -326,7 +347,7 @@ def test_public_api_query_cannot_be_from_another_job_or_attempt(tmp_path, field,
     query[field] = value
     write(source / 'api-query-observation.private.json', query)
     with pytest.raises(ValueError):
-        exporter.export(source, tmp_path / 'public', source_root=runtime)
+        exporter.export(source, tmp_path / 'public', source_root=runtime, experiment=source / 'experiment.json')
 
 
 def add_precision(source, runtime, trace):
@@ -346,6 +367,7 @@ def add_precision(source, runtime, trace):
     write(source / 'trace-complete.private.json', trace)
     write(source / 'cloud/collection/runtime-source-manifest.json', trace['runtime_source_identity'])
     write(source / 'cloud/collection/precision-audit.json', report)
+    declare_experiment(source)
     return report
 
 
@@ -353,7 +375,7 @@ def test_precision_export_preserves_loaded_parameter_scope_and_official_fp32_exc
     source, runtime, trace = synthetic_run(tmp_path)
     report = add_precision(source, runtime, trace)
     target = tmp_path / 'public'
-    exporter.export(source, target, source_root=runtime)
+    exporter.export(source, target, source_root=runtime, experiment=source / 'experiment.json')
     assert exporter.read_json(target / 'precision-audit.json') == report
     provenance = exporter.read_json(target / 'provenance.json')['parameter_precision_audit']
     assert provenance['scope'] == 'loaded_parameters_only'
@@ -398,7 +420,7 @@ def test_precision_evidence_cannot_expand_scope_hide_dtype_or_expose_private_fie
         report['scope'] = 'all_activations_and_kernels'
     write(source / 'cloud/collection/precision-audit.json', report)
     with pytest.raises(ValueError):
-        exporter.export(source, tmp_path / 'public', source_root=runtime)
+        exporter.export(source, tmp_path / 'public', source_root=runtime, experiment=source / 'experiment.json')
     assert not (tmp_path / 'public').exists()
 
 
@@ -414,7 +436,7 @@ def test_platform_iso_time_is_exactly_normalized_without_changing_original_obser
     write(source / 'trace-complete.private.json', trace)
     write(source / 'platform-release.json', release)
     target = tmp_path / 'public'
-    exporter.export(source, target, source_root=runtime)
+    exporter.export(source, target, source_root=runtime, experiment=source / 'experiment.json')
     public = exporter.read_json(target / 'trace.json')['platform_release']
     assert public == normalized
     assert exporter.read_json(source / 'platform-release.json') == release
@@ -431,4 +453,139 @@ def test_attached_release_time_must_match_the_actual_source_record(tmp_path):
     write(source / 'platform-release.json', {'released': True, 'manager_instance_id': 'manager-1',
                                           'observed_at': '2026-11-15T01:20:30.703Z'})
     with pytest.raises(ValueError, match='does not match'):
+        exporter.export(source, tmp_path / 'public', source_root=runtime, experiment=source / 'experiment.json')
+
+
+@pytest.mark.parametrize('field', ['protocol', 'baseline_commit', 'source_revision', 'runtime_changes',
+    'runtime_manifest_sha256', 'experiment_id', 'manager_instance_id', 'model_instance_id', 'interventions'])
+def test_experiment_declaration_may_not_inherit_missing_fields(tmp_path, field):
+    source, runtime, _ = synthetic_run(tmp_path)
+    declaration = exporter.read_json(source / 'experiment.json')
+    del declaration[field]
+    write(source / 'experiment.json', declaration)
+    with pytest.raises(ValueError, match='exact declared fields'):
+        exporter.export(source, tmp_path / 'public', source_root=runtime, experiment=source / 'experiment.json')
+    assert not (tmp_path / 'public').exists()
+
+
+@pytest.mark.parametrize('damage', ['baseline', 'revision', 'manager', 'model', 'experiment', 'manifest',
+    'protocol_id', 'protocol_hash', 'protocol_bytes', 'intervention', 'private_description', 'empty_description'])
+def test_experiment_declaration_conflicts_are_not_published(tmp_path, damage):
+    source, runtime, _ = synthetic_run(tmp_path)
+    declaration = exporter.read_json(source / 'experiment.json')
+    if damage == 'baseline':
+        declaration['baseline_commit'] = 'main'
+    elif damage == 'revision':
+        declaration['source_revision']['state'] = 'unknown'
+    elif damage in ('manager', 'model', 'experiment'):
+        declaration[damage + ('_id' if damage == 'experiment' else '_instance_id')] = 'another-run'
+    elif damage == 'manifest':
+        declaration['runtime_manifest_sha256'] = '0' * 64
+    elif damage == 'protocol_id':
+        declaration['protocol']['id'] = 'another-protocol'
+    elif damage == 'protocol_hash':
+        declaration['protocol']['sha256'] = '0' * 64
+    elif damage == 'protocol_bytes':
+        write(source / 'protocol.json', {'protocol_id': 'synthetic-protocol', 'changed': True})
+    elif damage == 'intervention':
+        declaration['interventions'] = [{'kind': 'managed_api_replacement', 'evidence_sha256': '0' * 64}]
+    elif damage == 'private_description':
+        declaration['runtime_changes'] = 'Bearer super-private-token'
+    else:
+        declaration['runtime_changes'] = ' '
+    write(source / 'experiment.json', declaration)
+    with pytest.raises(ValueError):
+        exporter.export(source, tmp_path / 'public', source_root=runtime, experiment=source / 'experiment.json')
+    assert not (tmp_path / 'public').exists()
+
+
+def test_export_requires_both_explicit_experiment_and_source_root(tmp_path):
+    source, runtime, _ = synthetic_run(tmp_path)
+    with pytest.raises(ValueError, match='missing'):
         exporter.export(source, tmp_path / 'public', source_root=runtime)
+    with pytest.raises(ValueError, match='source-root'):
+        exporter.export(source, tmp_path / 'public', experiment=source / 'experiment.json')
+
+
+def test_later_experiment_has_its_own_baseline_protocol_and_changes(tmp_path):
+    source, runtime, _ = synthetic_run(tmp_path)
+    declaration = exporter.read_json(source / 'experiment.json')
+    declaration.update(baseline_commit='a' * 40, source_revision={'commit': 'b' * 40, 'state': 'committed'},
+                       runtime_changes='A separate declared release without an API intervention.')
+    write(source / 'protocol.json', {'protocol_id': 'new-protocol'})
+    declaration['protocol'].update(id='new-protocol', sha256=exporter.digest(source / 'protocol.json'))
+    write(source / 'experiment.json', declaration)
+    exporter.export(source, tmp_path / 'public', source_root=runtime, experiment=source / 'experiment.json')
+    provenance = exporter.read_json(tmp_path / 'public/provenance.json')
+    assert provenance['schema_version'] == 2
+    assert provenance['baseline_commit'] == 'a' * 40
+    assert provenance['source_revision'] == declaration['source_revision']
+    assert provenance['protocol_id'] == 'new-protocol'
+    assert provenance['runtime_changes'] == declaration['runtime_changes']
+    assert provenance['interventions'] == []
+
+
+def test_actual_api_intervention_cannot_be_omitted_from_declaration(tmp_path):
+    source, runtime, trace = synthetic_run(tmp_path)
+    add_api_update(source, runtime, trace)
+    declaration = exporter.read_json(source / 'experiment.json')
+    declaration['interventions'] = []
+    write(source / 'experiment.json', declaration)
+    with pytest.raises(ValueError, match='interventions'):
+        exporter.export(source, tmp_path / 'public', source_root=runtime, experiment=source / 'experiment.json')
+
+
+def add_durable_pages(trace, page_size=4):
+    """Synthetic hash-chained ledger with bounded snapshot tails."""
+    budget = trace['model_events'][-1]['budget_snapshot']
+    rows = deepcopy(budget['lease_history']['events'])
+    previous = '0' * 64
+    for row in rows:
+        row['previous_sha256'] = previous
+        row['sha256'] = hashlib.sha256(json.dumps(row, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+        previous = row['sha256']
+    header = {key: deepcopy(budget[key]) for key in ('budget_instance_id', 'capacity_version', 'limits', 'gpu_host_cpu_threads')}
+    header.update(schema_version=1, model_instance_id=trace['model_instance_id'])
+    trace['budget_audit_pages'] = [{**deepcopy(header), 'after_sequence': start,
+        'through_sequence': len(rows), 'next_sequence': min(start + page_size, len(rows)),
+        'after_sha256': rows[start - 1]['sha256'] if start else '0' * 64,
+        'tail_sha256': previous, 'events': deepcopy(rows[start:start + page_size]),
+        'page_complete': True, 'more': start + page_size < len(rows)} for start in range(0, len(rows), page_size)]
+    for target in (budget, trace['system_snapshots'][0]['modules']['model']['budget']):
+        target['lease_history'].update(events=deepcopy(rows[-page_size:]), capacity=page_size,
+            count=len(rows), dropped=len(rows) - page_size, history_complete=False)
+        target['lease_journal'] = {'schema_version': 1, 'budget_instance_id': budget['budget_instance_id'],
+            'count': len(rows), 'tail_sha256': previous, 'complete': True, 'error': None}
+    return trace
+
+
+def test_durable_journal_pages_preserve_analysis_and_strip_unhashed_private_metadata(tmp_path):
+    runtime = tmp_path / 'runtime'
+    runtime.mkdir()
+    trace = add_durable_pages(fixtures.fixture(runtime))
+    trace['budget_audit_pages'][0]['journal_path'] = '/private/budget.sqlite3'
+    trace['model_events'][-1]['budget_snapshot']['lease_journal']['private_path'] = '/private/budget.sqlite3'
+    public, result = exporter.project_trace(trace, runtime)
+    assert result['condition_analysis']['checks']['atomic_budget_ledger']['status'] == 'pass'
+    assert len(public['budget_audit_pages']) == 3
+    assert '/private/budget.sqlite3' not in json.dumps(public)
+    assert public['budget_audit_pages'][1]['events'][0]['sha256'] == trace['budget_audit_pages'][1]['events'][0]['sha256']
+
+
+def test_partial_durable_pages_stay_unknown_after_publication(tmp_path):
+    runtime = tmp_path / 'runtime'
+    runtime.mkdir()
+    trace = add_durable_pages(fixtures.fixture(runtime))
+    trace['budget_audit_pages'].pop(1)
+    _, result = exporter.project_trace(trace, runtime)
+    assert result['condition_analysis']['checks']['atomic_budget_ledger']['status'] == 'unknown'
+
+
+def test_exporter_does_not_rehash_private_or_unknown_ledger_fields(tmp_path):
+    runtime = tmp_path / 'runtime'
+    runtime.mkdir()
+    trace = fixtures.fixture(runtime)
+    trace['model_events'][-1]['budget_snapshot']['lease_history']['events'][0]['private_path'] = '/private/file'
+    add_durable_pages(trace)
+    with pytest.raises(ValueError, match='changes an analyzer conclusion'):
+        exporter.project_trace(trace, runtime)

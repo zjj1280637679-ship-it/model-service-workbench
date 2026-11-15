@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "scope": "Local CPU control-query microbenchmark; no GPU/model inference; not A100 throughput evidence.",
+  "comparison": "Repeated full snapshot/deepcopy equivalent versus current lightweight path; both use current payload schema.",
+  "methodology": {
+    "execution": "Sequential single-process warmed filesystem; durable journal is populated before timed queries.",
+    "request_timing": "perf_counter_ns covers query, instrumentation and JSON encoding, including failed requests; no HTTP/network/model state lock.",
+    "lock_timing": "Sum of measured budget condition critical sections per query; excludes lock wait and JSON encoding.",
+    "status_scope": "Budget portion and accepting flag only, not complete model status or API latency.",
+    "p95": "Nearest-rank 95th percentile over all attempts, not success-only.",
+    "over_2s": "Measured duration above 2000ms, not enforced timeout; all exceptions counted as errors.",
+    "history": "0, 12 and 516 durable endpoints, with at most 512 retained in memory.",
+    "reproduce": "python research/benchmark_budget_queries.py --iterations 300 --output <result.json>",
+    "limits": "One local CPU process, no competing inference/HTTP requests; timings vary by host/cache/load. No claim of A100 speedup."
+  },
+  "source_sha256": {
+    "research/benchmark_budget_queries.py": "e107cfef9a42f61cf457d3e2929160782c2e3607d79307ee94741c5d18a47ba3",
+    "runtime/minimax_h3/pipeline_scheduler.py": "574bb136fe47b23e8ec5586e6d0d0ae009faf2da1e5a3880ae489e2a3971ead1"
+  },
+  "python": "3.12.14",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "records": [
+    {
+      "history": "empty",
+      "durable_endpoints": 0,
+      "query": "capacity_light",
+      "samples": 300,
+      "errors": 0,
+      "over_2s": 0,
+      "response_bytes_median": 4.0,
+      "request_p95_ms_including_errors": 0.0031,
+      "budget_lock_hold_p95_ms": 0.0011
+    },
+    {
+      "history": "empty",
+      "durable_endpoints": 0,
+      "query": "capacity_full_equivalent",
+      "samples": 300,
+      "errors": 0,
+      "over_2s": 0,
+      "response_bytes_median": 4.0,
+      "request_p95_ms_including_errors": 0.0198,
+      "budget_lock_hold_p95_ms": 0.0168
+    },
+    {
+      "history": "empty",
+      "durable_endpoints": 0,
+      "query": "status_light",
+      "samples": 300,
+      "errors": 0,
+      "over_2s": 0,
+      "response_bytes_median": 2317.0,
+      "request_p95_ms_including_errors": 0.0293,
+      "budget_lock_hold_p95_ms": 0.0165
+    },
+    {
+      "history": "empty",
+      "durable_endpoints": 0,
+      "query": "status_repeated_full_equivalent",
+      "samples": 300,
+      "errors": 0,
+      "over_2s": 0,
+      "response_bytes_median": 2316.0,
+      "request_p95_ms_including_errors": 0.0835,
+      "budget_lock_hold_p95_ms": 0.0357
+    },
+    {
+      "history": "short",
+      "durable_endpoints": 12,
+      "query": "capacity_light",
+      "samples": 300,
+      "errors": 0,
+      "over_2s": 0,
+      "response_bytes_median": 4.0,
+      "request_p95_ms_including_errors": 0.003,
+      "budget_lock_hold_p95_ms": 0.0012
+    },
+    {
+      "history": "short",
+      "durable_endpoints": 12,
+      "query": "capacity_full_equivalent",
+      "samples": 300,
+      "errors": 0,
+      "over_2s": 0,
+      "response_bytes_median": 4.0,
+      "request_p95_ms_including_errors": 0.1326,
+      "budget_lock_hold_p95_ms": 0.1251
+    },
+    {
+      "history": "short",
+      "durable_endpoints": 12,
+      "query": "status_light",
+      "samples": 300,
+      "errors": 0,
+      "over_2s": 0,
+      "response_bytes_median": 3084.0,
+      "request_p95_ms_including_errors": 0.0427,
+      "budget_lock_hold_p95_ms": 0.0257
+    },
+    {
+      "history": "short",
+      "durable_endpoints": 12,
+      "query": "status_repeated_full_equivalent",
+      "samples": 300,
+      "errors": 0,
+      "over_2s": 0,
+      "response_bytes_median": 12138.0,
+      "request_p95_ms_including_errors": 0.4306,
+      "budget_lock_hold_p95_ms": 0.2379
+    },
+    {
+      "history": "full_tail",
+      "durable_endpoints": 516,
+      "query": "capacity_light",
+      "samples": 300,
+      "errors": 0,
+      "over_2s": 0,
+      "response_bytes_median": 4.0,
+      "request_p95_ms_including_errors": 0.0031,
+      "budget_lock_hold_p95_ms": 0.0012
+    },
+    {
+      "history": "full_tail",
+      "durable_endpoints": 516,
+      "query": "capacity_full_equivalent",
+      "samples": 300,
+      "errors": 0,
+      "over_2s": 0,
+      "response_bytes_median": 4.0,
+      "request_p95_ms_including_errors": 4.4863,
+      "budget_lock_hold_p95_ms": 4.4463
+    },
+    {
+      "history": "full_tail",
+      "durable_endpoints": 516,
+      "query": "status_light",
+      "samples": 300,
+      "errors": 0,
+      "over_2s": 0,
+      "response_bytes_median": 3088.0,
+      "request_p95_ms_including_errors": 0.042,
+      "budget_lock_hold_p95_ms": 0.0261
+    },
+    {
+      "history": "full_tail",
+      "durable_endpoints": 516,
+      "query": "status_repeated_full_equivalent",
+      "samples": 300,
+      "errors": 0,
+      "over_2s": 0,
+      "response_bytes_median": 390432.0,
+      "request_p95_ms_including_errors": 14.2673,
+      "budget_lock_hold_p95_ms": 8.6858
+    }
+  ]
+}

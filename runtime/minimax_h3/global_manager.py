@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 import logging
+import math
 import os
 from pathlib import Path
 import re
@@ -26,7 +27,9 @@ from control_protocol import ControlError, make_server, rpc_call
 from process_owner import ProcessOwner, stop_many
 from generation_options import requested_options, validate_generation_options
 from adapter_config import load_adapter_settings
-from condition_guard import evaluate_gate
+from condition_guard import evaluate_gate, observation_state
+from condition_projection import public_condition_fields, public_condition_summary, public_budget_page, public_execution_summary
+from queue_policy import QueuePolicy, guaranteed_resource_deferral
 
 LOG = logging.getLogger("h3_manager")
 TERMINAL = {"succeeded", "failed", "cancelled"}
@@ -100,6 +103,7 @@ class GlobalManager:
         self.install_cloudflared = bool(install_cloudflared)
         self.model_autostart = bool(start_model)
         self.env = dict(os.environ if env is None else env)
+        self.queue_policy = QueuePolicy.from_environment(self.env)
         self.key = self.env.get("H3_CONTROL_KEY", "")
         if len(self.key) < 32 or len(self.env.get("H3_API_KEY", "")) < 32:
             raise ValueError("Separate private/public keys of at least 32 characters are required")
@@ -232,7 +236,8 @@ class GlobalManager:
         return {"queued": counts.get("queued", 0), "running": counts.get("running", 0),
                 "cancel_requested": counts.get("cancel_requested", 0),
                 "unfinished": sum(counts.get(s, 0) for s in NONTERMINAL),
-                "job_count_limit": None, "order": "durable_insertion_fifo",
+                "job_count_limit": None, "order": ("durable_insertion_fifo" if self.queue_policy.mode == "fifo"
+                    else "durable_fifo_with_bounded_resource_backfill"), "scheduling_policy": self.queue_policy.as_dict(),
                 "admission_open": not (self._draining or self._shutdown_started or self._model_failure
                                         or self._phase in {"new", "failed", "stopped"}),
                 "disk_reserve_bytes": self.disk_reserve_bytes}
@@ -277,7 +282,7 @@ class GlobalManager:
             alive, process_errors = self._liveness()
             historical = self._historical_ownership()
             age = self._clock() - self._last_observation if self._last_observation is not None else None
-            stale = age is None or age > 3 * self.probe_timeout + self.poll_interval + 2
+            stale = age is None or age < 0 or age > 3 * self.probe_timeout + self.poll_interval + 2
             supervised = not self._background or (self._thread is not None and self._thread.is_alive())
             usable = not stale and supervised and not process_errors and not self._shutdown_started
             api = bool(usable and alive["api"] and self._api_ready)
@@ -329,6 +334,11 @@ class GlobalManager:
                                           "intent_epoch": self._api_intent_epoch},
                                   "model": {**self._model, "alive": alive["model"], "ready": model, "downloads": downloads},
                                   "manager": {"alive": True, "supervisor_alive": supervised}}}
+            row = self._db.execute("SELECT record FROM jobs WHERE status='queued' ORDER BY rowid LIMIT 1").fetchone()
+            result["condition_summary"] = self._condition_summary(json.loads(row[0]) if row else None)
+            active_row = self._db.execute("SELECT record FROM jobs WHERE status IN ('running','cancel_requested') ORDER BY rowid LIMIT 1").fetchone()
+            result["execution_summary"] = (public_execution_summary(self._public_job(json.loads(active_row[0])), self.instance_id)
+                                           if active_row else None)
             return result
 
     def _checkpoint(self):
@@ -713,12 +723,8 @@ class GlobalManager:
         except (KeyError, OSError, TypeError, ValueError):
             return None
 
-    def _dispatch_gate(self, model, job, attempt_id):
-        """Called only in the dispatch/cancel arbitration and state transaction.
-
-        The remote observation permits an offer, not remote execution. Container
-        admission and resource ownership are revalidated by their own owners.
-        """
+    def _dispatch_observations(self, model, job):
+        """Read-only observations; callers still own atomic authorization."""
         model = model if isinstance(model, dict) else {}
         alive, errors = self._liveness()
         age = self._clock() - self._last_observation if self._last_observation is not None else None
@@ -731,7 +737,7 @@ class GlobalManager:
             witnesses = [model.get(field), self._model.get(field)]
             # Missing or malformed fresh evidence cannot borrow a previous True.
             return witnesses if all(type(value) is bool for value in witnesses) else None
-        observations = {
+        return {
             # Draining closes new admission; the already-owned queue still drains.
             "manager_open": self._shutdown_started is False and self._model_failure is None,
             "job_queued": job.get("status") == "queued", "attempt_unassigned": job.get("attempt_id") is None,
@@ -743,7 +749,24 @@ class GlobalManager:
             "worker_accepting": capability("accepting"),
             "supervisor_alive": not self._background or (self._thread is not None and self._thread.is_alive()),
         }
-        receipt = evaluate_gate("manager.dispatch", DISPATCH_CONDITIONS, observations,
+    def _condition_summary(self, job=None):
+        age = self._clock() - self._last_observation if self._last_observation is not None else None
+        current = age is not None and 0 <= age <= 3 * self.probe_timeout + self.poll_interval + 2
+        value = {"status": "current" if current else "stale", "manager_instance_id": self.instance_id,
+                 "model_instance_id": self.model_instance_id, "observed_at": self._model.get("observed_at"),
+                 "observation_age_seconds": age,
+                 "last_decision": (job.get("condition_gate") if job else self._condition_gates.get("manager.dispatch"))}
+        if job:
+            value["job_id"] = job["job_id"]
+            value["conditions"] = {k: observation_state(v) for k, v in self._dispatch_observations(self._model, job).items()}
+        else:
+            value["status"] = "historical"
+        return public_condition_summary(value, self.instance_id)
+
+    def _dispatch_gate(self, model, job, attempt_id):
+        """An offer is authorized only under dispatch/cancel arbitration."""
+        identity = self.model_instance_id
+        receipt = evaluate_gate("manager.dispatch", DISPATCH_CONDITIONS, self._dispatch_observations(model, job),
             {"manager_instance_id": self.instance_id, "model_instance_id": identity, "job_id": job["job_id"],
              "attempt_id": attempt_id, "source_file": "global_manager.py", "source_sha256": GATE_SOURCE_SHA256})
         # Commit every positive authorization; coalesce unchanged blocked polls.
@@ -757,12 +780,61 @@ class GlobalManager:
             self._event("condition.checked", job=job, data={"receipt": receipt})
         return receipt
 
+    def _record_queue_admission(self, job, bypassed_job_ids):
+        # Caller holds the state transaction; count reconciled and direct accepts equally.
+        policy_state = job.setdefault("queue_policy", {"mode": self.queue_policy.mode,
+            "bypasses": 0, "deferrals": 0, "manager_instance_id": self.instance_id})
+        now = self._clock()
+        policy_state.update(admitted_at=now, clock="manager_monotonic")
+        first = policy_state.get("first_deferred_at")
+        policy_state["deferral_to_admission_seconds"] = now - first if first is not None and now >= first else None
+        if bypassed_job_ids:
+            counts = {}
+            for predecessor_id in bypassed_job_ids:
+                row = self._db.execute("SELECT record FROM jobs WHERE id=? AND status='queued'", (predecessor_id,)).fetchone()
+                if row is None:
+                    raise RuntimeError("Bypassed queue owner changed during admission arbitration")
+                predecessor = json.loads(row[0])
+                previous = predecessor.get("queue_policy", {}).get("bypasses")
+                if type(previous) is not int or not 0 <= previous < self.queue_policy.max_bypasses:
+                    raise RuntimeError("Bypassed queue owner has unconfirmed fairness budget")
+                predecessor["queue_policy"]["bypasses"] = previous + 1
+                counts[predecessor_id] = previous + 1
+                self._store_job(predecessor)
+            policy_state["bypassed_head_job_id"] = bypassed_job_ids[0]
+            policy_state["bypassed_job_ids"] = list(bypassed_job_ids)
+            self._event("queue.backfill_admitted", job=job, data={"bypassed_job_ids": list(bypassed_job_ids),
+                "bypass_counts": counts, "policy": self.queue_policy.as_dict()})
+
     def _dispatch_next(self, model):
         with self._control_lock:
             deadline = time.monotonic() + max(.01, min(.25, self.poll_interval))
+            deferred_ids = set()
+            blocked_head_id = None
             while not self._shutdown_started and not self._model_failure:
                 with self._lock, self._db:
-                    row = self._db.execute("SELECT record FROM jobs WHERE status='queued' ORDER BY rowid LIMIT 1").fetchone()
+                    bypassed_job_ids = []
+                    if blocked_head_id is None:
+                        row = self._db.execute("SELECT record FROM jobs WHERE status='queued' ORDER BY rowid LIMIT 1").fetchone()
+                    else:
+                        encoded_head = self._db.execute("SELECT record FROM jobs WHERE id=? AND status='queued'", (blocked_head_id,)).fetchone()
+                        if not encoded_head:
+                            return
+                        candidates = self._db.execute("SELECT record FROM jobs WHERE status='queued' ORDER BY rowid LIMIT ?",
+                                                      (self.queue_policy.lookahead,)).fetchall()
+                        decoded = [json.loads(candidate[0]) for candidate in candidates]
+                        index = next((i for i, candidate in enumerate(decoded) if candidate["job_id"] not in deferred_ids), None)
+                        if index is None:
+                            return
+                        predecessors = decoded[:index]
+                        if any(not isinstance(candidate.get("queue_policy"), dict)
+                               or candidate["queue_policy"].get("manager_instance_id") != self.instance_id
+                               for candidate in predecessors):
+                            return
+                        if not self.queue_policy.may_bypass_all([candidate.get("queue_policy") for candidate in predecessors], now=self._clock()):
+                            return
+                        bypassed_job_ids = [candidate["job_id"] for candidate in predecessors]
+                        row = candidates[index]
                     if not row:
                         return
                     job = json.loads(row[0])
@@ -795,10 +867,25 @@ class GlobalManager:
                     if isinstance(rejected, dict) and rejected.get("guarantees_not_accepted") is True:
                         with self._lock, self._db:
                             if error.status in {409, 429}:
+                                policy_state = job.setdefault("queue_policy", {"mode": self.queue_policy.mode,
+                                    "bypasses": 0, "deferrals": 0, "manager_instance_id": self.instance_id})
+                                policy_state["deferrals"] += 1
+                                policy_state.setdefault("first_deferred_at", self._clock())
+                                policy_state["last_deferred_at"] = self._clock()
+                                policy_state["clock"] = "manager_monotonic"
                                 self._transition(job, "queued", attempt_id=None, model_instance_id=None,
                                                  started_at=None, model_lease_released=True, dispatch_state="deferred",
                                                  dispatch_reason=rejected.get("reason"))
-                                return  # FIFO: do not bypass the head to fill a smaller task.
+                                self._event("queue.deferred", job=job, data={"policy": self.queue_policy.as_dict(),
+                                    "reason": rejected.get("reason"), "guarantees_not_accepted": True})
+                                # Only an explicit resource rejection permits bounded lookahead.
+                                # Unknown ownership/readiness never becomes a backfill opportunity.
+                                if (not guaranteed_resource_deferral(error.status, rejected)
+                                        or self.queue_policy.mode == "fifo" or time.monotonic() >= deadline):
+                                    return
+                                blocked_head_id = blocked_head_id or job["job_id"]
+                                deferred_ids.add(job["job_id"])
+                                continue
                             cleaned, cleanup_errors = self._cleanup_job_files(job["job_id"], discard_result=True)
                             self._transition(job, "failed", error=str(error), finished_at=time.time(),
                                              model_lease_released=True, cleanup_complete=cleaned,
@@ -815,6 +902,7 @@ class GlobalManager:
                             return
                         with self._lock, self._db:
                             job.update(dispatch_state="reconciled")
+                            self._record_queue_admission(job, bypassed_job_ids)
                             self._store_job(job)
                             self._event("job.dispatch_reconciled", job=job)
                         self._model = observed
@@ -823,6 +911,7 @@ class GlobalManager:
                 else:
                     with self._lock, self._db:
                         job.update(dispatch_state="accepted")
+                        self._record_queue_admission(job, bypassed_job_ids)
                         self._store_job(job)
                         self._event("job.dispatch_accepted", job=job)
                 if time.monotonic() >= deadline:
@@ -897,6 +986,9 @@ class GlobalManager:
 
     def _public_job(self, job):
         result = {k: v for k, v in job.items() if k != "parameters"}
+        if "execution_condition_gates" in result:
+            result["execution_condition_gates"] = self._bound_execution_gates(
+                result["execution_condition_gates"], job, job.get("finished_at"))
         # Public task identity belongs to this durable manager/API lifetime;
         # model_instance_id separately identifies a replaceable GPU process.
         result["instance_id"] = self.instance_id
@@ -904,12 +996,21 @@ class GlobalManager:
                                                     (job["job_id"],)).fetchone()[0] if job["status"] == "queued" else None)
         result["waiting_for"] = None
         if job["status"] == "queued":
+            result["condition_summary"] = self._condition_summary(job)
             # This is a current observation, separate from the last durable
             # dispatch rejection. Do not make clients infer it from a log line.
             if self._shutdown_started:
                 result["waiting_for"] = "shutdown"
             elif self._model_failure:
                 result["waiting_for"] = "model_recovery"
+            elif self.model_instance_id is None:
+                result["waiting_for"] = "model_ready"
+            elif result["condition_summary"]["status"] != "current":
+                result["waiting_for"] = "current_observation"
+            elif any(value in {"unknown", "conflict"} for value in result["condition_summary"]["conditions"].values()):
+                result["waiting_for"] = "condition_verification"
+            elif result["condition_summary"]["conditions"].get("model_identity_current") != "true":
+                result["waiting_for"] = "model_identity"
             elif self._model.get("ready") is not True or self._model.get("worker_alive") is not True:
                 result["waiting_for"] = "model_ready"
             elif self._model.get("accepting") is not True:
@@ -919,16 +1020,73 @@ class GlobalManager:
             else:
                 result["waiting_for"] = "scheduler"
         result["active_phase"] = None
+        age = self._clock() - self._last_observation if self._last_observation is not None else None
+        evidence = {"status": "historical" if job["status"] in TERMINAL else "unknown",
+                    "manager_instance_id": self.instance_id, "model_instance_id": job.get("model_instance_id"),
+                    "job_id": job["job_id"], "attempt_id": job.get("attempt_id"),
+                    "observed_at": job.get("finished_at") if job["status"] in TERMINAL else self._model.get("observed_at")}
         if job["status"] in {"running", "cancel_requested"}:
-            for attempt in self._model.get("attempts", []):
-                if attempt.get("attempt_id") == job["attempt_id"] and attempt.get("job_id") == job["job_id"]:
+            evidence["observation_age_seconds"] = age
+            bound = job.get("model_instance_id") is not None and job.get("model_instance_id") == self.model_instance_id == self._model.get("instance_id")
+            fresh = age is not None and 0 <= age <= 3 * self.probe_timeout + self.poll_interval + 2
+            evidence["status"] = "identity_mismatch" if not bound else "stale" if not fresh else "unknown"
+            for attempt in self._model.get("attempts", []) if bound and fresh else []:
+                if (isinstance(attempt, dict) and attempt.get("instance_id") == self.model_instance_id
+                        and attempt.get("attempt_id") == job["attempt_id"] and attempt.get("job_id") == job["job_id"]
+                        and type(self._model.get("observed_at")) in {int, float}
+                        and math.isfinite(self._model["observed_at"])
+                        and self._model["observed_at"] >= (job.get("started_at") or 0)):
+                    evidence["status"] = "current"
                     result["active_phase"] = attempt.get("active_phase") or {"phase": attempt.get("phase", attempt.get("status"))}
+                    gates = self._bound_execution_gates(attempt.get("condition_gates"), job, self._model["observed_at"])
+                    result.update(public_condition_fields({"execution_condition_gates": gates,
+                        "stage_completions": attempt.get("stage_completions"), "cancellation_requested": attempt.get("cancel_requested")}))
                     if isinstance(attempt.get("generation_options"), dict):
                         result["generation_options"] = deepcopy(attempt["generation_options"])
                     break
-            if result["active_phase"] is None and job["attempt_id"] == self._model.get("active_attempt_id"):
-                result["active_phase"] = self._model.get("active_phase")
+        result.update(public_condition_fields({"execution_observation": evidence}))
+        if job["status"] == "cancel_requested":
+            result["cancellation_requested"] = True  # Durable intent, not remote acknowledgement.
         return result
+
+    @staticmethod
+    def _bound_execution_gates(raw, job, observed_at):
+        gates = public_condition_fields({"execution_condition_gates": raw}).get("execution_condition_gates") or {}
+        for gate_id, receipt in gates.items():
+            context = receipt.get("context", {}) if receipt else {}
+            if (not receipt or not receipt.get("decision_id") or type(receipt.get("observed_at")) not in {int, float}
+                    or type(observed_at) not in {int, float} or not math.isfinite(observed_at)
+                    or receipt["observed_at"] > observed_at
+                    or any(not isinstance(job.get(key), str) or not IDENTIFIER.fullmatch(job[key])
+                           for key in ("model_instance_id", "job_id", "attempt_id"))
+                    or context.get("instance_id") != job.get("model_instance_id")
+                    or context.get("job_id") != job.get("job_id") or context.get("attempt_id") != job.get("attempt_id")):
+                gates[gate_id] = None
+        return gates
+
+    def budget_audit(self, payload):
+        """Read an identity-bound page without retaining the main state lock."""
+        with self._lock:
+            model_id = self.model_instance_id
+            if (payload.get("instance_id") != self.instance_id or not model_id
+                    or payload.get("model_instance_id") != model_id):
+                raise ControlError("Audit owner changed", status=409)
+        request = {key: payload[key] for key in ("budget_instance_id", "after_sequence", "through_sequence", "limit") if key in payload}
+        request["instance_id"] = model_id
+        after, cutoff, limit = request.get("after_sequence", 0), request.get("through_sequence"), request.get("limit", 100)
+        if (type(after) is not int or after < 0 or type(limit) is not int or not 1 <= limit <= 256
+                or (cutoff is not None and (type(cutoff) is not int or cutoff < after))):
+            raise ControlError("Invalid budget audit range", status=422)
+        request.update(after_sequence=after, limit=limit)
+        page = self._rpc(f"http://127.0.0.1:{self.model_port}", self.key, "budget_audit", request, timeout=self.probe_timeout)
+        with self._lock:
+            if (not isinstance(page, dict) or self.model_instance_id != model_id or page.get("model_instance_id") != model_id
+                    or page.get("budget_instance_id") != payload.get("budget_instance_id")):
+                raise ControlError("Audit owner changed", status=409)
+        try:
+            return public_budget_page(page, request)
+        except ValueError:
+            raise ControlError("Budget audit page is invalid", status=503) from None
 
     def archive(self, payload):
         """Record a client-confirmed Drive upload for the committed artifact."""
@@ -1142,6 +1300,8 @@ class GlobalManager:
             raise ControlError("Manager instance changed; command rejected", status=409)
         if operation == "status":
             return self.snapshot()
+        if operation == "budget_audit":
+            return self.budget_audit(payload)
         if operation == "submit":
             return self.submit(payload)
         if operation == "job":

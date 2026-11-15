@@ -25,15 +25,17 @@
 
 这些是当前合约内的正确性义务。下面的统计指标可以按目标选择；不选择某个统计指标，并不解除相应义务。
 
-## 0.4.0 条件变化与策略对应
+## 0.4.0 条件基础与 0.5.0 当前策略
 
 原有需求保持不变。当前 [model_container.py](../../runtime/minimax_h3/model_container.py) 在自己的锁内复验 `model.execute`，工作集预留由预算所有者仲裁；管理器允许发出邀约不代表模型已经接纳。各阶段另行核对身份、执行能力、前序成功、取消与租约，只有必要条件全部为 true 才开始。unknown/conflict 不授权；drain 关闭新接纳，已接纳任务仍可按有效能力排空。
 
 `stage_completions` 只在阶段成功且完成事件持久化后建立。相应策略是分开保留“允许开始、实际完成、租约归还”的证据，不从最终成功倒推先前授权；未知/冲突引起的条件失败保持原失败类别，取消意图另记。等待资源和实际计算继续在模型控制锁外进行，维持按真实依赖和预算并行。
 
-私有查询现在包含 `last_condition_gate`、尝试 `condition_gates` 和 `stage_completions`；公共主任务投射包含 `condition_gate`、`execution_condition_gates`、`stage_completions` 和 `cancellation_requested`。这些是带身份与时间的决策/完成回执，不是永久许可。字段增加后，表达对照必须同步扩充冻结样本；一次公共查询不能替代 UI、API、日志全集的一致率。新增历史还改变了状态查询负载，应单独测控制延迟，不能用生成成功证明查询足够快。
+0.5.0 私有查询包含 `last_condition_gate`、尝试 `condition_gates` 和 `stage_completions`；当前公共主任务会在运行中按 job/attempt/model 及观测时效投射 `execution_condition_gates`、`stage_completions` 和 `cancellation_requested`，并以 `execution_observation` 区分当前快照、历史终态、过期和未知。单个决定还须匹配尝试身份、决策 ID 和不晚于该快照的决策时间；缺失或不匹配不借用其他尝试的通过记录。终态先由主账本持久化后 ack，模型清除结果或管理器恢复不会把历史终态变成当前执行许可。
 
-历史保留仍有界。0.4.0 的短实验有完整六租约十二端点；长会话若端点缺失，应继续记 unknown，不能由终结时占用为零声称全程无超借。相关契约和本地反例见[条件门控说明](../research/runtime-condition-gates.md)、[容器门控测试](../../runtime/minimax_h3/test_model_condition_gates.py)及[公共字段投射测试](../../runtime/minimax_h3/test_server_condition_projection.py)。
+0.4.0 的短实验有完整六租约十二端点，仍保留为固定历史窗口。当前 [PipelineBudget](../../runtime/minimax_h3/pipeline_scheduler.py)在独立预算世代的 SQLite 审计中先持久化租约端点，再更新占用；每个端点有连续序号、前序摘要和自身摘要。内存只保留有界尾部，`status` 的当前容量视图不复制完整历史，另由 `budget_audit` 读取最多 256 条的固定截止范围。日志写入失败不制造释放证据、不归还不确定占用，`lease_journal.complete=false` 显式阻止以缺失历史作通过。审计库在重启后可只读分析，不能恢复为新实例的执行权。
+
+长会话缺段、身份错配、摘要冲突或最后释放未确认仍须返回 unknown/错误，不能由终结占用为零声称全程无超借。[容器门控测试](../../runtime/minimax_h3/test_model_condition_gates.py)、[阶段预算测试](../../runtime/minimax_h3/test_pipeline_scheduler.py)、[实时投射测试](../../runtime/minimax_h3/test_live_condition_projection.py)和[分页接口测试](../../runtime/minimax_h3/test_budget_audit_projection.py)覆盖这些各自命名的本地反例。查询成本另由[预算查询基准](../../research/benchmark_budget_queries.py)按历史长度测量；CPU 微测不能推出 A100 端到端加速、完整 UI/API/日志一致率或物理最优。
 
 ## 通用化边界与递归组合
 

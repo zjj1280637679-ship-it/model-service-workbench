@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "review_id": "condition-debt-0.4.1-2026-11-15",
+  "review_id": "condition-debt-resolution-0.5.0-2026-11-15",
   "baseline_version": "v0.4.0",
   "baseline_commit": "8beba2124adb8ce26542bc71fc54b2d354cdfaf3",
   "reviews": [
@@ -11,10 +11,10 @@
         "requirements": "b6f375ff4c42dc5f117c8ac21c10dd8285df5814526c4093f09b24aadcc1d466",
         "conditions": "52a992710ae8ed55a8f062260743e11c400fb26b3dfe3a09a0573ec47794afc3",
         "strategies": "1abcbe17bc1e96a6cf3f92df3bebd94e2ce8fc57154d4761e4668c299906de41",
-        "metrics": "30a79a833c40bc21df5b1340e9638a2dceccfb17a36deba67f136160b053a8a4"
+        "metrics": "bad54e1a7cc98b3803f900296c762cb63b31cab0fe9993eadb1d5436ad7bc1a3"
       },
       "disposition": "updated",
-      "rationale": "保持产物与精度需求；追加0.4产物观察，已加载参数精度不扩展为全部算术精度；统一指标重算仍欠缺。",
+      "rationale": "精度及产物需求保持；BF16后端字节不变，0.4产物数值按固定旧源码、实例及封闭窗口独立重算，新版CPU测试不继承GPU验收。",
       "debt_ids": [
         "TD-003",
         "TD-012"
@@ -25,12 +25,12 @@
       "requirements_baseline_sha256": "d493d14856116539832dea6fe0bb0a5cae747c45abaff66387c32af8c394ee5c",
       "reviewed_hashes": {
         "requirements": "d493d14856116539832dea6fe0bb0a5cae747c45abaff66387c32af8c394ee5c",
-        "conditions": "c9648660d80c4c43cd7dc8e7de6121dbe623f47f41f19608c655049399ca698b",
-        "strategies": "3d7a77affa78675c7ea1b668e4551a2b20f57442201c0ea80633d3d2ee17c20d",
+        "conditions": "b48297c2b71a298508d3fb9eeeb93b78552ccb4ad20288c37b303ed8929a920f",
+        "strategies": "56276a8abce572c0d09a5a1eac6023fd60c91582fdeaf854f9a8f27d4c274cfb",
         "metrics": "2da8a1544d23f52ab34e39596ada35796ccff1d940a208dcef6e4660ad053551"
       },
       "disposition": "updated",
-      "rationale": "控制查询与取消目标不变；新审计载荷增大后保留延迟未知，轻量容量查询需先测再改。",
+      "rationale": "控制责任不变；容量读取与单次轻量快照已拆分，微基准明确预算片段并含错误/超2秒数量，完整私有RPC p95仍未知。",
       "debt_ids": [
         "TD-003",
         "TD-007"
@@ -41,12 +41,12 @@
       "requirements_baseline_sha256": "74f7249a0dda23fe673eefad7c93ccf47cfe49369b4b77c6406840107d3838bc",
       "reviewed_hashes": {
         "requirements": "74f7249a0dda23fe673eefad7c93ccf47cfe49369b4b77c6406840107d3838bc",
-        "conditions": "37dd680d253c6c0b35198df415eda32da20e913d5c8c6c6af5e76b246bc26ef4",
+        "conditions": "2772b722ad044caaeb8c58c086375e0814362e76c3a1b9440ed694a16ed0d990",
         "strategies": "010ab7f04d6f7faba8765d9ef01f344da6c4282c03c2ce079b0000a43505934a",
-        "metrics": "db5805a3230825f9369985e30dce1e8a4f6de871819fabc1da8ae7e193ba7da1"
+        "metrics": "0716e285257ea5d9b4710ad0a7364589a07b6a312a63123a440b6e08044a81ca"
       },
       "disposition": "updated",
-      "rationale": "追加完整租约条件；局部CPU/GPU覆盖足以产生子指标，不能补全临时文件或全资源清理。长会话保存策略待更新。",
+      "rationale": "阶段真实依赖和独立并行保持；持久端点先于所有权变更，516端点、缺段/冲突和写盘失败测试覆盖。重启不恢复执行权，全资源清理仍未知。",
       "debt_ids": [
         "TD-001",
         "TD-003",
@@ -59,12 +59,12 @@
       "requirements_baseline_sha256": "f3aee482bfcf53f876fab55e16e223f82ce4de9c3e5a14e3480a07dd952e18e5",
       "reviewed_hashes": {
         "requirements": "f3aee482bfcf53f876fab55e16e223f82ce4de9c3e5a14e3480a07dd952e18e5",
-        "conditions": "10d4035b558fd4d86000b2bf64c397aab5f27b67d1c63ed0c748d92efd3853b4",
+        "conditions": "17f40787d120ed32b17680cf7e8919876e64f18c88260df8a79097bf19df1f18",
         "strategies": "9a17374404da43e3db21641aeeee67437959db417a19b4dd834073abd0d67890",
         "metrics": "8b5562cb9ae949ec3de909eea5321d0ebd0048fa236d00a396cd641d6bf99556"
       },
       "disposition": "updated",
-      "rationale": "新增阶段完成和取消意图字段进入契约；运行中API及UI投射未形成共同版本的完整比较，保持未知。",
+      "rationale": "活动与终态条件按job/attempt/model绑定，当前/历史/过期/未知分开；未知版本不展示允许。有限反例不外推全部表达一致。",
       "debt_ids": [
         "TD-003",
         "TD-004",
@@ -81,8 +81,8 @@
         "strategies": "48d8cec9fdf6099fdeb4c8371c3abee3937427f763c6beade13b2b1640c2cd83",
         "metrics": "3ffa5845a88f2b193e44311c77ff7f8c0ba161daa0e6e56fd4f5428e3293f41e"
       },
-      "disposition": "retained_with_reason",
-      "rationale": "保持左上看板、左下控制、右侧日志；需要默认条件摘要，不把新诊断需求转为重新排版。",
+      "disposition": "updated",
+      "rationale": "CSS/DOM布局保持，默认诊断使用既有看板与日志；文本解释增加不等于认知负荷获得量化改善。",
       "debt_ids": [
         "TD-005"
       ]
@@ -96,8 +96,8 @@
         "strategies": "b679b93be07dee74ae5902653a541955553855d616a0f30e96b0a2040eaafbbc",
         "metrics": "637767d8eaeddbf08790ec1ab4001235d35ebe99dad9946f2f5f53c694350f95"
       },
-      "disposition": "retained_with_reason",
-      "rationale": "普通已授权命令及未知请求对账策略不变；新审计载荷带来的延迟和默认提示缺口保留实测要求。",
+      "disposition": "updated",
+      "rationale": "控制仍提交意图，查询无生成副作用；预算分页不占主状态锁，但取消可等待有界RPC，不宣称0.25秒响应上界。",
       "debt_ids": [
         "TD-005",
         "TD-007"
@@ -112,8 +112,8 @@
         "strategies": "dd616c0cf9381e115141c658cdba994ff8310cd97d191b4629d7b78f0aa16b5a",
         "metrics": "3d281558a473b3fbafdefd4b074c763e02e989d96e82e19622629d58f191fa6a"
       },
-      "disposition": "no_change_needed",
-      "rationale": "没有新证据改变单在途查询、挂载身份和父子清理策略；面板资源清理指标仍未知，不用后台服务释放代替。",
+      "disposition": "retained_with_reason",
+      "rationale": "面板挂载身份和受管子生命周期未改；新增摘要有界，无新增任意递归面板能力。",
       "debt_ids": []
     },
     {
@@ -121,12 +121,12 @@
       "requirements_baseline_sha256": "40cdd570bd06923f1fc8e4dde14b004460b0808027989aaac8f0b598d72c3164",
       "reviewed_hashes": {
         "requirements": "40cdd570bd06923f1fc8e4dde14b004460b0808027989aaac8f0b598d72c3164",
-        "conditions": "9ddebe97907d4dead0d1bfb52e305db33ab2679b42ea08dde43ef02816351620",
-        "strategies": "dbbeafeddfa339659bbc34fed09a406084fccb87760696e1bb4e4183363c7e85",
+        "conditions": "e057d88fd3c5d6ff3d21d3cb539cd905a80fe13497e91a82f5699c8c830ebb44",
+        "strategies": "38755bc0956ebad2a08ec367fbeaf5543e4b317a012c2434c3cd95528fd56c22",
         "metrics": "f10e2eb5cda25e32c1f880b072e72cb550af95889d89a17b506f9b402e6cf5f4"
       },
       "disposition": "updated",
-      "rationale": "已区分旧实验与新条件；缺少共同版本UI/API/日志样本，默认摘要未实现，不将布局未变或API成功算表达通过。",
+      "rationale": "Python与实际console JS同源条件fixture，区分当前观察和历史授权；未知和冲突不能补成成功，完整自然语言等价指标仍未知。",
       "debt_ids": [
         "TD-003",
         "TD-005",
@@ -140,10 +140,10 @@
         "requirements": "184a0f57f1e55b12f0512565abf87390aefc64b4a15aa03e61b252aec2d0ed0f",
         "conditions": "5a301946e1569b4cbba29362be9f95ad2a790dec190477c81f500cc45fd3e7b0",
         "strategies": "f2fc4fc047ab0cb48e9896ecce75b941c8626cab50baaa2a8fad3cd1d5933f23",
-        "metrics": "0d195e27221b391324b21936f300f1299ff62c3f9229368e2d9339047b204d44"
+        "metrics": "b0c4af119e9678af3e21cc1413daffb528cf9321c33ad2306b1657f648432b38"
       },
       "disposition": "updated",
-      "rationale": "主账本与同身份对账需求保留；新三任务闭合观察单列，FIFO公平与队头阻塞仍需量化，结构检查不代替指标重算。",
+      "rationale": "主事件需求不变；公平回填按所有被越过排队任务约束，未知提交同ID对账，历史闭环3/3直接对账而非手填可信。",
       "debt_ids": [
         "TD-003",
         "TD-008",
@@ -159,8 +159,8 @@
         "strategies": "fbe2a0ed1aeaa47a61ec1ba221c6d7965fa3f2d7cf291448fae5a405d9b364c6",
         "metrics": "30c9de5bccb599945df5e4871555a9e44a5403d464cce4c31a997cb7c7b4bbb3"
       },
-      "disposition": "no_change_needed",
-      "rationale": "当前本地仲裁加远端复验继续满足已选责任边界；未新测API交付精确延迟，不从正常成功补造时延。",
+      "disposition": "updated",
+      "rationale": "跨进程接收方原子复验保持，独立工作不引入全局串行；新分页在锁外RPC后复验身份/游标，控制和实例所有权分开。",
       "debt_ids": []
     },
     {
@@ -168,12 +168,12 @@
       "requirements_baseline_sha256": "5f88c47633334bc0f2cde84d2859b6e88050283f8f51c941f3221b0aa66896a0",
       "reviewed_hashes": {
         "requirements": "5f88c47633334bc0f2cde84d2859b6e88050283f8f51c941f3221b0aa66896a0",
-        "conditions": "5f517ef5b79b9a16eaacdbef22b994a3c1135384701849fe0344cf01ad65eec1",
-        "strategies": "c7d217ac9b6a20cbae98bc69a6bd31a5e53d6833ce1ddc072b61c67eaa9f9dbd",
-        "metrics": "effca01be1b97c0be44a55cf04cabb17c4894a7368eb642794e003193cd756cc"
+        "conditions": "50347f57a5a29898165ec6fa14ec7b2a05874ecdc0ac0c3b5d2f7e5062335c10",
+        "strategies": "51ecaa088066ede9dbee42216aaf1c3b46be6a729503f29325bf04d32eade91c",
+        "metrics": "bb11cbffe640cfcc89e874dda6ca4df8bdea60b952a1f420ca87c55fec477fb7"
       },
       "disposition": "updated",
-      "rationale": "容量版本复验和指标资源范围已纠偏；预算内并行继续保留，长期审计和回填权衡有明确开放债项。",
+      "rationale": "持久账本与最终见证可验证长会话；有限FIFO/回填对照保留长等待代价，无全局时限/最优声明。CPU/GPU零不代替全资源unknown。",
       "debt_ids": [
         "TD-001",
         "TD-002",
@@ -187,12 +187,12 @@
       "requirements_baseline_sha256": "3df0cbe8417b668bb1ff70cfe2e6b4abbf1a86a4b964df1d7e91ca41c6cfd304",
       "reviewed_hashes": {
         "requirements": "3df0cbe8417b668bb1ff70cfe2e6b4abbf1a86a4b964df1d7e91ca41c6cfd304",
-        "conditions": "b5eecbadfc4d7567adb82d05633bec3ca3c71aa0dfdccfcbe2c7e57db6fb18d3",
-        "strategies": "445b11f868e59b7f6c14b134ded321e000839fad58ab544f65d55741063554d6",
+        "conditions": "b35023cce41911859283b9a4f4356a2c9c5e068fdf533c253cb33bcc36943fa9",
+        "strategies": "b5bbb366640ae0a978d0c35fc3ed47c2a5c7a4af89d99ac9ffac968978913010",
         "metrics": "26581f338de627e2811387b6f855749411a31a3da23c05b55f7062fb34408e0e"
       },
       "disposition": "updated",
-      "rationale": "新增复审记录隔离普通源码冻结；默认面板、运行中任务、历史源码绑定和下一轮导出来源仍有具体缺口。",
+      "rationale": "历史源码固定先于运行时修改；显式实验来源和五指标重算接入CI，历史SHA和数值不覆写。复审记录仍不等于全称证明。",
       "debt_ids": [
         "TD-004",
         "TD-005",
@@ -212,7 +212,7 @@
         "metrics": "005a0387ee8fdec2fe26fcf17f727d659cb74b821620c083a403ff16140e6f25"
       },
       "disposition": "updated",
-      "rationale": "纠正ready与接纳的混淆；鉴权、入口先交付和能力独立需求未变，正常运行不代替无效鉴权注入。",
+      "rationale": "鉴权、上传接纳、模型可生成与公网能力仍独立，新的审计接口受Bearer及实例校验；没有通用多租户工厂新增声明。",
       "debt_ids": [
         "TD-003"
       ]
@@ -222,12 +222,12 @@
       "requirements_baseline_sha256": "0de67c9cb37b4e1530920fc3e8a5a8bc17e1af0793a024d36ab68bbc77f06340",
       "reviewed_hashes": {
         "requirements": "0de67c9cb37b4e1530920fc3e8a5a8bc17e1af0793a024d36ab68bbc77f06340",
-        "conditions": "7febb6662419d5d0ff47b4e65a4092ec4ff3fa410ff6efab25eed303154b7c8d",
-        "strategies": "2a689ad0d4b80731afc9f4609807c690b3630811134353de316d0b00c337fa64",
+        "conditions": "467122ad4a65ceb71180fe5dcacbf1e665b6c0a65aff41bd7e9282d50fce3ddb",
+        "strategies": "b503343c01e4c301d22df5d5105a28473755cfd2474227ebff9ecfa179a3def5",
         "metrics": "1527f6d4ac2caab59499cd5c9a962e7678ecafb92a57ad16727b97ed89b11dd9"
       },
-      "disposition": "retained_with_reason",
-      "rationale": "继续202排队、同身份取消和下载校验；运行中详情和队头策略需复审，完整下载尝试分母尚不足。",
+      "disposition": "updated",
+      "rationale": "单任务实时证据与终态历史分别校验归属；审计分页匹配请求范围、进度和hash。排队无固定数量上限，资源限制与取消语义保持。",
       "debt_ids": [
         "TD-004",
         "TD-008"
@@ -242,8 +242,8 @@
         "strategies": "066bc87151428ebb1c57a3cca9922c90cc42d831c7f3879e42ad1f59e592497b",
         "metrics": "c2f9e6724c7970a93ba98f43be8c520cdf6dd2229c3af7278d5c99a4af7114dc"
       },
-      "disposition": "retained_with_reason",
-      "rationale": "保留公私控制通道与实例责任；本轮API受管替换有证据，不能升为任意故障恢复保证，下一轮来源导出需参数化。",
+      "disposition": "updated",
+      "rationale": "实例控制路径保持；导出协议/基线/执行源码/干预显式校验，声明基线不冒充Git执行血缘，不把H3导出器宣传为任意模型通用。",
       "debt_ids": [
         "TD-011"
       ]
@@ -253,12 +253,12 @@
       "requirements_baseline_sha256": "2f3f9309ebb9b469d77f6bb1a485e6936ff3ca0251f3efe6e84a2593bbf73284",
       "reviewed_hashes": {
         "requirements": "2f3f9309ebb9b469d77f6bb1a485e6936ff3ca0251f3efe6e84a2593bbf73284",
-        "conditions": "2a181a9326d4707c79d65cf97d58743050034f98c5230959cf33257f6b21bda0",
-        "strategies": "6b8c85975270a852fc23bc6fdc5c9bc59b8bf735e4118408d2eb1885d3e29963",
+        "conditions": "c5ebd34d51bd6d31aed6a719e5c88083d2f2b187afbebed775bdd32846d9c020",
+        "strategies": "033d05890786e61458d5a6805f5ae1c675632700facab8a7077611afcba0c597",
         "metrics": "b958fa3e26793d0b27ee7039e1130d094a02eb7cbcaf8970f5d846544ca76803"
       },
       "disposition": "updated",
-      "rationale": "补齐固定公开字段与当前未覆盖输入类；结构审查、API白名单测试与跨表达完整指标保持分离。",
+      "rationale": "公共字段有界且脱敏，缺失/冲突/未知版本不显示允许；所选知识观察机器核对窗口、单位、身份、分母与覆盖，未支持项不补零。",
       "debt_ids": [
         "TD-003",
         "TD-004",
@@ -268,16 +268,23 @@
     }
   ],
   "reviewed_sources": {
-    ".github/workflows/verify.yml": "53ab423dd38601122cabef7075ad69d04d7bff8405ff2c094af10c3bd39ca7f2",
-    "docs/modules/api-factory.md": "b0f820537ae9d43a8a1771b5a1131d998c5e3d9c513c6f1c3539f6071d37e003",
-    "docs/modules/event-orchestrator.md": "3201b27812596d982907de0bb745f2579c7cdc84b7e2a4fe15eda76ad3f76ca2",
-    "docs/modules/interaction-panel.md": "18d012232a36e9e8f0c5a6cdd49f22060060a8b186ffdca02eaecb6a1158ae95",
-    "docs/modules/model-container.md": "419e326a138048dd44b9e209c3e14fed1b75c36cd3b48c26142c73a968b163c5",
+    ".github/workflows/verify.yml": "93cc54e4866fe6a3c5681302f5538b8bfe740d5f03e409018a7deefff88f4f47",
+    "README.md": "bbf19d503786f6e71f7310b2035610eee1bd992093ba07e03df192b939b62734",
+    "docs/modules/api-factory.md": "fe7cec1927fd29c035cbb7b36da62943c7128f37009a8ebd38512d8b1766e183",
+    "docs/modules/event-orchestrator.md": "24a813a7c6e40d2313be20b1979be04c6ed3a94c9e4493f28c6f369da2f86886",
+    "docs/modules/interaction-panel.md": "086e6395f84281123e7704ba865fe021259b6a098956911974bf25613a3f1c05",
+    "docs/modules/model-container.md": "fdedb69f6c89b8975627aea82dccbbabc8fa52ce5b01c327ebb630c1b4c8a70e",
+    "docs/operations.md": "bce11d5f76ce8ddbb9aaf60a758f09053d7e5ff2153e9b3633b512676f0f2a67",
     "docs/research/2026-11-15-results.md": "1d819d1eb2714ce6016e77f15cf81c99f08a7fc758c98c49e7e540e2acbf1afd",
     "docs/research/2026-11-15-runtime-condition-results.md": "1b2357d279894dff8ef9556c2aa1f0d96b731e3eb4a9b4c236155ac8085ddcf9",
-    "docs/research/condition-strategy-metric-debt.md": "075a352a3d5b0087afc9c19ff9b8abc8c26b399f6be4fdfd94aa49e3b9146f7f",
-    "docs/research/runtime-condition-gates.md": "3becd4f4ccbb851b3e551b769cca375a347f382ae460fa6dc325186a0d00bac2",
+    "docs/research/condition-strategy-metric-debt.md": "d1cf4b06fb6dcdab7d0005a4e20d27eb094c2e1ca5bf5416d2ebd68a85a1f5e8",
+    "docs/research/debt-resolution-v050.md": "09eb1e4f5bd6a647ef77a8e76672b9432af6e30365bb93e0d38ababbac553ef8",
+    "docs/research/runtime-condition-gates.md": "96b2a3e70fde2533c7915f374be64fedb8cc7b1ff276443b5cc3f80c6ede816f",
+    "docs/validation.md": "325941f9c754ae0d55ad298225707d6dcac863b32a881f4f9e14e04bdb92b9f2",
     "evidence/acceptance-2026-11-15.json": "eaab7f385218765bfc9b7c2bb59b8d3f0706312afbaa96fd894fe2c84a94d573",
+    "evidence/debt-resolution-2026-11-15/budget-query-benchmark.json": "a41c8b03c31ecb3e78f7b3226e931d89bb2e0d0f6922e2caebdf4f69e79238a1",
+    "evidence/debt-resolution-2026-11-15/metric-replay.json": "e2b718f750e691eebc2533665d063c708a6663e658d90a8dbacc444de737fec7",
+    "evidence/debt-resolution-2026-11-15/queue-policy-study.json": "e3ac7da98b38e5764ed9ef7e9c73d6cf692c0175f7c44371347890770e58f4d0",
     "evidence/research-2026-11-15/analysis.json": "d46455cbe89823f49fe322b21815b9c7a1a338bc0f640d7c26e48a95a41f7da3",
     "evidence/research-2026-11-15/calibration.json": "f0a83f1002999b625f8a1ae95f4f8f71b9dc710647fa67ef63df8c13762378a8",
     "evidence/research-2026-11-15/client-receipt.json": "927244f95b0b2018f2a3c5660b0bb4a3a679f959cbdceda0d2600d6c57dc6947",
@@ -296,54 +303,79 @@
     "evidence/runtime-conditions-2026-11-15/runtime-source-manifest.json": "7b70b4fa5a1519db8b535978495b3ed195eb7b0ce0b28c7f3de72ecb7e884381",
     "evidence/runtime-conditions-2026-11-15/trace.json": "969eaa9321d2d4470b75bedad369bd674b5b04fe5a132bd949f72fdee4f05d27",
     "knowledge/index.json": "279a72f292bc59c2fb789e409f3ab1d490f660581dcc2568e681df128b4a5427",
-    "knowledge/modules/api-factory.json": "c6a87af1dbb26f7ea3c868349a0e4df5197ee48d5d74628e052dc0f94460423c",
-    "knowledge/modules/event-orchestrator.json": "1d90fd66379bde31262c28dbee1414d168db3786f52a4eee581d88e3abcb46aa",
-    "knowledge/modules/interaction-panel.json": "af28ca3aa3cf9afb14eb0c5a43021e63e14ea3ebbdfd36b71361cf68ec0fa8db",
-    "knowledge/modules/model-container.json": "de1305b380e2a2bf6af58ba6c3ccecbb93f46f460dfb69ce6cd2146fd6dfbe67",
-    "knowledge/strategy-metric-debt.json": "144427d2613ac7d3e93af97655dd7b1d6e3ef8db608ac625ab091d86b9cfb107",
-    "research/analyze_condition_gates.py": "f3bb2ff3209e3a5e818e0254e57f9fe671d6993119ec757550fcf14f07b3a76a",
+    "knowledge/modules/api-factory.json": "4b221e144a4b17114dbaed5c00e776534209abfc456b72e9cd063d6bd7b92b5a",
+    "knowledge/modules/event-orchestrator.json": "aff780ca34b417f0bb3d451d512101219be82d18e30ce6b44158885a91d0d176",
+    "knowledge/modules/interaction-panel.json": "00f8a3a8f29183ab4b51dff1a0468a503c085ab94567a38407b047af109e4b2a",
+    "knowledge/modules/model-container.json": "e2294696c08f6250b2c88318db31cd0b800c0892582a2fbd9c77880175f2c0eb",
+    "knowledge/strategy-metric-debt.json": "9566790096e9e4f3d6bba84062df689b5c4b1e854ba4b9b8c731916ab66cb6ba",
+    "research/analyze_condition_gates.py": "579431f33e0e92448e62b984c392a64fbfe419bd973ce92e56286ba3ec23afb4",
     "research/analyze_trace.py": "60326a0bd582dc12492be0ea99f7b9781b5044738aab0afcf70a5546a4fff689",
-    "research/export_condition_evidence.py": "d55f297f8e52fdded2e6241d2dc12706e272bb994cc9a273b0d0716dce4ff87a",
+    "research/benchmark_budget_queries.py": "e107cfef9a42f61cf457d3e2929160782c2e3607d79307ee94741c5d18a47ba3",
+    "research/collect_runtime.py": "ebbd61ab2d26f4e537a28374e6ed79d129ac0ed15b7805d7dc04229494f48ed4",
+    "research/export_condition_evidence.py": "c27138fbbf400cf926d5ed5a819b15095cfb5fb41f150a9cd7e4d144bb74692b",
+    "research/metric-replays/runtime-conditions-v040.json": "d47f096be56d123c3cd89d9ce99188b6ffce116e41f0bb625156d8b9e8646ceb",
+    "research/replay_historical_conditions.py": "03a760f58acf2bf9231d7469786de0da9bbbd393dbaa2baf62c22154f1ef4d11",
+    "research/replay_metrics.py": "2aa653338b32ce91255969f41241e7f595e21574a9ad3ea64e670ff7ebf250a4",
+    "research/source-bindings/runtime-conditions-v040.json": "4fb4f369d70efd855be8d8bb0be315abf9e37a201520cf17ed9443c625c60e6d",
+    "research/source_bindings.py": "a35dbe5961fbe44c334b8843c436be4bb1ed17f302122be59e726e3fe63741f2",
+    "research/source_snapshots/minimax-h3-v0.4.0/condition_guard.py": "1942c6d3da8ed9f7d4cddae93163f74b04c4d77e935814efc31144ce75f38339",
+    "research/source_snapshots/minimax-h3-v0.4.0/global_manager.py": "0cc8928ea5dd0509c9dd4c751eb0db6d19d3757fa0940ee09a45e58818c37607",
+    "research/source_snapshots/minimax-h3-v0.4.0/model_container.py": "209c42762f684d58b704dc1b813c507d27be09a3c74c9899696565e57a5640b8",
+    "research/source_snapshots/minimax-h3-v0.4.0/pipeline_scheduler.py": "24d6119962f94632e0f651017ecb0b567c271f07533e33a2b0557f35219c19f7",
+    "research/study_queue_policy.py": "182678475f2c51b3d16ad89fac2c0f3534208d73098b591e95f6ce0725e1011e",
     "runtime/minimax_h3/condition_guard.py": "1942c6d3da8ed9f7d4cddae93163f74b04c4d77e935814efc31144ce75f38339",
-    "runtime/minimax_h3/console.html": "398051c3697903156e5bfc902b2e4c8bb505763011a1e818c62ba88fd459499a",
+    "runtime/minimax_h3/condition_projection.py": "c69025e2dce05e415a187335067f7ac12946261ca7f1c80713a9c3d7b1816a8b",
+    "runtime/minimax_h3/console.html": "4cc90518ca912e16b43420b85ed5770af67e8438a35c99364afee988cce91528",
     "runtime/minimax_h3/generation_options.py": "edbe6907b34880e98561b0b55f9dfbfcdfb6402cd81b66ab6e09403a3d7fc911",
-    "runtime/minimax_h3/global_manager.py": "0cc8928ea5dd0509c9dd4c751eb0db6d19d3757fa0940ee09a45e58818c37607",
+    "runtime/minimax_h3/global_manager.py": "3dbaeba1dd637cc2849f2a2c38cfa824b1ece6ac3f23fd5471736ed1d47095f7",
     "runtime/minimax_h3/model_backend.py": "b6f57ebcaeaa03025a89f56c69555514922032d7ed2d3dc34e88fe2b215126e8",
-    "runtime/minimax_h3/model_container.py": "209c42762f684d58b704dc1b813c507d27be09a3c74c9899696565e57a5640b8",
-    "runtime/minimax_h3/notebook_console.py": "cf8f4a3b726103f3f41df5eef47856f593dad36b8e90cc6778e464aa72a128ab",
+    "runtime/minimax_h3/model_container.py": "9142afc83ea56ee668d617c77fc3f3b4ab86daec42ff45a3c32d662dbbc724be",
+    "runtime/minimax_h3/notebook_console.py": "060965790ba460bb91a6e2ee0d01aaaf7869798125dbfe9a6fd67f5c5dcc5e10",
     "runtime/minimax_h3/notebook_ui.py": "88bfd645a5a09234c2ac7c1cd0639ec5a21f5530aa882b4325bde4b883e9ada7",
     "runtime/minimax_h3/performance_model.py": "52ec15811bd5522dcc00d47812af48404abcc504a69779c1b19e44c3f072eb63",
     "runtime/minimax_h3/pipeline_backend.py": "74b5301553791a7b49e1feff92b926f9ba864bc15c6166caa9396a464ba3b913",
-    "runtime/minimax_h3/pipeline_scheduler.py": "24d6119962f94632e0f651017ecb0b567c271f07533e33a2b0557f35219c19f7",
+    "runtime/minimax_h3/pipeline_scheduler.py": "574bb136fe47b23e8ec5586e6d0d0ae009faf2da1e5a3880ae489e2a3971ead1",
     "runtime/minimax_h3/preflight.py": "9966ae12716653db55665f76e4f226e5593a52becd7aeb3455915735ce808a6e",
     "runtime/minimax_h3/process_owner.py": "f61b227de6d457405b7e63f2866221d43d2af7ce08583c942fb112b6356943f0",
+    "runtime/minimax_h3/queue_policy.py": "21613115dfdac84bcd556ac5e535aa0096b24f82beb32411b8741ea57b11c623",
     "runtime/minimax_h3/resource_scheduler.py": "969f951c5e1238ed6db91f25d44c985b4ca8e4f391a037d83905b6c5531df8cf",
-    "runtime/minimax_h3/server.py": "1b09072374ad9033a770676d52f4c1757d1ce7e9eab4944cafdf7daf30f6d2a7",
-    "runtime/minimax_h3/startup.py": "dde06ee6e10f19a4d95399827f68723a60f6f6975fc6610f999dc6a050c4fb3b",
+    "runtime/minimax_h3/server.py": "da793d57fff80fb7ff0efa4e9400485f38faccd542645ebbf06f33f31b4f78ca",
+    "runtime/minimax_h3/startup.py": "686f2e97d2b3980cf0f43c60a4906db042bff223d6ec23e460236efd03062920",
+    "runtime/minimax_h3/test_budget_audit_projection.py": "e8be50a34f674440eeda3ac622d4d45a6585b930beba641a44d6f36defcd8e80",
     "runtime/minimax_h3/test_condition_guard.py": "891bf52f5d7dc0aad3b07e8a6ca19de3804bea3e77ca6bc09d526ee6000f94f1",
     "runtime/minimax_h3/test_console_connection.py": "4e05bb2b0f36a55cb981573efc32b7034fbe7c6cecd39a9994e0f7eb32fba043",
     "runtime/minimax_h3/test_console_process_lifecycle.py": "2d7383ce12b9b389a3dc7e68ac7786f2987519e94333e96a5266232d5cb259a1",
-    "runtime/minimax_h3/test_global_manager.py": "be986e34310424ad7864ca50ba216e504edd1d478038b8d9ad9dd45c537f658b",
-    "runtime/minimax_h3/test_manager_condition_gates.py": "a020603108bf2ee889265d98581f3b3571ea314159c4169c91ec188a1b76fb11",
+    "runtime/minimax_h3/test_global_manager.py": "3461d66a86b1ce7899bffed0dfa97f52d1bc87003f271665860d59ad0772b4d8",
+    "runtime/minimax_h3/test_live_condition_projection.py": "95ffdce81d67febb87f5d28eb04429e4e6e5675a494dc0b12401ceddffeeddb0",
+    "runtime/minimax_h3/test_manager_condition_gates.py": "9081cced76d7b919271d3c034b2bda7f28d62bbb1f6b7ae25f65c85853a93bd3",
     "runtime/minimax_h3/test_model_condition_gates.py": "05a0af7943446ed1b4da6b4be316fbe1df311425612a5d5580404ece4ab27a7a",
     "runtime/minimax_h3/test_model_container.py": "c5f4edb41b55953000e80e60fc0d4ed4a8cd1911aa478cdff070ab3f1b8d2800",
     "runtime/minimax_h3/test_notebook_console.py": "cd7a95a554242e386834467521763d9e2cb51f5e41dfde8489a2a2a6d03c3fac",
     "runtime/minimax_h3/test_pipeline_backend.py": "042397c2e05a435bef710434d9758ace497e5385682e85a7bb397f668e89faff",
-    "runtime/minimax_h3/test_pipeline_scheduler.py": "42e9c49a05ba27950c1497370ebb0e9f13ff45b0f634980977356b747b046351",
+    "runtime/minimax_h3/test_pipeline_scheduler.py": "72522b7005514c4a50a0e0fd3daeddd373334b74c4b255117469a8ce1c161280",
     "runtime/minimax_h3/test_process_owner.py": "427c75066d7b9c61f5b2ace1a0fe887ec1062e867401366a5e12ecb5d4f4250a",
+    "runtime/minimax_h3/test_queue_policy.py": "cd1b9ec31c53c419f605a87a7d44c849287b1910e0894affdf8defefd6b8b15a",
     "runtime/minimax_h3/test_server.py": "f286a1f81ee970b523ca176592e612cad7198c5497fe5be0fed4a16877998ab5",
     "runtime/minimax_h3/test_server_condition_projection.py": "685381d73f6f02b86f0ff95e7082ee249ddec5c45e1d3dc0949c616af2536b97",
     "runtime/minimax_h3/test_server_cors.py": "d0d2e812ae67c5e137fee0203a313f7511dcc5572ef71d7a280a6c6020c92f83",
-    "runtime/minimax_h3/test_server_manager_identity.py": "33d210574887a84082bb105eedcce17491970c51ff4d16264d106b450a94ac2a",
+    "runtime/minimax_h3/test_server_manager_identity.py": "1dcddfae3567269df2ce8d764c67c58e78a9e39014b52373afbe2299752bfb07",
     "runtime/minimax_h3/test_startup_delivery.py": "137b47e702e86bbad36b19281bc9f5491d4ace1997ec29725563a61691507e55",
     "runtime/minimax_h3/tunnel.py": "ff097af7dfc956586dffe31e244ff4f06bfef695bdba44514899824cd2aac47e",
-    "tests/test_condition_gate_analysis.py": "cda090a3c34305a0c71707d8f9bc0d28c23ccf7d6f899998d868eb5bc37ad411",
+    "tests/fixtures/live-condition-projection.json": "57bccc9f493c299f3962b8680c74f14afee17126c569e631b6ba9f99a411f730",
+    "tests/test_condition_evidence_export.py": "1a42529da0824aa0344183657fa68cbbaafca1e5483e1aac132c009c59db7eee",
+    "tests/test_condition_gate_analysis.py": "18cd166f1da9d51cd31305aa4e5306f1ff78071cb690cdff815fce4ece75876b",
     "tests/test_condition_reviews.py": "b181d83ff12abd2c961f2ceff63cbaa7aa97ac50c797d627792a95824cd51c78",
-    "tests/test_console_delivery.cjs": "bf93e026ca5e50f4692026c6c41ae34e918949b2178b46e85fb983bc1540e090",
+    "tests/test_console_delivery.cjs": "7513a42e9c93e35d555b3ed67376a58c3e92d1038687b2edeae6f2964b85739b",
+    "tests/test_historical_source_binding.py": "dec88f2d904a6600799b1ea9fe16e8a29f83dfcfdb4b0b8a7433059e94b1acb1",
     "tests/test_knowledge_contracts.py": "21e0ce07af43158bae2219f7ec3d6a7754562738c7b104c67806e7159239fe70",
+    "tests/test_metric_replay.py": "1b2a133595284096b9b6d91c22909c7904dfdc0fc36deb8403520072a72adb1d",
+    "tests/test_notebook_layout.py": "a57bade6a11c72451c5eeb44d0e8b3c7677a55cadc1622cd54fa6c8e3f1de016",
+    "tests/test_queue_policy_study.py": "2e69bf2c70386c280c6c3a8e0e8fc399d81e7730ef2c725d4c9d951cdde26dad",
+    "tests/test_research_collection.py": "a0a77e3dd21d5ee41b0bb73e62677d661b86dcde94653b9bcf5af45088474583",
+    "tools/build_notebook.py": "3f41a4c87380ed14ef7b53a2f296f5769a3db29ee8656d8dec4841e3a4ab4195",
     "tools/check_condition_reviews.py": "4c674aad35b99ff64558816ff1fed60549b1a796a7ce01cef00db19db55532eb",
     "tools/check_knowledge.py": "95909876045f8ddb8bdeb163aa339aca9ad69349a6d9be327b7e9e89a7c9f126",
-    "tools/freeze_sources.py": "0028328b7ebe911afaae299f6e2620fc644c74962f58366e9fff50af7678628a"
+    "tools/freeze_sources.py": "89b553f55316b5ec2933c4ded15d45cfb029ac12361c783ad11ce79b41f0cb2b"
   },
   "scope": "Explicit manual review of unchanged goals and declared changed conditions. Hashes signal review freshness only; no automatic debt closure or exhaustive discovery."
 }

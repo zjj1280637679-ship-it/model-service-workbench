@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "experiment_id": "3732565998754d26919f0706b838ebff",
+  "source_commit": "8beba2124adb8ce26542bc71fc54b2d354cdfaf3",
+  "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+  "model_instance_id": "23de982643984911a92c5b2459eded28",
+  "trace": "evidence/runtime-conditions-2026-11-15/trace.json",
+  "source_directory": "research/source_snapshots/minimax-h3-v0.4.0",
+  "files": {
+    "condition_guard.py": "1942c6d3da8ed9f7d4cddae93163f74b04c4d77e935814efc31144ce75f38339",
+    "global_manager.py": "0cc8928ea5dd0509c9dd4c751eb0db6d19d3757fa0940ee09a45e58818c37607",
+    "model_container.py": "209c42762f684d58b704dc1b813c507d27be09a3c74c9899696565e57a5640b8",
+    "pipeline_scheduler.py": "24d6119962f94632e0f651017ecb0b567c271f07533e33a2b0557f35219c19f7"
+  },
+  "scope": "Exact source bytes from the recorded v0.4.0 implementation. Read for historical hash validation only; never imported or executed. No claim that current runtime inherits old GPU acceptance."
+}

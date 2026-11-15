@@ -198,3 +198,76 @@ def test_source_manifest_hashes_only_exact_code_allowlist(tmp_path):
     assert len(result["files"]["startup.py"]["sha256"]) == 64
     assert result["unavailable"]
     assert "secret" not in json.dumps(result)
+
+
+def budget_host(tmp_path):
+    owner = host(tmp_path)
+    budget_id = 'd' * 32
+    state = {'instance_id': MANAGER, 'model_instance_id': MODEL, 'modules': {'model': {
+        'instance_id': MODEL, 'budget': {'budget_instance_id': budget_id, 'lease_journal': {
+            'budget_instance_id': budget_id, 'complete': True, 'count': 516, 'tail_sha256': 'e' * 64}}}}}
+    owner.snapshot = lambda: state
+    calls = []
+    def page(**payload):
+        calls.append(payload)
+        after, cutoff = payload['after_sequence'], payload['through_sequence']
+        next_seq = min(cutoff, after + payload['limit'])
+        return {'schema_version': 1, **payload, 'model_instance_id': MODEL, 'budget_instance_id': budget_id,
+                'next_sequence': next_seq, 'tail_sha256': 'e' * 64, 'after_sha256': '0' * 64,
+                'events': [{'sequence': sequence} for sequence in range(after + 1, next_seq + 1)],
+                'page_complete': True, 'more': next_seq < cutoff}
+    owner.budget_audit = page
+    return owner, calls
+
+
+def test_fixed_cutoff_audit_capture_pages_and_exports_final_release_range(tmp_path):
+    owner, calls = budget_host(tmp_path)
+    populate(owner)
+    collector = collection.RuntimeCollector(owner, tmp_path / 'observations')
+    first = collector.capture_budget_audit(max_pages=2)
+    assert first['state'] == 'partial' and first['after_sequence'] == 256
+    final = collector.capture_budget_audit()
+    assert final['state'] == 'cutoff_captured' and final['after_sequence'] == 516
+    assert [call['after_sequence'] for call in calls] == [0, 128, 256, 384, 512]
+    assert {call['through_sequence'] for call in calls} == {516}
+    collector.stop()
+    collector.export_snapshot(cleanup_receipt=receipt())
+    trace = json.loads((collector.directory / 'trace.json').read_text())
+    assert len(trace['budget_audit_pages']) == 5
+    assert trace['budget_audit_pages'][-1]['events'][-1]['sequence'] == 516
+    assert collector.status()['budget_audit_errors'] == 0
+
+
+@pytest.mark.parametrize('field,value', [('model_instance_id', 'f' * 32), ('budget_instance_id', 'f' * 32),
+    ('through_sequence', 515), ('next_sequence', 0), ('tail_sha256', 'f' * 64), ('page_complete', False)])
+def test_conflicting_audit_page_never_advances_collector_cursor(tmp_path, field, value):
+    owner, calls = budget_host(tmp_path)
+    operation = owner.budget_audit
+    owner.budget_audit = lambda **payload: {**operation(**payload), field: value}
+    collector = collection.RuntimeCollector(owner, tmp_path / 'observations')
+    with pytest.raises(ValueError):
+        collector.capture_budget_audit()
+    assert collector.status()['budget_audit_errors'] == 1
+    assert collector._audit_cursors == {}
+    assert not (collector.directory / 'budget_audit_pages.jsonl').exists()
+
+
+def test_audit_probe_is_independent_of_status_probe(tmp_path, monkeypatch):
+    owner, calls = budget_host(tmp_path)
+    entered, release = threading.Event(), threading.Event()
+    operation = owner.budget_audit
+    def blocking(**payload):
+        entered.set()
+        release.wait(3)
+        return operation(**payload)
+    owner.budget_audit = blocking
+    monkeypatch.setattr(collection, 'gpu_observation', lambda: {'devices': []})
+    collector = collection.RuntimeCollector(owner, tmp_path / 'observations', interval=.1).start()
+    try:
+        assert entered.wait(1)
+        time.sleep(.25)
+        assert collector.status()['snapshot_samples'] >= 2
+        assert collector.stop(timeout=.01)['phase'] == 'stop_pending'
+    finally:
+        release.set()
+        assert collector.stop(timeout=3)['threads_alive'] == 0

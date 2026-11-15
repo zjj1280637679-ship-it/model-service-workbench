@@ -605,3 +605,108 @@ def test_reservation_identity_conflict_and_live_probe_unknown_are_denied(atomic_
         budget.reserve('new', {'ram_bytes': 10, 'disk_bytes': 10, 'cpu_threads': 1})
     assert budget.gate_receipt('new', 'reserve')['conditions']['host_memory_available'] == 'unknown'
     assert budget.reservation_witness('new')['owned'] is False
+
+
+def test_durable_pages_cover_86_attempts_and_restart_without_restoring_ownership(tmp_path):
+    from pipeline_scheduler import read_budget_audit_page
+    budget = PipelineBudget(tmp_path, limits={'ram_bytes': 1000, 'disk_bytes': 1000, 'cpu_threads': 1})
+    for index in range(86):
+        identity = str(index)
+        budget.reserve(identity, {'ram_bytes': 1, 'disk_bytes': 1, 'cpu_threads': 1})
+        for kind in ('cpu', 'gpu', 'cpu'):
+            with budget.stage(identity, kind) as acquired:
+                assert acquired
+        budget.finish(identity)
+    state = budget.snapshot()
+    assert len(state['lease_history']['events']) == 512
+    assert state['lease_history']['dropped'] == 4
+    assert not state['lease_history']['history_complete']
+    path, identity = budget.audit_path, budget.instance_id
+    del budget
+    restarted = PipelineBudget(tmp_path, limits={'ram_bytes': 1000, 'disk_bytes': 1000, 'cpu_threads': 1})
+    assert restarted.instance_id != identity
+    assert restarted.snapshot()['active_leases'] == []
+    assert restarted.snapshot()['lease_journal']['count'] == 0
+    rows, cursor = [], 0
+    while cursor < 516:
+        page = read_budget_audit_page(path, identity, after_sequence=cursor, through_sequence=516, limit=127)
+        rows.extend(page['events'])
+        cursor = page['next_sequence']
+    assert [row['sequence'] for row in rows] == list(range(1, 517))
+    assert rows[-1]['type'] == 'lease.released'
+    assert rows[-1]['cpu_threads_in_use'] == 0 and rows[-1]['gpu_attempt_id'] is None
+    assert page['tail_sha256'] == state['lease_journal']['tail_sha256']
+
+
+@pytest.mark.parametrize('release', [False, True])
+def test_audit_persistence_failure_cannot_claim_grant_or_release(atomic_budget, monkeypatch, release):
+    import pipeline_scheduler
+    budget = atomic_budget
+    original = pipeline_scheduler.sqlite3.connect
+    def fail(*args, **kwargs):
+        raise pipeline_scheduler.sqlite3.OperationalError('injected disk failure')
+    with pytest.raises(RuntimeError, match='persist'):
+        if not release:
+            monkeypatch.setattr(pipeline_scheduler.sqlite3, 'connect', fail)
+        with budget.stage('one', 'gpu') as acquired:
+            assert acquired
+            monkeypatch.setattr(pipeline_scheduler.sqlite3, 'connect', fail)
+    monkeypatch.setattr(pipeline_scheduler.sqlite3, 'connect', original)
+    state = budget.snapshot()
+    assert state['lease_journal']['complete'] is False
+    assert state['lease_journal']['count'] == int(release)
+    assert len(state['active_leases']) == int(release)
+    assert not budget.has_capacity()
+    if release:
+        with pytest.raises(BudgetUnavailable, match='holds'):
+            budget.finish('one')
+
+
+def test_lightweight_capacity_and_status_do_not_copy_history(atomic_budget, pipeline, monkeypatch):
+    budget = atomic_budget
+    def full_snapshot_forbidden(*args, **kwargs):
+        raise AssertionError('capacity must not materialize history')
+    monkeypatch.setattr(budget, 'snapshot', full_snapshot_forbidden)
+    assert budget.has_capacity()
+    model, _ = pipeline()
+    original, calls = model._budget.snapshot, []
+    def observed(*, include_history=True):
+        calls.append(include_history)
+        return original(include_history=include_history)
+    monkeypatch.setattr(model._budget, 'snapshot', observed)
+    state = model.status()
+    assert calls == [False]
+    assert state['budget']['lease_history']['events'] == []
+    assert state['budget']['lease_history']['included'] is False
+
+
+def test_audit_reader_rejects_deleted_or_changed_segment(atomic_budget):
+    import sqlite3
+    from pipeline_scheduler import BudgetAuditUnavailable
+    budget = atomic_budget
+    with budget.stage('one', 'cpu'):
+        pass
+    with sqlite3.connect(budget.audit_path) as database:
+        database.execute('DELETE FROM events WHERE sequence=1')
+    with pytest.raises(BudgetAuditUnavailable, match='gap'):
+        budget.audit_page(after_sequence=0, through_sequence=2)
+
+
+def test_release_audit_failure_cannot_claim_attempt_or_worker_cleanup(pipeline):
+    model, backend = pipeline()
+    original = backend.prepare
+    def destroy_audit_destination(**parameters):
+        prepared = original(**parameters)
+        model._budget.audit_path = model._budget.audit_path.parent
+        return prepared
+    backend.prepare = destroy_audit_destination
+    payload = submit(model, 'fresh-journal-failure-counterexample')
+    assert model.join(5)
+    state = model.status()
+    assert state['worker_cleanup_complete'] is False
+    assert state['results'][0]['status'] == 'failed'
+    assert state['results'][0]['cleanup_complete'] is False
+    assert state['budget']['active_leases']
+    rows = [json.loads(line) for line in (model.event_directory / 'events.jsonl').read_text().splitlines()]
+    assert not any(row['type'] == 'lease.released' for row in rows)
+    assert rows[-1]['type'] == 'model.worker_exited' and rows[-1]['worker_cleanup_complete'] is False

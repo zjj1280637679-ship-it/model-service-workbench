@@ -78,6 +78,139 @@ def _base_analysis(trace):
     return module.analyze(trace)
 
 
+def collect_budget_ledgers(trace):
+    """Reassemble identity-bound audit pages without restoring execution ownership.
+
+    Exact duplicate pages are harmless. Missing evidence is unknown; conflicting
+    sequences, hashes, cutoffs or final receipts are errors. Resource semantics
+    are deliberately checked separately by ``analyze``.
+    """
+    ledgers, finals, observations, errors, missing = {}, {}, [], [], []
+    model_id, manager_id = trace.get('model_instance_id'), trace.get('manager_instance_id')
+    for snapshot in trace.get('system_snapshots', []):
+        model = (snapshot.get('modules') or {}).get('model') or {}
+        if snapshot.get('instance_id') == manager_id and model.get('instance_id') == model_id:
+            budget = model.get('budget') or {}
+            if budget:
+                observations.append(budget)
+            identity, history = budget.get('budget_instance_id'), budget.get('lease_history')
+            if _identity(identity) and isinstance(history, dict) and type(history.get('count')) is int:
+                if identity not in ledgers or history['count'] >= ledgers[identity]['count']:
+                    ledgers[identity] = history
+    for event in trace.get('model_events', []):
+        if event.get('type') != 'model.worker_exited' or event.get('instance_id') != model_id:
+            continue
+        budget = event.get('budget_snapshot') or {}
+        if budget:
+            observations.append(budget)
+        identity, history = budget.get('budget_instance_id'), budget.get('lease_history')
+        if not _identity(identity) or not isinstance(history, dict) or type(history.get('count')) is not int:
+            continue
+        if budget.get('active_leases') != []:
+            errors.append('final_budget_retains_active_leases')
+        if identity in finals and finals[identity] != budget:
+            errors.append('conflicting_final_budget_receipts')
+        if identity in ledgers and history['count'] < ledgers[identity]['count']:
+            errors.append('final_budget_history_regressed')
+        finals[identity], ledgers[identity] = budget, history
+
+    by_budget, headers, cuts = defaultdict(dict), {}, {}
+    pages = trace.get('budget_audit_pages', [])
+    if not isinstance(pages, list):
+        missing.append('budget_audit_pages_missing')
+        pages = []
+    for page in pages:
+        if not isinstance(page, dict):
+            missing.append('budget_audit_page_missing')
+            continue
+        identity = page.get('budget_instance_id')
+        if page.get('model_instance_id') != model_id or not _identity(identity):
+            errors.append('budget_audit_page_identity_mismatch')
+            continue
+        observations.append(page)
+        header = {key: page.get(key) for key in ('schema_version', 'capacity_version', 'limits', 'gpu_host_cpu_threads')}
+        if identity in headers and headers[identity] != header:
+            errors.append('budget_audit_page_metadata_conflict')
+        headers[identity] = header
+        after, cutoff, next_seq = (page.get(key) for key in ('after_sequence', 'through_sequence', 'next_sequence'))
+        rows = page.get('events')
+        if (header['schema_version'] != 1 or any(type(value) is not int for value in (after, cutoff, next_seq))
+                or not 0 <= after <= next_seq <= cutoff or not isinstance(rows, list)
+                or any(not isinstance(row, dict) for row in rows)):
+            missing.append('budget_audit_page_contract_missing')
+            continue
+        if page.get('page_complete') is not True:
+            missing.append('budget_audit_page_incomplete')
+            continue
+        if (len(rows) > 256 or next_seq - after != len(rows) or (next_seq == after and next_seq < cutoff)
+                or page.get('more') is not (next_seq < cutoff)):
+            errors.append('budget_audit_page_range_conflict')
+            continue
+        if not _capacity_version(page.get('after_sha256')) or not _capacity_version(page.get('tail_sha256')):
+            missing.append('budget_audit_page_hash_missing')
+            continue
+        if after == 0 and page['after_sha256'] != '0' * 64:
+            errors.append('budget_audit_genesis_conflict')
+        for sequence, digest in ((after, page['after_sha256']), (cutoff, page['tail_sha256'])):
+            key = identity, sequence
+            if key in cuts and cuts[key] != digest:
+                errors.append('budget_audit_cutoff_hash_conflict')
+            cuts[key] = digest
+        previous = page['after_sha256']
+        for sequence, row in enumerate(rows, after + 1):
+            try:
+                digest = hashlib.sha256(json.dumps({key: value for key, value in row.items() if key != 'sha256'},
+                    sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+            except (ValueError, TypeError):
+                errors.append('budget_audit_row_not_canonical_json')
+                continue
+            if (row.get('sequence') != sequence or row.get('budget_instance_id') != identity
+                    or row.get('previous_sha256') != previous or row.get('sha256') != digest):
+                errors.append('budget_audit_row_hash_or_identity_conflict')
+            previous = row.get('sha256')
+            if sequence in by_budget[identity] and by_budget[identity][sequence] != row:
+                errors.append('budget_audit_sequence_conflict')
+            by_budget[identity][sequence] = row
+        if next_seq == cutoff and previous != page['tail_sha256']:
+            errors.append('budget_audit_page_tail_conflict')
+    for identity in set(headers) | {key for key, value in finals.items() if 'lease_journal' in value}:
+        final = finals.get(identity)
+        journal = (final or {}).get('lease_journal') or {}
+        if not final or journal.get('complete') is not True or journal.get('error') is not None:
+            missing.append('final_budget_journal_unconfirmed')
+            continue
+        count = journal.get('count')
+        if (journal.get('schema_version') != 1 or journal.get('budget_instance_id') != identity
+                or type(count) is not int or count < 0 or not _capacity_version(journal.get('tail_sha256'))):
+            missing.append('final_budget_journal_contract_missing')
+            continue
+        if count != final['lease_history']['count']:
+            errors.append('final_budget_journal_count_conflict')
+        rows_by_seq = by_budget[identity]
+        if any(sequence > count for sequence in rows_by_seq):
+            errors.append('budget_audit_exceeds_final_cutoff')
+        if set(rows_by_seq) != set(range(1, count + 1)):
+            missing.append('budget_audit_sequence_gap')
+            continue
+        rows = [rows_by_seq[index] for index in range(1, count + 1)]
+        previous = '0' * 64
+        for row in rows:
+            if row.get('previous_sha256') != previous:
+                errors.append('budget_audit_segment_chain_conflict')
+            previous = row.get('sha256')
+        if previous != journal['tail_sha256']:
+            errors.append('budget_audit_final_tail_conflict')
+        for (pool, sequence), digest in cuts.items():
+            if pool == identity and (sequence > count or digest != ('0' * 64 if sequence == 0 else rows_by_seq[sequence].get('sha256'))):
+                errors.append('budget_audit_cutoff_hash_conflict')
+        for row in final['lease_history'].get('events', []):
+            if not isinstance(row, dict) or rows_by_seq.get(row.get('sequence')) != row:
+                errors.append('budget_audit_final_tail_rows_conflict')
+        ledgers[identity] = {'count': count, 'events': rows, 'dropped': 0, 'history_complete': True}
+    return {'ledgers': ledgers, 'errors': sorted(set(errors)), 'missing': sorted(set(missing)),
+            'final_budget_ids': sorted(finals), 'budget_observations': observations}
+
+
 def analyze(trace, source_root=None):
     base = _base_analysis(trace)
     complete = base["checks"]["trace_integrity"]["model_complete"] and base["checks"]["trace_integrity"]["manager_complete"]
@@ -350,7 +483,9 @@ def analyze(trace, source_root=None):
             if max(first["start"], second["start"]) < min(first["end"], second["end"]):
                 lease_errors.append("exclusive_gpu_lease_overlap")
 
-    ledgers, ledger_errors, ledger_unknown = {}, [], []
+    collected = collect_budget_ledgers(trace)
+    ledgers = collected["ledgers"]
+    ledger_errors, ledger_unknown = collected["errors"], collected["missing"]
     # A repeated opaque label is not capacity evidence. Bind each version to the
     # exact payload hashed by PipelineBudget, then reconcile every ledger row.
     capacities = {}
@@ -376,34 +511,9 @@ def analyze(trace, source_root=None):
             return
         capacities[key] = payload
 
-    final_budget_ids = set()
-    for snapshot in trace.get("system_snapshots", []):
-        component = (snapshot.get("modules") or {}).get("model") or {}
-        if snapshot.get("instance_id") != identities["manager"] or component.get("instance_id") != identities["model"]:
-            continue
-        budget = component.get("budget") or {}
-        if budget:
-            capacity_observation(budget)
-        identity, history = budget.get("budget_instance_id"), budget.get("lease_history")
-        if not _identity(identity) or not isinstance(history, dict) or type(history.get("count")) is not int:
-            continue
-        if identity not in ledgers or history["count"] >= ledgers[identity]["count"]:
-            ledgers[identity] = history
-    for event in events["model"]:
-        if event.get("type") != "model.worker_exited" or event.get("instance_id") != identities["model"]:
-            continue
-        budget = event.get("budget_snapshot") or {}
-        if budget:
-            capacity_observation(budget)
-        identity, history = budget.get("budget_instance_id"), budget.get("lease_history")
-        if not _identity(identity) or not isinstance(history, dict) or type(history.get("count")) is not int:
-            continue
-        final_budget_ids.add(identity)
-        if budget.get("active_leases") != []:
-            ledger_errors.append("final_budget_retains_active_leases")
-        if identity in ledgers and history["count"] < ledgers[identity]["count"]:
-            ledger_errors.append("final_budget_history_regressed")
-        ledgers[identity] = history
+    final_budget_ids = set(collected["final_budget_ids"])
+    for budget in collected["budget_observations"]:
+        capacity_observation(budget)
     ledger_ids = set()
     peak_cpu = 0
     for budget_id, history in ledgers.items():

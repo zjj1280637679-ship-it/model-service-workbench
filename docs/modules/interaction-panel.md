@@ -62,12 +62,12 @@ flowchart LR
 
 因此 0.2.0 的八项面板指标全部保留 `unknown`，并逐项记录缺少的证据。既有布局及历史功能验收仍作为历史来源，不将“没有修改布局”解释成新的 UI 实测或认知负荷改善证据。
 
-## 0.4.0 条件更新与面板投射债
+## 0.5.0 条件更新后的当前投射
 
-以低认知成本判断当前事实、保留未知、避免重复副作用的需求不变。[0.4.0 实测](../research/2026-11-15-runtime-condition-results.md)新增了条件决策、阶段完成和租约见证，并实际观察到公共 API 的派发条件回执；[公共接口反例](../../runtime/minimax_h3/test_server_condition_projection.py)覆盖固定字段投射。这些条件尚未完整进入现有面板策略。
+以低认知成本判断当前事实、保留未知、避免重复副作用的需求不变。[0.4.0 实测](../research/2026-11-15-runtime-condition-results.md)是历史 GPU 窗口；后续技术债修复新增的是本地投射与反例验证，不把旧实测重新归属到新源码。
 
-当前 `ConsoleController.snapshot()` 先经 `SAFE_STATE` 选择状态字段，该集合不含 `condition_gates`；“状态”日志也仅序列化这个缩减后的快照。`console.html` 的主要提示仍围绕 ready、模型准备和错误概括，没有新增条件的安全摘要。用户可以手动选择“事件”来源查看最近 35 条管理器事件，因此并非完全没有审计入口；缺口是不能直接从当前状态和默认诊断看清哪项必要条件未知或冲突，也不能把有限事件尾部当成完整历史。
+当前 `ConsoleController.snapshot()` 保留基本 `SAFE_STATE`，另经[共享投射器](../../runtime/minimax_h3/condition_projection.py)添加 `condition_summary` 与 `execution_summary`。前者最多描述一个队头的十项当前派发观察及匹配的历史决定；后者只选择一个执行中尝试，明确 `scope=first_live_attempt`，提供已绑定 job/attempt/model 的阶段回执与完成证据。它们是有界摘要，既不代表全部任务，也不签发执行许可。
 
-后续修复保留左上看板、左下控制、右侧日志及整卡滚动布局：在既有状态与日志位置加入有界、脱敏、带实例/任务/决策身份的阻断摘要；完整回执仍由相应查询负责。历史决定应标出时间和归属，旧阻断被新决定替代后不得继续当成当前故障；缺字段不能默认显示通过，也不新增常规弹窗。
+左上看板、左下控制、右侧日志及整卡滚动布局保持不变。看板在现有标题和下一步文字中说明当前未知、冲突或未满足条件；默认诊断和状态日志包含安全摘要。`last_decision` 是带决策时刻的历史回执，当前等待由重新读取的观察决定。缺身份、缺时效、过期或旧实例不能显示通过；详细证据仍由单任务或分页审计接口查询，不增加常规弹窗。
 
-`core.claim-error-rate` 与 `expression.projection-mismatch` 的可比较命题需要增加四值必要条件、获准与阶段完成分离、取消意图与失败并存、旧 attempt 以及历史决定过期。应先冻结输入分类和判断映射，再运行同输入的控制器、API 和实际 JavaScript 反例；当前 [JavaScript 交付测试](../../tests/test_console_delivery.cjs)主要覆盖前台交付与轮询恢复，并未覆盖这些新命题。现有 UI 指标保留 unknown，源码未改和布局未改都不能给它们补分母。这次只记录并同步技术债，未修改面板或启动 GPU。
+[共享输入](../../tests/fixtures/live-condition-projection.json)由[Python 控制器反例](../../runtime/minimax_h3/test_live_condition_projection.py)和[实际 JavaScript 脚本测试](../../tests/test_console_delivery.cjs)共同使用，覆盖未知、冲突、非布尔强转、过期、缺时效、不同管理实例和历史决定。另有运行中阶段、迟到尝试、取消意图、ack 后恢复和默认日志摘要测试。这是明确有限集合的反例结果，不能把它补入 0.4.0 GPU 窗口，也不声称完整表达一致率、认知负荷或可访问性已量化改善。

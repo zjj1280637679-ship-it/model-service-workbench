@@ -37,12 +37,23 @@ def test_queued_query_replay_and_cancel_stay_bound_to_real_manager_instance(rig,
         assert first.status_code == 202
         task = first.json()
         assert task["instance_id"] == expected and task["status"] == "queued"
-        assert task["waiting_for"] == "model_ready"
+        assert task["waiting_for"] == "current_observation"
+        assert task["condition_summary"]["status"] == "stale"
         assert task["generation_options"]["requested"]["acceleration_lora"] == "none"
         replay = submit(client, headers={**HEADERS, "Idempotency-Key": "real-bridge-job"})
         assert replay.status_code == 202 and replay.json()["id"] == task["id"]
         status = client.get(task["status_url"], headers=HEADERS)
         assert status.status_code == 200 and status.json()["instance_id"] == expected
+        # A loading wait is known only after a current, identity-bound probe.
+        # Merely having started the process does not establish ready=False.
+        rig.manager.refresh()
+        observed = client.get(task["status_url"], headers=HEADERS)
+        assert observed.status_code == 200
+        observed = observed.json()
+        assert observed["status"] == "queued" and observed["waiting_for"] == "model_ready"
+        assert observed["condition_summary"]["status"] == "current"
+        assert observed["condition_summary"]["conditions"]["model_ready"] == "false"
+        assert observed["condition_summary"]["model_instance_id"] == rig.manager.model_instance_id
         cancelled = client.post(task["cancel_url"], headers=HEADERS)
         assert cancelled.status_code == 202 and cancelled.json()["status"] == "cancelled"
         assert cancelled.json()["instance_id"] == expected

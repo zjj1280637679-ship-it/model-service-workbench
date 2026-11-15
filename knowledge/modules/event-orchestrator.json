@@ -80,6 +80,31 @@
                 "failed": 0,
                 "running": 0,
                 "unknown": 0
+              },
+              "measurement_contract_id": "h3-runtime-conditions-v040-closed-batch",
+              "evidence_window": {
+                "manager_sequence_start": 1,
+                "manager_sequence_end": 41,
+                "model_sequence_start": 1,
+                "model_sequence_end": 44,
+                "owner_observed_at": 1794705439.495141
+              },
+              "resource_scope": [
+                "admitted_jobs"
+              ],
+              "measurement_coverage": {
+                "expected_jobs": 3,
+                "admissions": 3,
+                "job_receipts": 3,
+                "client_receipts": 3,
+                "manager_events": 41,
+                "model_events": 44,
+                "batch_complete": true
+              },
+              "measurement_evidence_binding": {
+                "trace_semantic_sha256": "e2fac97dc2cf4be8c32cb9f9bd222110badec6d1d9595bb632916c678891f42d",
+                "client_semantic_sha256": "af1b36053ea6a1c5dcb190c3b29dabd90092b7f9090b7b000b914784b64d0731",
+                "contract_semantic_sha256": "0be1174bc1a6a174ddc842add83539fa3a9830bc3030197be687196bb928490a"
               }
             }
           ]
@@ -139,15 +164,16 @@
         "每阶段实际开始前复验当前实例/attempt、能力、前序成功、取消与预算租约；工作成功且完成事件持久化后才建立 stage_completions。等待预算与实际计算不占用模型控制锁，跨任务独立阶段仍按共享预算并行。",
         "共享 CPU/GPU/RAM/磁盘约束由真实资源池和预算快照描述；CPU 容量读取 affinity/cgroup，RAM/磁盘是准入估算而非 OS 强制配额。",
         "performance_model.py 保留未知工作量和容量；完整 H3 FLOPs、主机传输及实测带宽尚未全部接入跨任务调度。",
-        "新研究的 1083 个有效预算样本未见声明 CPU/RAM/磁盘预算超限；阶段声明 CPU 并发峰值为 2、预算为 12。它们不覆盖采样间隙、全部租约边界或真实物理用量，不能替代共享资源超借总指标。"
+        "新研究的 1083 个有效预算样本未见声明 CPU/RAM/磁盘预算超限；阶段声明 CPU 并发峰值为 2、预算为 12。它们不覆盖采样间隙、全部租约边界或真实物理用量，不能替代共享资源超借总指标。",
+        "0.5.0有限队列研究比较FIFO与有界回填的后继阻塞job-ticks、等待和越过次数，包含长后继使队头更晚的反例；模型tick不解释为GPU秒数。"
       ],
       "strategies": [
         "可选择拓扑就绪队列、预算内阶段流水、失败传播或补偿；当前实现是固定服务树，不接受任意用户 DAG。",
         "父节点向有限子图传递身份、截止时间和资源引用，子节点可按同一合约组合；每一物理池只实际扣账一次。",
         "在工作量和带宽已标定时，可用 max(共享资源总工作量/容量, 依赖关键路径) 为乐观下界比较策略；缺测量时明确 unknown。",
         "FIFO 用于当前持久派发秩序，不强制不同准备成本任务的 GPU 开始或完成顺序相同。",
-        "0.4.0 已有完整 CPU/GPU 端点，采用独立子指标评价；全资源总指标保留未知。长会话需另选有界分段持久审计，当前 512 端点环缓存不保证任意长度生命周期完整。",
-        "严格 FIFO 遇 409/429 仍保留队头；先记录可执行后继被队头阻塞的时长和公平性，再决定是否采用预算内回填，不能用一次重叠见证直接替换公平策略。"
+        "CPU/GPU 端点用每预算实例 SQLite 日志保存，512条仅作内存尾缓存；按固定截止序号和哈希链分页，独立采样线程收集，最终释放端点与worker终结见证对账。缺页unknown、冲突fail，全资源总指标仍unknown。",
+        "默认采用有界资源回填：只在队头明确429、resource_budget_exhausted且guarantees_not_accepted为真时考察最多8个候选，每个队头最多被成功越过2次、首次阻断30秒后不再启动新越过；保留FIFO选项。不限制队列任务数，409/未知接纳/实时压力不绕过。已接纳长任务仍可能延迟队头，不承诺完成时间上界。"
       ],
       "metrics": [
         {
@@ -209,7 +235,35 @@
               "status": "unknown",
               "value": null,
               "reason": "0.4.0 完整端点只覆盖声明的 CPU/GPU 租约；RAM/磁盘确认预算没有同范围的完整事件账本。CPU/GPU 子范围的零值已转入 EO-REC-CPU-GPU-OVERCOMMIT，不能覆盖全资源总指标。",
-              "scope": "全部受管共享资源；部分覆盖不产生总量零值。"
+              "scope": "全部受管共享资源；部分覆盖不产生总量零值。",
+              "measurement_contract_id": "h3-runtime-conditions-v040-closed-batch",
+              "evidence_window": {
+                "manager_sequence_start": 1,
+                "manager_sequence_end": 41,
+                "model_sequence_start": 1,
+                "model_sequence_end": 44,
+                "owner_observed_at": 1794705439.495141
+              },
+              "resource_scope": [
+                "declared_cpu_threads",
+                "exclusive_gpu_lease",
+                "ram_bytes",
+                "disk_bytes"
+              ],
+              "measurement_coverage": {
+                "expected_jobs": 3,
+                "admissions": 3,
+                "job_receipts": 3,
+                "client_receipts": 3,
+                "manager_events": 41,
+                "model_events": 44,
+                "batch_complete": true
+              },
+              "measurement_evidence_binding": {
+                "trace_semantic_sha256": "e2fac97dc2cf4be8c32cb9f9bd222110badec6d1d9595bb632916c678891f42d",
+                "client_semantic_sha256": "af1b36053ea6a1c5dcb190c3b29dabd90092b7f9090b7b000b914784b64d0731",
+                "contract_semantic_sha256": "0be1174bc1a6a174ddc842add83539fa3a9830bc3030197be687196bb928490a"
+              }
             }
           ]
         },
@@ -257,7 +311,29 @@
                 "declared_cpu_limit": 12,
                 "final_active_leases": 0
               },
-              "violation_duration_seconds": 0
+              "violation_duration_seconds": 0,
+              "measurement_contract_id": "h3-runtime-conditions-v040-closed-batch",
+              "evidence_window": {
+                "manager_sequence_start": 1,
+                "manager_sequence_end": 41,
+                "model_sequence_start": 1,
+                "model_sequence_end": 44,
+                "owner_observed_at": 1794705439.495141
+              },
+              "measurement_coverage": {
+                "expected_jobs": 3,
+                "admissions": 3,
+                "job_receipts": 3,
+                "client_receipts": 3,
+                "manager_events": 41,
+                "model_events": 44,
+                "batch_complete": true
+              },
+              "measurement_evidence_binding": {
+                "trace_semantic_sha256": "e2fac97dc2cf4be8c32cb9f9bd222110badec6d1d9595bb632916c678891f42d",
+                "client_semantic_sha256": "af1b36053ea6a1c5dcb190c3b29dabd90092b7f9090b7b000b914784b64d0731",
+                "contract_semantic_sha256": "0be1174bc1a6a174ddc842add83539fa3a9830bc3030197be687196bb928490a"
+              }
             }
           ]
         }
@@ -273,14 +349,15 @@
         "completed 记录历史结果，ready 表示当前可撤销能力，can_start 还要检查真实依赖、资源、身份和当前策略。",
         "API 可达、主任务终态、产物验证、局部清理、进程退出与平台释放是不同观察者支持的独立命题。",
         "unknown/conflict 阻断对应动作；condition_gate_blocked 保留 failed，取消意图另记 cancellation_requested，不能覆盖已报告的失败。管理器及任务查询保留 condition_gates/condition_gate、execution_condition_gates 和 stage_completions。",
-        "租约端点带实例、decision_id 和 capacity_version，worker 终结事件保存预算快照；有界 lease_history 的 history_complete/dropped 明示截断，不能把当前零占用投射为全程零超借。",
+        "租约端点绑定预算实例、序号、decision_id、capacity_version和链摘要；最终worker事件固定count/tail。普通status不携带审计尾历史；分页经管理器/API鉴权与身份前后复验，磁盘读不占主状态锁。当前零占用不能推出全程零超借。",
         "2026-11-15 验收摘要包含最终成功、取消、早期依赖失败与短暂 503；证据表达不应把恢复后的成功改写为零故障历史。"
       ],
       "strategies": [
         "使用字段投射、状态表、DAG 或布尔前提表达同一合约，为每种表达写明来源和身份。",
         "对投射加入反例轨迹：下载完成未加载、旧实例迟到、取消竞争、资源不足和最终清理缺回执。",
         "按使用场景选择事件摘要和审计保留，不用日志量、颜色或一项 success 标签替代各自事实。",
-        "已发布历史证据与当前实现分开复核；新条件变化必须触发策略和指标复审，重算源文件指纹本身不构成复审通过。"
+        "已发布历史证据与当前实现分开复核；新条件变化必须触发策略和指标复审，重算源文件指纹本身不构成复审通过。",
+        "旧实验固定到历史提交的源码快照，当前代码另测；导出器要求显式协议/基线/执行源码/干预证据；五项已选知识观察按实例、窗口、分母、覆盖范围独立重算，未知的全资源指标不补零。"
       ],
       "metrics": [
         {
@@ -338,7 +415,17 @@
     "evidence/runtime-conditions-2026-11-15/client-receipt.json",
     "docs/research/2026-11-15-runtime-condition-results.md",
     "knowledge/strategy-metric-debt.json",
-    "docs/research/condition-strategy-metric-debt.md"
+    "docs/research/condition-strategy-metric-debt.md",
+    "runtime/minimax_h3/condition_projection.py",
+    "runtime/minimax_h3/queue_policy.py",
+    "runtime/minimax_h3/test_queue_policy.py",
+    "research/study_queue_policy.py",
+    "evidence/debt-resolution-2026-11-15/queue-policy-study.json",
+    "research/source_bindings.py",
+    "research/source-bindings/runtime-conditions-v040.json",
+    "research/export_condition_evidence.py",
+    "research/replay_metrics.py",
+    "research/metric-replays/runtime-conditions-v040.json"
   ],
   "gaps": [
     "当前是 MiniMax-H3 固定服务树和固定阶段，尚未实现任意 DAG、跨机器一致性或通用多模型公平调度。",
@@ -347,6 +434,6 @@
     "有限 CPU 反例与 GPU 验收路径不构成所有并发轨迹、平台或模型的全称证明。",
     "先前架构实验虽执行设备微基准，仍缺完整 H3 FLOPs/HBM 流量与全资源租约/容量事件，其物理下界差距比和共享资源超借观察继续保留 unknown。后续运行时条件实验新增了六租约、十二端点的完整 CPU/GPU 声明账本，本次窗口零超借不回写历史未知，也不证明物理 RAM/磁盘强隔离或全资源全生命周期零超借。",
     "有限模型穷举只在声明模型 tick 与离散调度空间内最优；真实阶段重叠及微基准不证明云推理全局最优。",
-    "运行时仍存在长会话审计截断、状态查询复制完整审计缓存、FIFO 队头阻塞未量化及运行中任务门控投射不足；具体复验条件见技术债账本。"
+    "0.5.0 已修复持久审计、轻量查询、有限回填评价与运行中条件投射；没有新的GPU运行，完整云端控制p95、任意到达负载公平性及物理最优仍待独立实验。"
   ]
 }

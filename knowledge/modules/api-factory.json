@@ -79,13 +79,14 @@
         "CORS 来源策略与 Bearer 鉴权是独立条件；HTTP 202 不表示视频完成。",
         "0.2.0 的 2026-11-15 研究在公网可用且模型尚未 ready 的观察后接纳三项全新内容任务；两项完成并经客户端长度、SHA 和完整解码核对，一项排队取消且未派发。没有把两条最终成功下载记录当作全量网络重试分母。",
         "0.4.0 公共单任务查询新增 condition_gate、execution_condition_gates、stage_completions、cancellation_requested；实际运行中已查询到派发条件回执，条件允许、执行完成和取消意图是不同命题。",
-        "当前模型活动 attempts 已包含阶段条件和完成见证；_public_job 在运行中仅复制 active_phase 与 generation_options，阶段证据在 _consume_result 消费终态后才进入单任务记录。当前可从 /v1/system 按实例和 attempt 检索，但没有同等完整的单任务实时投射。"
+        "0.5.0 单任务查询按当前 manager/job/attempt/model 与 observed_at 投射活动阶段条件、完成见证和取消意图；execution_observation 区分 current/historical/stale/unknown，历史决策不授权下一次执行。终态持久记录在 ack 和管理器重启后仍可查询。",
+        "GET /v1/audit/budget 受Bearer鉴权，必须绑定model及budget实例；每页最多256端点，截止序号固定，身份改变则拒绝。公网响应只含明确白名单审计字段。"
       ],
       "strategies": [
         "当前采用异步 202 与按 ID 查询，未知提交保留输入及身份，先对账不盲重发。",
         "完成后使用鉴权下载、长度和 SHA 检查；未来可选事件流须保留恢复游标与同样终态判据。",
         "取消排队与执行中取消分别处理，后者等待安全边界和局部清理，不把取消请求当完成。",
-        "待修复策略：保留按 ID 异步查询与对账，为运行中单任务安全投射当前匹配 attempt 的阶段条件、完成见证与观察边界；旧模型或旧 attempt 不得借用新任务身份。此项尚未修改运行时。"
+        "运行中读当前匹配 attempt，终态读已落账回执；旧实例、缺时效和未来回执不作为当前事实。未知提交继续按原 attempt 对账，不自动创建另一轮生成。"
       ],
       "metrics": [
         {
@@ -230,10 +231,10 @@
         "supported、configured、ready 分开；任务 requested 与 effective 分开，未执行时 effective 可为 null。",
         "下载需 succeeded 与已提交产物，服务端再次核对路径归属、字节数和 SHA；HTTP 200 不能单独证明生成可用。",
         "0.4.0 的 public_condition_fields 对单任务条件回执采用固定字段和上下文白名单；必要条件保留四值，条件缺失或非全真却声称允许时 allowed 降为 null，任意参数和路径不进入该投射。这不是 /v1/system 全量诊断的同一白名单保证。",
-        "waiting_for 仍以 ready/accepting 等分支概括当前等待，没有按新增身份、新鲜度及四值阻断条件展开；历史 condition_gate 也不能未经身份与时效核对就作为当前等待原因。"
+        "waiting_for 与 condition_summary 来自当前队头的只读条件复算；last_decision 单独保留历史授权或拒绝。当前观察不完整时明示 unknown，不能拿历史允许补全。"
       ],
       "strategies": [
-        "结构化状态按实例与观察时间限定；unknown、stale、明确拒绝、当前失败各有表达。",
+        "API、控制台和日志共用有界脱敏投射及 Python/实际 JavaScript 同源反例；覆盖范围是声明的 fixture，不据此宣称全部自然语言或 UI 命题已证明等价。",
         "OpenAPI、文档、JSON 与面板的目标是同一命题映射，聚合标签应能展开原条件；0.4.0 新条件回执尚未完成全部表达和输入分类的对齐，不能把这个设计目标描述为已经全量实现。",
         "没有完整分母不造百分比；历史完成记录保留但不替代当前 readiness。"
       ],
@@ -320,7 +321,10 @@
     "docs/research/2026-11-15-runtime-condition-results.md",
     "evidence/runtime-conditions-2026-11-15/api-query-observation.json",
     "evidence/runtime-conditions-2026-11-15/client-receipt.json",
-    "evidence/runtime-conditions-2026-11-15/condition-analysis.json"
+    "evidence/runtime-conditions-2026-11-15/condition-analysis.json",
+    "runtime/minimax_h3/condition_projection.py",
+    "runtime/minimax_h3/test_live_condition_projection.py",
+    "runtime/minimax_h3/test_budget_audit_projection.py"
   ],
   "gaps": [
     "通用模型能力到 API schema 的工厂、持久公网部署器、事件订阅及多实例租户隔离尚未实现。",
@@ -328,7 +332,7 @@
     "没有任意插件执行、任意模型兼容或数学最优吞吐量的保证；当前实测只支持明确记录的 MiniMax-H3 BF16 场景。",
     "0.2.0 实验未注入无效鉴权、跨实例回执或丢响应故障；这些候选指标不因正常路径通过而记零。",
     "公开投射尚未提供完整下载请求尝试/重试分母与中断计数、取消接收的同钟起点及全受管端点关闭探测；对应严格指标保留 unknown。",
-    "0.4.0 的单任务实时阶段证据与更具体的条件阻断原因尚未同步；终态字段投射通过不证明运行中查询完备。",
-    "跨表达反例指标须加入四值条件、授权与完成分离、失败与取消意图并存、旧 attempt 及过期决定；现有公共投射 CPU 反例和一次正常公网查询不覆盖完整文档/API/客户端分类。"
+    "0.5.0 已补运行中单任务阶段与当前阻断摘要，覆盖的CPU反例不构成任意模型、所有历史数据或生产流量下的全称完备性。",
+    "同源四值/身份/时效反例已覆盖Python与实际控制台JS；完整文档、外部网页和自然语言分类未冻结为全集，严格跨表达指标仍unknown。"
   ]
 }

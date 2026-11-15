@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "experiment_id": "3732565998754d26919f0706b838ebff",
+  "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+  "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+  "model_instance_id": "23de982643984911a92c5b2459eded28",
+  "window": {
+    "manager_sequence_start": 1,
+    "manager_sequence_end": 41,
+    "model_sequence_start": 1,
+    "model_sequence_end": 44,
+    "owner_observed_at": 1794705439.495141
+  },
+  "evidence_binding": {
+    "trace_semantic_sha256": "e2fac97dc2cf4be8c32cb9f9bd222110badec6d1d9595bb632916c678891f42d",
+    "client_semantic_sha256": "af1b36053ea6a1c5dcb190c3b29dabd90092b7f9090b7b000b914784b64d0731",
+    "contract_semantic_sha256": "0be1174bc1a6a174ddc842add83539fa3a9830bc3030197be687196bb928490a"
+  },
+  "metrics": [
+    {
+      "experiment_id": "3732565998754d26919f0706b838ebff",
+      "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+      "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+      "model_instance_id": "23de982643984911a92c5b2459eded28",
+      "window": {
+        "manager_sequence_start": 1,
+        "manager_sequence_end": 41,
+        "model_sequence_start": 1,
+        "model_sequence_end": 44,
+        "owner_observed_at": 1794705439.495141
+      },
+      "metric_id": "MC-CORE-ARTIFACT",
+      "status": "measured",
+      "value": 1.0,
+      "unit": "ratio",
+      "resource_scope": [
+        "declared_success_artifacts"
+      ],
+      "reason": "Successful artifact identities, sizes, checksums and recorded server/client full-decode receipts reconciled; no new decode or semantic assessment.",
+      "coverage": {
+        "expected_jobs": 3,
+        "admissions": 3,
+        "job_receipts": 3,
+        "client_receipts": 3,
+        "manager_events": 41,
+        "model_events": 44,
+        "batch_complete": true
+      },
+      "evidence_binding": {
+        "trace_semantic_sha256": "e2fac97dc2cf4be8c32cb9f9bd222110badec6d1d9595bb632916c678891f42d",
+        "client_semantic_sha256": "af1b36053ea6a1c5dcb190c3b29dabd90092b7f9090b7b000b914784b64d0731",
+        "contract_semantic_sha256": "0be1174bc1a6a174ddc842add83539fa3a9830bc3030197be687196bb928490a"
+      },
+      "numerator": 2,
+      "denominator": 2,
+      "verified_job_ids": [
+        "0607835d15b64e23b9755e8d61a5dab9",
+        "5783d0f311be4ddb917fa90392cc2c5c"
+      ],
+      "missing_job_ids": [],
+      "conflicting_job_ids": [],
+      "artifact_profile": {
+        "width": 512,
+        "height": 288,
+        "frames": 124,
+        "fps": 24.0,
+        "audio_channels": 2,
+        "video_codec": "h264",
+        "audio_codec": "aac"
+      }
+    },
+    {
+      "experiment_id": "3732565998754d26919f0706b838ebff",
+      "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+      "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+      "model_instance_id": "23de982643984911a92c5b2459eded28",
+      "window": {
+        "manager_sequence_start": 1,
+        "manager_sequence_end": 41,
+        "model_sequence_start": 1,
+        "model_sequence_end": 44,
+        "owner_observed_at": 1794705439.495141
+      },
+      "metric_id": "EO-CORE-CLOSURE",
+      "status": "measured",
+      "value": 1.0,
+      "unit": "ratio",
+      "resource_scope": [
+        "admitted_jobs"
+      ],
+      "reason": "Explicit batch admissions, causal stages, terminal outcomes and job/service owner cleanup reconciled at the common cutoff.",
+      "coverage": {
+        "expected_jobs": 3,
+        "admissions": 3,
+        "job_receipts": 3,
+        "client_receipts": 3,
+        "manager_events": 41,
+        "model_events": 44,
+        "batch_complete": true
+      },
+      "evidence_binding": {
+        "trace_semantic_sha256": "e2fac97dc2cf4be8c32cb9f9bd222110badec6d1d9595bb632916c678891f42d",
+        "client_semantic_sha256": "af1b36053ea6a1c5dcb190c3b29dabd90092b7f9090b7b000b914784b64d0731",
+        "contract_semantic_sha256": "0be1174bc1a6a174ddc842add83539fa3a9830bc3030197be687196bb928490a"
+      },
+      "numerator": 3,
+      "denominator": 3,
+      "closed_job_ids": [
+        "0607835d15b64e23b9755e8d61a5dab9",
+        "5783d0f311be4ddb917fa90392cc2c5c",
+        "bad5f458e5f943f794a357f2e4a7de7c"
+      ],
+      "outcomes": {
+        "cancelled": 1,
+        "succeeded": 2
+      }
+    },
+    {
+      "experiment_id": "3732565998754d26919f0706b838ebff",
+      "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+      "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+      "model_instance_id": "23de982643984911a92c5b2459eded28",
+      "window": {
+        "manager_sequence_start": 1,
+        "manager_sequence_end": 41,
+        "model_sequence_start": 1,
+        "model_sequence_end": 44,
+        "owner_observed_at": 1794705439.495141
+      },
+      "metric_id": "MC-REC-GPU-OVERLAP",
+      "status": "measured",
+      "value": 0,
+      "unit": "count",
+      "resource_scope": [
+        "exclusive_gpu_lease"
+      ],
+      "reason": "Strict interval intersection of complete exclusive GPU leases in one physical model pool; lease time is not kernel busy time.",
+      "coverage": {
+        "expected_jobs": 3,
+        "admissions": 3,
+        "job_receipts": 3,
+        "client_receipts": 3,
+        "manager_events": 41,
+        "model_events": 44,
+        "batch_complete": true
+      },
+      "evidence_binding": {
+        "trace_semantic_sha256": "e2fac97dc2cf4be8c32cb9f9bd222110badec6d1d9595bb632916c678891f42d",
+        "client_semantic_sha256": "af1b36053ea6a1c5dcb190c3b29dabd90092b7f9090b7b000b914784b64d0731",
+        "contract_semantic_sha256": "0be1174bc1a6a174ddc842add83539fa3a9830bc3030197be687196bb928490a"
+      },
+      "lease_coverage": {
+        "atomic_endpoints": 12,
+        "complete_gpu_intervals": 2,
+        "paired_model_leases": 6,
+        "atomic_ledger_status": "pass",
+        "model_lease_status": "pass"
+      },
+      "intervals": [
+        {
+          "lease_id": "74a74d05081240639eeaec7709e8a8bf",
+          "start_ns": 895632288963,
+          "end_ns": 1414729426404
+        },
+        {
+          "lease_id": "2db0fd7b2b444c9eb49f385b5482aa9b",
+          "start_ns": 1414729763514,
+          "end_ns": 1596536458010
+        }
+      ],
+      "violation_duration_seconds": 0.0,
+      "knowledge_coverage": {
+        "all_stage_leases": 6,
+        "all_endpoint_events": 12,
+        "gpu_leases": 2,
+        "gpu_endpoint_events": 4,
+        "history_complete": true,
+        "dropped_events": 0
+      }
+    },
+    {
+      "experiment_id": "3732565998754d26919f0706b838ebff",
+      "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+      "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+      "model_instance_id": "23de982643984911a92c5b2459eded28",
+      "window": {
+        "manager_sequence_start": 1,
+        "manager_sequence_end": 41,
+        "model_sequence_start": 1,
+        "model_sequence_end": 44,
+        "owner_observed_at": 1794705439.495141
+      },
+      "metric_id": "EO-REC-CPU-GPU-OVERCOMMIT",
+      "status": "measured",
+      "value": 0,
+      "unit": "count",
+      "resource_scope": [
+        "declared_cpu_threads",
+        "exclusive_gpu_lease"
+      ],
+      "reason": "Independent atomic endpoint replay merges CPU charge or exclusive GPU owner overcommit time regions; declared accounting only.",
+      "coverage": {
+        "expected_jobs": 3,
+        "admissions": 3,
+        "job_receipts": 3,
+        "client_receipts": 3,
+        "manager_events": 41,
+        "model_events": 44,
+        "batch_complete": true
+      },
+      "evidence_binding": {
+        "trace_semantic_sha256": "e2fac97dc2cf4be8c32cb9f9bd222110badec6d1d9595bb632916c678891f42d",
+        "client_semantic_sha256": "af1b36053ea6a1c5dcb190c3b29dabd90092b7f9090b7b000b914784b64d0731",
+        "contract_semantic_sha256": "0be1174bc1a6a174ddc842add83539fa3a9830bc3030197be687196bb928490a"
+      },
+      "lease_coverage": {
+        "atomic_endpoints": 12,
+        "complete_gpu_intervals": 2,
+        "paired_model_leases": 6,
+        "atomic_ledger_status": "pass",
+        "model_lease_status": "pass"
+      },
+      "peak_cpu_lease_charge": 2,
+      "violation_duration_seconds": 0.0,
+      "budget_instance_id": "e94817a4d5a74692bea397f3e5f6a8b5",
+      "capacity_versions": [
+        "7b603fe986c827a047ac69e7165fb841fab54bef7b765c8c46b6db7425ed85a2"
+      ],
+      "knowledge_coverage": {
+        "leases": 6,
+        "cpu_leases": 4,
+        "gpu_leases": 2,
+        "endpoint_events": 12,
+        "history_complete": true,
+        "dropped_events": 0,
+        "peak_cpu_lease_charge": 2,
+        "declared_cpu_limit": 12,
+        "final_active_leases": 0
+      }
+    },
+    {
+      "experiment_id": "3732565998754d26919f0706b838ebff",
+      "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+      "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+      "model_instance_id": "23de982643984911a92c5b2459eded28",
+      "window": {
+        "manager_sequence_start": 1,
+        "manager_sequence_end": 41,
+        "model_sequence_start": 1,
+        "model_sequence_end": 44,
+        "owner_observed_at": 1794705439.495141
+      },
+      "metric_id": "EO-REC-OVERCOMMIT",
+      "status": "unknown",
+      "value": null,
+      "unit": "count",
+      "resource_scope": [
+        "declared_cpu_threads",
+        "exclusive_gpu_lease",
+        "ram_bytes",
+        "disk_bytes"
+      ],
+      "reason": "The supported trace adapter has no complete RAM and disk reservation/acknowledgement endpoint ledger. CPU/GPU evidence cannot establish a full-resource zero.",
+      "coverage": {
+        "expected_jobs": 3,
+        "admissions": 3,
+        "job_receipts": 3,
+        "client_receipts": 3,
+        "manager_events": 41,
+        "model_events": 44,
+        "batch_complete": true
+      },
+      "evidence_binding": {
+        "trace_semantic_sha256": "e2fac97dc2cf4be8c32cb9f9bd222110badec6d1d9595bb632916c678891f42d",
+        "client_semantic_sha256": "af1b36053ea6a1c5dcb190c3b29dabd90092b7f9090b7b000b914784b64d0731",
+        "contract_semantic_sha256": "0be1174bc1a6a174ddc842add83539fa3a9830bc3030197be687196bb928490a"
+      },
+      "missing_resource_coverage": [
+        "ram_bytes",
+        "disk_bytes"
+      ]
+    }
+  ],
+  "scope": "Finite evidence recomputation, not a new GPU experiment, media decode, execution attestation, semantic-quality or population-reliability proof.",
+  "counts": {
+    "measured": 4,
+    "unknown": 1,
+    "conflict": 0
+  },
+  "knowledge_verification": {
+    "status": "pass",
+    "contract_id": "h3-runtime-conditions-v040-closed-batch",
+    "verified_metric_ids": [
+      "MC-CORE-ARTIFACT",
+      "EO-CORE-CLOSURE",
+      "MC-REC-GPU-OVERLAP",
+      "EO-REC-CPU-GPU-OVERCOMMIT",
+      "EO-REC-OVERCOMMIT"
+    ],
+    "scope": "Only selected experiment observations with explicit structured windows and resource coverage; older observations and free-text semantic equivalence are not verified."
+  }
+}

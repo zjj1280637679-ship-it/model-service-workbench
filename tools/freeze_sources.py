@@ -4,7 +4,7 @@ import hashlib
 import json
 
 ROOT = Path(__file__).resolve().parents[1]
-DIRECTORIES = ('runtime/minimax_h3', 'tools', 'tests', 'docs', 'knowledge', 'notebooks', 'research', 'evidence/research-2026-11-15', 'evidence/conditions-2026-11-15', 'evidence/runtime-conditions-2026-11-15', '.github')
+DIRECTORIES = ('runtime/minimax_h3', 'tools', 'tests', 'docs', 'knowledge', 'notebooks', 'research', 'evidence/research-2026-11-15', 'evidence/conditions-2026-11-15', 'evidence/runtime-conditions-2026-11-15', 'evidence/debt-resolution-2026-11-15', '.github')
 ROOT_FILES = ('README.md', 'AGENTS.md', 'NOTICE.md', 'VERSION', 'requirements-test.txt', 'pytest.ini', '.gitignore', '.gitattributes',
               'evidence/acceptance-2026-11-15.json', 'evidence/import-provenance.json')
 

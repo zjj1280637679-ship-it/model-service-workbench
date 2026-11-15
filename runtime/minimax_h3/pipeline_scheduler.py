@@ -1,7 +1,7 @@
 """Per-job working-set admission and stage leases; no global job-count cap."""
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from collections import OrderedDict, deque
 import copy
 import hashlib
@@ -10,6 +10,7 @@ import math
 import os
 from pathlib import Path
 import shutil
+import sqlite3
 import sys
 import threading
 import time
@@ -20,6 +21,69 @@ import psutil
 from condition_guard import evaluate_gate, negate_observation
 
 GiB = 1024 ** 3
+AUDIT_PAGE_LIMIT = 256
+AUDIT_GENESIS = '0' * 64
+
+
+class BudgetAuditUnavailable(RuntimeError):
+    pass
+
+
+def _audit_hash(record):
+    return hashlib.sha256(json.dumps(record, sort_keys=True, separators=(',', ':'),
+                                     allow_nan=False).encode()).hexdigest()
+
+
+def read_budget_audit_page(path, budget_instance_id, *, after_sequence=0, through_sequence=None, limit=128):
+    """Read one immutable audit range, including after process restart.
+
+    This restores observations only, never live reservations or execution rights.
+    Callers select an owned path and independently bind the model instance.
+    """
+    path = Path(path)
+    if path.resolve() != path.absolute() or not path.is_file():
+        raise BudgetAuditUnavailable('Budget audit path is missing or traverses a symlink')
+    if (type(after_sequence) is not int or after_sequence < 0 or type(limit) is not int
+            or not 1 <= limit <= AUDIT_PAGE_LIMIT or (through_sequence is not None
+            and (type(through_sequence) is not int or through_sequence < after_sequence))):
+        raise ValueError('Invalid budget audit cursor or page limit')
+    with closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True, timeout=2)) as database, database:
+        database.execute('PRAGMA query_only=ON')
+        database.execute('BEGIN')
+        header = json.loads(database.execute('SELECT record FROM metadata WHERE id=1').fetchone()[0])
+        if header.get('budget_instance_id') != budget_instance_id or header.get('schema_version') != 1:
+            raise BudgetAuditUnavailable('Budget audit belongs to another instance or schema')
+        count = database.execute('SELECT COALESCE(MAX(sequence),0) FROM events').fetchone()[0]
+        cutoff = count if through_sequence is None else through_sequence
+        if after_sequence > cutoff or cutoff > count:
+            raise ValueError('Budget audit cursor exceeds the durable history')
+        def endpoint(sequence):
+            if sequence == 0:
+                return AUDIT_GENESIS
+            row = database.execute('SELECT record FROM events WHERE sequence=?', (sequence,)).fetchone()
+            if row is None:
+                raise BudgetAuditUnavailable('Budget audit endpoint is missing')
+            return json.loads(row[0])['sha256']
+        previous, tail = endpoint(after_sequence), endpoint(cutoff)
+        after_hash = previous
+        rows = [json.loads(row[0]) for row in database.execute(
+            'SELECT record FROM events WHERE sequence>? AND sequence<=? ORDER BY sequence LIMIT ?',
+            (after_sequence, cutoff, limit)).fetchall()]
+    expected_length = min(limit, cutoff - after_sequence)
+    if len(rows) != expected_length:
+        raise BudgetAuditUnavailable('Budget audit range contains a gap')
+    for sequence, row in enumerate(rows, after_sequence + 1):
+        content = {key: value for key, value in row.items() if key != 'sha256'}
+        if (row.get('sequence') != sequence or row.get('budget_instance_id') != budget_instance_id
+                or row.get('previous_sha256') != previous or row.get('sha256') != _audit_hash(content)):
+            raise BudgetAuditUnavailable('Budget audit range has a conflicting identity or hash chain')
+        previous = row['sha256']
+    next_sequence = after_sequence + len(rows)
+    if next_sequence == cutoff and previous != tail:
+        raise BudgetAuditUnavailable('Budget audit tail does not match the selected cutoff')
+    return {**header, 'after_sequence': after_sequence, 'through_sequence': cutoff,
+            'next_sequence': next_sequence, 'after_sha256': after_hash,
+            'tail_sha256': tail, 'events': rows, 'page_complete': True, 'more': next_sequence < cutoff}
 
 
 def cgroup_cpu_quotas(root=Path('/sys/fs/cgroup'), membership=Path('/proc/self/cgroup')):
@@ -89,7 +153,7 @@ class BudgetUnavailable(Exception):
 
 
 class PipelineBudget:
-    def __init__(self, root, *, limits=None, model_peak_ram_bytes=0):
+    def __init__(self, root, *, limits=None, model_peak_ram_bytes=0, audit_directory=None):
         self.root = Path(root)
         self._condition = threading.Condition()
         self._reservations = {}
@@ -125,6 +189,30 @@ class PipelineBudget:
         self._released_leases = OrderedDict()
         self._lease_history = deque(maxlen=512)
         self._lease_event_count = 0
+        self._audit_error = None
+        self._audit_tail = AUDIT_GENESIS
+        self._audit_capacity = self._capacity_version()
+        directory = Path(audit_directory) if audit_directory is not None else self.root / '_budget_audit'
+        directory = directory.absolute()
+        if directory.resolve() != directory:
+            raise ValueError('Budget audit directory must not traverse a symlink')
+        directory.mkdir(parents=True, exist_ok=True)
+        self.audit_path = directory / (self.instance_id + '.sqlite3')
+        # Each budget generation starts a separate ledger. No old ownership is loaded.
+        with self.audit_path.open('xb'):
+            pass
+        header = {'schema_version': 1, 'budget_instance_id': self.instance_id,
+                  'capacity_version': self._audit_capacity, 'limits': dict(self.limits),
+                  'gpu_host_cpu_threads': self.gpu_host_cpu_threads}
+        with closing(sqlite3.connect(self.audit_path, timeout=2)) as database, database:
+            database.execute('PRAGMA synchronous=FULL')
+            database.execute('CREATE TABLE metadata (id INTEGER PRIMARY KEY, record TEXT NOT NULL)')
+            database.execute('CREATE TABLE events (sequence INTEGER PRIMARY KEY, record TEXT NOT NULL)')
+            database.execute('INSERT INTO metadata VALUES (1, ?)', (json.dumps(header),))
+
+    def audit_page(self, *, after_sequence=0, through_sequence=None, limit=128):
+        return read_budget_audit_page(self.audit_path, self.instance_id,
+            after_sequence=after_sequence, through_sequence=through_sequence, limit=limit)
 
     def _capacity_version(self):
         payload = {'limits': self.limits, 'gpu_host_cpu_threads': self.gpu_host_cpu_threads}
@@ -181,15 +269,28 @@ class PipelineBudget:
             self._condition.notify_all()
             return True
 
-    def _lease_event(self, event_type, lease):
-        self._lease_event_count += 1
+    def _lease_event(self, event_type, lease, *, cpu_used, gpu_owner):
+        if self._audit_error is not None:
+            raise RuntimeError('Budget audit is unavailable; ownership cannot advance')
         event = {key: copy.deepcopy(lease[key]) for key in
                  ('lease_id', 'budget_instance_id', 'attempt_id', 'kind', 'cpu_threads',
                   'capacity_version', 'decision_id', 'reservation_id')}
-        event.update(event_id=uuid.uuid4().hex, sequence=self._lease_event_count,
+        event.update(event_id=uuid.uuid4().hex, sequence=self._lease_event_count + 1,
                      type=event_type, observed_at=time.time(), monotonic_ns=time.monotonic_ns(),
-                     cpu_threads_in_use=self._cpu_used, gpu_attempt_id=self._gpu_owner,
-                     limits=dict(self.limits))
+                     cpu_threads_in_use=cpu_used, gpu_attempt_id=gpu_owner,
+                     limits=dict(self.limits), previous_sha256=self._audit_tail)
+        event['sha256'] = _audit_hash(event)
+        try:
+            if self._capacity_version() != self._audit_capacity:
+                raise ValueError('Capacity changes require a new budget generation')
+            with closing(sqlite3.connect(self.audit_path, timeout=2)) as database, database:
+                database.execute('PRAGMA synchronous=FULL')
+                database.execute('INSERT INTO events VALUES (?, ?)', (event['sequence'], json.dumps(event)))
+        except (sqlite3.Error, OSError, ValueError) as error:
+            self._audit_error = type(error).__name__
+            raise RuntimeError('Could not persist budget ownership evidence') from error
+        self._lease_event_count = event['sequence']
+        self._audit_tail = event['sha256']
         self._lease_history.append(event)
         return event
 
@@ -204,6 +305,8 @@ class PipelineBudget:
         if any(type(value) is not int or value <= 0 for value in charge.values()):
             raise BudgetUnavailable("invalid_backend_resource_estimate", permanent=True)
         with self._condition:
+            if self._audit_error is not None:
+                raise BudgetUnavailable('lease_audit_unavailable')
             if identity in self._reservations:
                 same = self._reservations[identity] == charge
                 self._gate(identity, 'reserve.existing', {'reservation_matches': same})
@@ -282,6 +385,8 @@ class PipelineBudget:
                 except Exception:
                     pass
             with self._condition:
+                if self._audit_error is not None:
+                    raise RuntimeError('Budget audit is unavailable; no new lease may start')
                 if cancellation_event is not None:
                     # Event.is_set is a local flag read, never a foreign callback.
                     cancellation = (threading.Event.is_set(cancellation_event)
@@ -298,17 +403,17 @@ class PipelineBudget:
                 receipt = self._gate(identity, 'stage.' + kind, observations, context)
                 if receipt['allowed']:
                     # The declaration and its resource effect share this lock.
-                    self._cpu_used += charge
-                    if kind == 'gpu':
-                        self._gpu_owner = identity
                     lease_id = uuid.uuid4().hex
                     lease = {'owned': True, 'lease_id': lease_id, 'attempt_id': identity, 'kind': kind,
                              'budget_instance_id': self.instance_id, 'reservation_id': reservation_id,
                              'cpu_threads': charge, 'capacity_version': receipt['context']['capacity_version'],
                              'decision_id': receipt['decision_id'], 'grant_receipt': receipt,
                              'granted_at': time.time(), 'granted_monotonic_ns': time.monotonic_ns()}
+                    next_cpu = self._cpu_used + charge
+                    next_gpu = identity if kind == 'gpu' else self._gpu_owner
+                    self._lease_event('lease.acquired', lease, cpu_used=next_cpu, gpu_owner=next_gpu)
+                    self._cpu_used, self._gpu_owner = next_cpu, next_gpu
                     self._active_leases[lease_id] = lease
-                    self._lease_event('lease.acquired', lease)
                     acquired = True
                     break
                 if any(receipt['conditions'][name] != 'true' for name in
@@ -328,18 +433,19 @@ class PipelineBudget:
                     if kind == "gpu":
                         if self._gpu_owner != identity:
                             raise RuntimeError('GPU lease ownership was lost')
-                        self._gpu_owner = None
-                    self._cpu_used -= charge
-                    self._active_leases.pop(lease_id)
+                    next_cpu = self._cpu_used - charge
+                    next_gpu = None if kind == 'gpu' else self._gpu_owner
                     lease = {**lease, 'owned': False, 'released_at': time.time(),
                              'released_monotonic_ns': time.monotonic_ns()}
+                    self._lease_event('lease.released', lease, cpu_used=next_cpu, gpu_owner=next_gpu)
+                    self._cpu_used, self._gpu_owner = next_cpu, next_gpu
+                    self._active_leases.pop(lease_id)
                     self._released_leases[lease_id] = lease
                     while len(self._released_leases) > 256:
                         self._released_leases.popitem(last=False)
-                    self._lease_event('lease.released', lease)
                     self._condition.notify_all()
 
-    def snapshot(self):
+    def snapshot(self, *, include_history=True):
         with self._condition:
             used = {name: self._used(name) for name in ("ram_bytes", "disk_bytes")}
             return {"limits": dict(self.limits), "reserved": used,
@@ -348,10 +454,14 @@ class PipelineBudget:
                     'last_gate_receipts': copy.deepcopy(self._last_gates),
                     'active_leases': copy.deepcopy(list(self._active_leases.values())),
                     'lease_history': {'capacity': self._lease_history.maxlen,
-                                      'events': copy.deepcopy(list(self._lease_history)),
+                                      'events': copy.deepcopy(list(self._lease_history)) if include_history else [],
                                       'count': self._lease_event_count,
-                                      'dropped': self._lease_event_count - len(self._lease_history),
-                                      'history_complete': self._lease_event_count == len(self._lease_history)},
+                                      'dropped': self._lease_event_count - (len(self._lease_history) if include_history else 0),
+                                      'included': include_history,
+                                      'history_complete': self._lease_event_count == (len(self._lease_history) if include_history else 0)},
+                    'lease_journal': {'schema_version': 1, 'budget_instance_id': self.instance_id,
+                                      'count': self._lease_event_count, 'tail_sha256': self._audit_tail,
+                                      'complete': self._audit_error is None, 'error': self._audit_error},
                     "free": {name: self.limits[name] - used[name] for name in used},
                     "cpu_threads_in_use": self._cpu_used, "gpu_attempt_id": self._gpu_owner,
                     "gpu_host_cpu_threads_in_use": self.gpu_host_cpu_threads if self._gpu_owner else 0,
@@ -371,5 +481,6 @@ class PipelineBudget:
                     "live_pressure_checks": self._system_checks}
 
     def has_capacity(self):
-        state = self.snapshot()
-        return all(value > 0 for value in state["free"].values())
+        with self._condition:
+            return self._audit_error is None and all(self.limits[name] - self._used(name) > 0
+                                                     for name in ('ram_bytes', 'disk_bytes'))

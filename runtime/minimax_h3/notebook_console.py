@@ -17,6 +17,7 @@ import traceback
 import uuid
 
 import notebook_ui as ui
+from condition_projection import public_condition_summary, public_execution_summary
 
 
 ACTION_TITLES = {'bootstrap': '一键启动', 'preflight': '资源检查', 'install': '安装依赖', 'start': '启动服务',
@@ -38,7 +39,7 @@ STRINGS = {'reference_file', 'prompt', 'resume_job_id', 'endpoint', 'acceleratio
 CHOICES = {'endpoint': {'public', 'local'}, 'acceleration': {'none', 'lightx2v-ref2va-4step'},
            'style': {'none', 'fal-realism-people'}, 'attention': {'auto', 'native', '_native_flash'},
            'offload': {'stream', 'sync'}}
-SAFE_STATE = {'instance_id', 'phase', 'ready', 'api_ready', 'model_ready', 'public_requested',
+SAFE_STATE = {'instance_id', 'model_instance_id', 'phase', 'ready', 'api_ready', 'model_ready', 'public_requested',
               'public_api_ready', 'public_ready', 'tunnel_connected', 'server_alive', 'model_alive',
               'manager_alive', 'tunnel_alive', 'cleanup_complete', 'observed_at', 'observation_stale',
               'elapsed_seconds', 'draining', 'queue'}
@@ -630,6 +631,12 @@ class ConsoleController:
             state = {'observation_stale': True, 'phase': 'unavailable'}
             self._print('状态读取失败：', error)
         safe = {k: state[k] for k in SAFE_STATE if k in state}
+        summary = public_condition_summary(state.get('condition_summary'), state.get('instance_id'))
+        if summary is not None:
+            safe['condition_summary'] = summary
+        execution = public_execution_summary(state.get('execution_summary'), state.get('instance_id'))
+        if execution is not None:
+            safe['execution_summary'] = execution
         if state.get('error'):
             safe['error'] = self._clean(state['error'])[:300]
         if source == 'events':
@@ -647,6 +654,10 @@ class ConsoleController:
             text = (ui.log_tail(smoke_log, 16000) if smoke_log else '') or '暂无生成验收日志。'
         else:
             text = ui.log_tail(self.log_path, 10000) + '\n' + ui.last_diagnostics()[-4000:]
+            if summary:
+                text += '\n调度观察（只读；历史决定不代表当前许可）：\n' + json.dumps(summary, ensure_ascii=False, sort_keys=True)
+            if execution:
+                text += '\n首个执行中任务（有界摘要；阶段回执是决策历史）：\n' + json.dumps(execution, ensure_ascii=False, sort_keys=True)
         with self.lock:
             active = [{k: v for k, v in record.items() if k not in {'fingerprint', 'thread_id'}} for record in self.active.values()]
             notice = dict(self.notice) if self.notice else None

@@ -45,16 +45,16 @@ jobs:
       - name: Replay runtime condition and lease evidence
         run: |
           python research/analyze_trace.py evidence/runtime-conditions-2026-11-15/trace.json
-          python - <<'PY'
-          import json, sys
-          from pathlib import Path
-          sys.path.insert(0, 'research')
-          from analyze_condition_gates import analyze
-          report = analyze(json.loads(Path('evidence/runtime-conditions-2026-11-15/trace.json').read_text()))
-          unexercised = {'unknown_blocked_without_effect', 'conflict_blocked_without_effect'}
-          assert report['counts']['fail'] == 0, report
-          assert all(check['status'] == 'pass' for name, check in report['checks'].items() if name not in unexercised), report
-          print(json.dumps(report))  # Unexercised GPU branches remain explicitly unknown.
-          PY
+          python research/replay_historical_conditions.py research/source-bindings/runtime-conditions-v040.json
+      - name: Recompute selected knowledge observations
+        run: >-
+          python research/replay_metrics.py
+          --trace evidence/runtime-conditions-2026-11-15/trace.json
+          --client evidence/runtime-conditions-2026-11-15/client-receipt.json
+          --contract research/metric-replays/runtime-conditions-v040.json
+          --source-binding research/source-bindings/runtime-conditions-v040.json
+          --contract-id h3-runtime-conditions-v040-closed-batch
+          --knowledge-module knowledge/modules/model-container.json
+          --knowledge-module knowledge/modules/event-orchestrator.json
       - name: Verify actual console delivery JavaScript
         run: node --test tests/test_console_delivery.cjs

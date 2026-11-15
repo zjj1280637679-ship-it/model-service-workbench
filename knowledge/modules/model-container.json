@@ -64,7 +64,32 @@
                 "evidence/runtime-conditions-2026-11-15/trace.json",
                 "evidence/runtime-conditions-2026-11-15/analysis.json"
               ],
-              "scope": "Two declared-success artifacts in this 0.4.0 model instance; server artifact identity matches downloaded bytes, SHA and full audiovisual decoding. The queued cancellation is not a model attempt and is not included in this successful-artifact denominator. No semantic-quality or long-run reliability claim."
+              "scope": "Two declared-success artifacts in this 0.4.0 model instance; server artifact identity matches downloaded bytes, SHA and full audiovisual decoding. The queued cancellation is not a model attempt and is not included in this successful-artifact denominator. No semantic-quality or long-run reliability claim.",
+              "measurement_contract_id": "h3-runtime-conditions-v040-closed-batch",
+              "evidence_window": {
+                "manager_sequence_start": 1,
+                "manager_sequence_end": 41,
+                "model_sequence_start": 1,
+                "model_sequence_end": 44,
+                "owner_observed_at": 1794705439.495141
+              },
+              "resource_scope": [
+                "declared_success_artifacts"
+              ],
+              "measurement_coverage": {
+                "expected_jobs": 3,
+                "admissions": 3,
+                "job_receipts": 3,
+                "client_receipts": 3,
+                "manager_events": 41,
+                "model_events": 44,
+                "batch_complete": true
+              },
+              "measurement_evidence_binding": {
+                "trace_semantic_sha256": "e2fac97dc2cf4be8c32cb9f9bd222110badec6d1d9595bb632916c678891f42d",
+                "client_semantic_sha256": "af1b36053ea6a1c5dcb190c3b29dabd90092b7f9090b7b000b914784b64d0731",
+                "contract_semantic_sha256": "0be1174bc1a6a174ddc842add83539fa3a9830bc3030197be687196bb928490a"
+              }
             }
           ]
         }
@@ -80,13 +105,15 @@
         "每次执行通过模型 instance_id、job_id、attempt_id 联合归属；同身份参数改变和旧实例结果在接纳边界拒绝。",
         "status 回执观察 ready、accepting、active_phase、取消请求与 cleanup；请求返回不能独自证明取消已生效。",
         "模型保留未被总管理确认消费的终态结果；ack_results 与持久化主结果的先后顺序可从 global_manager.py 核对。",
-        "model.execute 在容器锁内重新检查当前能力、实例/尝试及工作集预留；管理器的允许派发回执不能代替容器接纳，unknown/conflict 不授权。私有 status 的 last_condition_gate 和尝试 condition_gates 可查询，但它们是具身份及时间的历史决策，不是永久执行许可。"
+        "model.execute 在容器锁内重新检查当前能力、实例/尝试及工作集预留；管理器的允许派发回执不能代替容器接纳，unknown/conflict 不授权。私有 status 的 last_condition_gate 和尝试 condition_gates 可查询，但它们是具身份及时间的历史决策，不是永久执行许可。",
+        "0.5.0 status只读取一次不含历史端点的预算快照，has_capacity直接查询可用容量；预算审计独立分页读取，磁盘读在模型状态锁外。"
       ],
       "strategies": [
         "根据用户操作选择排空、在安全阶段取消或显式强制停止；常规取消不伪装成安全中断任意 CUDA 指令。",
         "执行传输结果未知时按同一尝试身份核对，保留所有权，不自动创建另一轮生成。",
         "控制查询与模型执行使用各自受管通道，按部署目标设置观察和截止时间。",
-        "条件复验跟随状态所有者：接纳与效果提交在同一仲裁域内完成；等待资源和实际推理在模型控制锁外进行。新增审计历史后，应单独评估状态查询负载，不能用已完成 GPU 生成替代控制延迟验收。"
+        "条件复验跟随状态所有者：接纳与效果提交在同一仲裁域内完成；等待资源和实际推理在模型控制锁外进行。新增审计历史后，应单独评估状态查询负载，不能用已完成 GPU 生成替代控制延迟验收。",
+        "将空/短/满512尾缓存的控制查询成本分别做CPU对照，保留完整样本、锁持有时间、字节、错误与超时数；该微基准不是私有RPC全链路p95，也不是A100生成加速。"
       ],
       "metrics": [
         {
@@ -136,7 +163,8 @@
         "父进程用 PID 与创建时间观察子所有者；子清理、租约归还和进程退出是不同事实，观察失败不能视为已清理。",
         "0.2.0 历史窗口记录六个阶段及两次 GPU 阶段，跨任务 CPU/GPU 区间交叠约 3.502 秒；当时缺全部 acquire/release 边界，不能据 stage 事件给独占租约指标填零。",
         "0.4.0 在 prepare、GPU、encode_validate 开始前分别复验身份、能力、前序成功、取消与当前预算授权；stage_completions 只在成功且完成事件持久化后建立。drain 关闭新接纳，不把已接纳任务的正常排空能力视为缺失。",
-        "0.4.0 的完整六租约十二端点账本中有两个 GPU 租约，归属同一模型/预算实例且互不重叠；独占 GPU 租约违规数为 0。该窗口终结历史无截断，不能外推为任意长会话或其他资源池都已完整审计。"
+        "0.4.0 的完整六租约十二端点账本中有两个 GPU 租约，归属同一模型/预算实例且互不重叠；独占 GPU 租约违规数为 0。该窗口终结历史无截断，不能外推为任意长会话或其他资源池都已完整审计。",
+        "0.5.0 租约授予/归还先在预算仲裁域持久化再变更内存所有权；写盘失败锁存，不继续授予，不伪造释放或cleanup_complete。86次完整三阶段的516端点及重启历史读取已有CPU反例，重启不恢复执行权。"
       ],
       "strategies": [
         "对有限子图选择串行、预算内并行或阶段流水；同任务真实依赖保持，跨任务准备和编码可与另一任务推理重叠。",
@@ -224,7 +252,29 @@
                 "history_complete": true,
                 "dropped_events": 0
               },
-              "violation_duration_seconds": 0
+              "violation_duration_seconds": 0,
+              "measurement_contract_id": "h3-runtime-conditions-v040-closed-batch",
+              "evidence_window": {
+                "manager_sequence_start": 1,
+                "manager_sequence_end": 41,
+                "model_sequence_start": 1,
+                "model_sequence_end": 44,
+                "owner_observed_at": 1794705439.495141
+              },
+              "measurement_coverage": {
+                "expected_jobs": 3,
+                "admissions": 3,
+                "job_receipts": 3,
+                "client_receipts": 3,
+                "manager_events": 41,
+                "model_events": 44,
+                "batch_complete": true
+              },
+              "measurement_evidence_binding": {
+                "trace_semantic_sha256": "e2fac97dc2cf4be8c32cb9f9bd222110badec6d1d9595bb632916c678891f42d",
+                "client_semantic_sha256": "af1b36053ea6a1c5dcb190c3b29dabd90092b7f9090b7b000b914784b64d0731",
+                "contract_semantic_sha256": "0be1174bc1a6a174ddc842add83539fa3a9830bc3030197be687196bb928490a"
+              }
             }
           ]
         }
@@ -239,7 +289,8 @@
         "generation_options.requested 保存请求，effective 仅在 GPU 租约内实际配置应用后产生；queued/prepare 时 effective 为 null。",
         "下载进度、阶段事件、模型子实例、产物 SHA 与清理回执具有不同事实范围；旧实例或过期观察不能投射为当前 ready。",
         "metrics.adapters 描述预加载部署，逐任务生效配置读取 generation_options；静态标签不替代本次 GPU 执行证据。",
-        "0.4.0 私有尝试 condition_gates、stage_completions 以及主任务 condition_gate、execution_condition_gates、cancellation_requested 保留各自语义；公共查询按固定结构投射。实际观察过公共条件回执，尚未冻结对应 UI/API/日志同源对照全集。"
+        "0.4.0 私有尝试 condition_gates、stage_completions 以及主任务 condition_gate、execution_condition_gates、cancellation_requested 保留各自语义；公共查询按固定结构投射。实际观察过公共条件回执，尚未冻结对应 UI/API/日志同源对照全集。",
+        "0.5.0 共享条件投射按身份与新鲜度区分当前观测和历史决定；实际控制台JS与Python使用同源fixture，未覆盖的表达等价与认知负荷指标继续unknown。"
       ],
       "strategies": [
         "选用通用状态字段并附模型专用扩展，为事件摘要和面板字段指定源事件身份。",
@@ -317,7 +368,14 @@
     "evidence/runtime-conditions-2026-11-15/condition-analysis.json",
     "evidence/runtime-conditions-2026-11-15/client-receipt.json",
     "evidence/runtime-conditions-2026-11-15/api-query-observation.json",
-    "evidence/runtime-conditions-2026-11-15/precision-audit.json"
+    "evidence/runtime-conditions-2026-11-15/precision-audit.json",
+    "runtime/minimax_h3/condition_projection.py",
+    "runtime/minimax_h3/test_live_condition_projection.py",
+    "runtime/minimax_h3/test_budget_audit_projection.py",
+    "research/benchmark_budget_queries.py",
+    "evidence/debt-resolution-2026-11-15/budget-query-benchmark.json",
+    "research/replay_metrics.py",
+    "research/metric-replays/runtime-conditions-v040.json"
   ],
   "gaps": [
     "当前是 MiniMax-H3 专用参考实现，稳定第三方适配器注册、版本协商和其他模型 profile 未实现。",
@@ -325,6 +383,6 @@
     "当前没有任意递归 DAG、多 GPU 执行和完整带宽标定；不可宣称全局物理最优。",
     "2026-11-15 的有限真实样例不证明所有输入语义质量、所有模型可用性或同输入 A/B 提速倍数。",
     "0.2.0 的租约重叠及全资源清理观察仍保留历史 unknown；0.4.0 已有完整六租约十二端点，可在该窗口给独占 GPU 租约违规数记 0，仍缺逐子事件/临时文件清单，全资源清理闭合率继续 unknown。有界历史不能自动保证任意长会话的完整审计。",
-    "两轮均未完成私有 status 分阶段 p95 或 UI/API/日志同源版本表达对照；0.4.0 新增条件与阶段完成字段也须纳入未来冻结的表达样本，不能由真实产物合格或单次公共查询代替这些指标。"
+    "两轮真实GPU实验均未完成私有status分阶段p95；0.5.0新增本地预算片段微基准和有限同源投射反例，不代表云端完整RPC延迟或全部表达一致。"
   ]
 }

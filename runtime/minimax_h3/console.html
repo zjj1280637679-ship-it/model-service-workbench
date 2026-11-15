@@ -582,6 +582,18 @@ label > :is(input, textarea, select) { margin-top: 4px; }
       if(percent===null)progress.removeAttribute('value');else progress.value=percent;
     }
   }
+  function conditionMessage(state) {
+    const summary=state.condition_summary;
+    if(!summary || typeof summary!=='object' || !(state.queue?.queued>0))return null;
+    const labels={manager_open:'总管理接收状态',job_queued:'任务排队状态',attempt_unassigned:'执行归属',model_identity_current:'模型实例身份',model_observation_fresh:'观察时效',model_process_alive:'模型进程',model_ready:'模型就绪',worker_alive:'执行线程',worker_accepting:'模型容量',supervisor_alive:'监督线程'};
+    const validId=value=>typeof value==='string'&&/^[a-f0-9]{32}$/.test(value);
+    if(summary.status!=='current' || !validId(summary.manager_instance_id) || !validId(summary.model_instance_id) || !validId(summary.job_id) || summary.manager_instance_id!==state.instance_id || summary.model_instance_id!==state.model_instance_id || typeof summary.observed_at!=='number' || !Number.isFinite(summary.observed_at) || summary.observed_at<0 || typeof summary.observation_age_seconds!=='number' || !Number.isFinite(summary.observation_age_seconds) || summary.observation_age_seconds<0)
+      return {headline:'等待当前条件确认',next:'当前任务的身份或观察时效未确认；历史决定不能代替本次检查。',tone:'warn'};
+    const blocked=Object.keys(labels).filter(key=>summary.conditions?.[key]!=='true');
+    if(!blocked.length)return null;
+    const uncertain=blocked.some(key=>!['true','false'].includes(summary.conditions?.[key]));
+    return {headline:uncertain?'等待条件核实':'任务等待调度条件',next:blocked.slice(0,3).map(key=>labels[key]+'：'+({false:'未满足',unknown:'未知',conflict:'冲突'}[summary.conditions?.[key]]||'未知')).join('；')+'。详细证据在右侧日志。',tone:'warn'};
+  }
   function renderBoard() {
     const state=current.state||{}, ui=current.ui||{}, resources=current.resources||{};
     const cleanStop=!ui.bootstrap_running && state.phase==='stopped' && state.cleanup_complete===true && !state.manager_alive && !state.server_alive && !state.model_alive && !state.tunnel_alive;
@@ -605,6 +617,9 @@ label > :is(input, textarea, select) { margin-top: 4px; }
     else if(state.phase && state.phase!=='new'){headline='服务正在准备';next='右侧日志持续更新；无需等待模型就绪才观察 API。';}
     else if(ui.install_ok){headline='依赖已就绪';next='点击一键启动继续；需要分步维护时再展开高级控制。';}
     else if(ui.preflight_ok){headline='资源检查通过';next='点击一键启动继续安装和启动，无需逐步点击。';}
+    if(!offline()&&!closed()&&!delivering()&&!cleanStop&&!stale&&!state.error&&!['failed','stopping','degraded'].includes(state.phase)){
+      const condition=conditionMessage(state);if(condition){headline=condition.headline;next=condition.next;tone=condition.tone;}
+    }
     text('headline',headline);text('next-step',next);$('board').dataset.tone=tone;
     const module=(alive,ready)=>{
       if(offline() || closed() || !Object.keys(state).length) return '尚未读取';

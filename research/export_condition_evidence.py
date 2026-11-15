@@ -1,6 +1,7 @@
-"""Explicit public projection for the runtime-condition experiment only.
+"""Explicit public projection for a declared single-instance H3 experiment.
 
 Usage: python research/export_condition_evidence.py PRIVATE_RUN PUBLIC_DIRECTORY
+       --experiment PRIVATE_RUN/experiment.json --source-root EXECUTED_SOURCE_ROOT
 The destination must be new. No network, GPU, old experiments or implicit glob
 copies are used. Both analyzers must return exactly the same output before and
 after projection, including unknown and failure results. Export is publication
@@ -20,7 +21,6 @@ import re
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-BASELINE_COMMIT = 'de107b151df2e425f25ad37f89e225e0d65aff40'
 MAX_JSON_BYTES = 256 * 1024 * 1024
 MAX_ASSET_BYTES = 256 * 1024 * 1024
 TOKEN = re.compile(r'[A-Za-z0-9_.:-]{1,256}\Z')
@@ -112,13 +112,18 @@ RESERVATION = {**names('owned budget_instance_id attempt_id reservation_id capac
 LEASE = {**names('owned lease_id attempt_id kind budget_instance_id reservation_id cpu_threads capacity_version '
                  'decision_id granted_at granted_monotonic_ns released_at released_monotonic_ns'), 'grant_receipt': GATE}
 LEASE_EVENT = {**names('event_id sequence type observed_at monotonic_ns lease_id budget_instance_id attempt_id kind '
-                       'cpu_threads capacity_version decision_id reservation_id cpu_threads_in_use gpu_attempt_id'), 'limits': RESOURCE}
+                       'cpu_threads capacity_version decision_id reservation_id cpu_threads_in_use gpu_attempt_id '
+                       'sha256 previous_sha256'), 'limits': RESOURCE}
+AUDIT_PAGE = {**names('schema_version model_instance_id budget_instance_id capacity_version gpu_host_cpu_threads '
+                     'after_sequence through_sequence next_sequence after_sha256 tail_sha256 page_complete more'),
+              'limits': RESOURCE, 'events': sequence(LEASE_EVENT)}
 BUDGET = {**names('budget_instance_id capacity_version cpu_threads_in_use gpu_attempt_id gpu_host_cpu_threads_in_use '
                   'cpu_stage_threads_in_use gpu_host_cpu_threads requested_cpu_threads requested_gpu_host_cpu_threads '
                   'admitted_attempts unacknowledged_result_bytes model_peak_ram_bytes os_reserve_bytes live_pressure_checks'),
           'limits': RESOURCE, 'reserved': RESOURCE, 'free': RESOURCE, 'last_gate_receipts': mapping(GATE),
           'active_leases': sequence(LEASE),
           'lease_history': {**names('capacity count dropped history_complete'), 'events': sequence(LEASE_EVENT)},
+          'lease_journal': names('schema_version budget_instance_id count tail_sha256 complete error'),
           'io_budget': names('scope bandwidth_calibrated bytes_per_second_limit optimality')}
 MEDIA = names('frames fps width height audio_channels full_decode_passed duration_seconds video_codec audio_codec')
 ARTIFACT = {**names('bytes sha256'), 'media': MEDIA}
@@ -147,6 +152,7 @@ TRACE = {**names('schema_version manager_instance_id model_instance_id'), 'queue
          'collection': {**names('manager_events_complete model_events_complete manager_event_sequence_final '
                                'model_event_sequence_final basis collector_id'), 'problems': sequence(names('source error_type reason'))},
          'manager_events': sequence(EVENT), 'model_events': sequence(EVENT), 'jobs': sequence(JOB),
+         'budget_audit_pages': sequence(AUDIT_PAGE),
          'system_snapshots': sequence(SNAPSHOT), 'runtime_source_identity': SOURCES,
          'cleanup_receipt': {'instance_id': scalar,
              'state': names('instance_id cleanup_complete shutdown_complete manager_alive server_alive model_alive '
@@ -414,13 +420,76 @@ def project_precision(raw, trace, files):
     return public
 
 
-def export(source, destination, *, source_root=None):
+def declared_experiment(source, descriptor_path, captured, raw, state):
+    """Bind provenance to explicit inputs; never inherit an earlier experiment.
+
+    Commit strings are declared identities, not Git attestations. Executed source
+    bytes, protocol bytes, instance identity and supported interventions are
+    independently checked against captured inputs before publication.
+    """
+    try:
+        relative = Path(descriptor_path).resolve().relative_to(source)
+    except (TypeError, ValueError):
+        raise ValueError('Explicit experiment descriptor missing or outside the private run') from None
+    path = owned_file(source, relative)
+    data = path.read_bytes()
+    descriptor = json.loads(data)
+    fields = {'schema_version', 'experiment_id', 'protocol', 'baseline_commit', 'source_revision',
+              'runtime_changes', 'runtime_manifest_sha256', 'manager_instance_id', 'model_instance_id', 'interventions'}
+    if not isinstance(descriptor, dict) or set(descriptor) != fields or type(descriptor['schema_version']) is not int or descriptor['schema_version'] != 1:
+        raise ValueError('Experiment descriptor requires its exact declared fields')
+    if (descriptor['experiment_id'] != state.get('run_id')
+            or descriptor['manager_instance_id'] != raw.get('manager_instance_id')
+            or descriptor['model_instance_id'] != raw.get('model_instance_id')):
+        raise ValueError('Experiment identity differs from client or runtime')
+    for name in ('experiment_id', 'manager_instance_id', 'model_instance_id'):
+        if not isinstance(descriptor[name], str) or not TOKEN.fullmatch(descriptor[name]):
+            raise ValueError('Experiment identity must be a bounded public identifier')
+    if not isinstance(descriptor['baseline_commit'], str) or not re.fullmatch(r'[0-9a-f]{40}', descriptor['baseline_commit']):
+        raise ValueError('Explicit baseline commit must be a full commit identity')
+    revision = descriptor['source_revision']
+    if (not isinstance(revision, dict) or set(revision) != {'commit', 'state'}
+            or revision['state'] not in {'committed', 'modified'}
+            or not isinstance(revision['commit'], str) or not re.fullmatch(r'[0-9a-f]{40}', revision['commit'])):
+        raise ValueError('Explicit executed source revision and modification state required')
+    changes = scalar(descriptor['runtime_changes'])
+    if not isinstance(changes, str) or not changes.strip() or len(changes) > 2048:
+        raise ValueError('Explicit public runtime change description required')
+    if descriptor['runtime_manifest_sha256'] != hashlib.sha256(captured['runtime']).hexdigest():
+        raise ValueError('Experiment runtime manifest binding does not match captured bytes')
+    protocol = descriptor['protocol']
+    if not isinstance(protocol, dict) or set(protocol) != {'id', 'file', 'sha256'}:
+        raise ValueError('Explicit protocol identity, file and SHA256 required')
+    protocol_path = owned_file(source, protocol['file'])
+    protocol_bytes = protocol_path.read_bytes()
+    protocol_body = json.loads(protocol_bytes)
+    if (not isinstance(protocol['id'], str) or not TOKEN.fullmatch(protocol['id'])
+            or not isinstance(protocol_body, dict) or protocol_body.get('protocol_id') != protocol['id']
+            or protocol['sha256'] != hashlib.sha256(protocol_bytes).hexdigest()):
+        raise ValueError('Protocol identity or byte binding conflicts with its declared source')
+    interventions = descriptor['interventions']
+    if not isinstance(interventions, list) or len(interventions) > 1:
+        raise ValueError('Declare the bounded supported intervention list, including an explicit empty list')
+    expected = [] if 'api_update' not in captured else [{'kind': 'managed_api_replacement',
+        'evidence_sha256': hashlib.sha256(captured['api_update']).hexdigest()}]
+    if interventions != expected:
+        raise ValueError('Declared interventions do not match supported captured intervention evidence')
+    public = {key: descriptor[key] for key in ('experiment_id', 'baseline_commit', 'source_revision', 'runtime_changes',
+        'manager_instance_id', 'model_instance_id', 'runtime_manifest_sha256', 'interventions')}
+    public.update(protocol_id=protocol['id'], protocol_sha256=protocol['sha256'],
+                  experiment_descriptor_sha256=hashlib.sha256(data).hexdigest())
+    return public, {'experiment': path, 'protocol': protocol_path}, {'experiment': data, 'protocol': protocol_bytes}
+
+
+def export(source, destination, *, source_root=None, experiment=None):
     source, destination = Path(source).resolve(), Path(destination).resolve()
     if destination.is_relative_to(source) or source.is_relative_to(destination):
         raise ValueError('Private source and public destination must be separate directories')
     if destination.exists():
         raise ValueError('Destination must be new; existing evidence is never overwritten')
-    source_root = Path(source_root).resolve() if source_root is not None else ROOT / 'runtime/minimax_h3'
+    if source_root is None or experiment is None:
+        raise ValueError('Explicit experiment descriptor and executed source-root are required; no missing input inherits current or historical defaults')
+    source_root = Path(source_root).resolve()
     inputs = {name: owned_file(source, relative) for name, relative in {
         'trace': 'trace-complete.private.json', 'runtime': 'cloud/collection/runtime-source-manifest.json',
         'client': 'client/state.json', 'manifest': 'content-manifest.json',
@@ -442,6 +511,10 @@ def export(source, destination, *, source_root=None):
         if any((raw.get('platform_release') or {}).get(key) != value for key, value in platform.items()):
             raise ValueError('Attached platform release does not match its retained source observation')
     runtime, state, manifest = (json.loads(captured[name]) for name in ('runtime', 'client', 'manifest'))
+    declaration, extra_inputs, extra_bytes = declared_experiment(source, experiment, captured, raw, state)
+    inputs.update(extra_inputs)
+    captured.update(extra_bytes)
+    input_hashes.update({name: hashlib.sha256(data).hexdigest() for name, data in extra_bytes.items()})
     if runtime.get('files') != raw.get('runtime_source_identity', {}).get('files'):
         raise ValueError('Runtime source manifest differs from the trace source identity')
     source_manifest = project(runtime, SOURCES)
@@ -475,14 +548,13 @@ def export(source, destination, *, source_root=None):
     gpu_after.update(compute_processes_output_empty=(raw_processes == '' if isinstance(raw_processes, str) else None),
                      compute_processes_output_sha256=(hashlib.sha256(raw_processes.encode()).hexdigest() if isinstance(raw_processes, str) else None),
                      scope='Exit code and emptiness of the recorded process query; raw process strings are private. Not platform deallocation.')
-    provenance = {'schema_version': 1, 'baseline_commit': BASELINE_COMMIT,
-        'runtime_changes': 'Uncommitted runtime condition gates and ownership receipts; observed runtime source hashes are checked separately.',
+    provenance = {'schema_version': 2, **declaration,
         'runtime_source_match': source_matches, 'private_input_sha256': input_hashes,
         'analysis_equivalence': {'historical_trace': True, 'condition_gates': True},
         'asset_sha256': {name: expected for name, _, expected in assets},
         'research_source_sha256': {name: digest(Path(__file__).with_name(name)) for name in
             ('export_condition_evidence.py', 'analyze_trace.py', 'analyze_condition_gates.py')},
-        'scope': 'Explicit public projection of this run only. Byte identities are not execution attestation; exporter performs no new GPU or media decode test. No calibration or finite-model results reused.'}
+        'scope': 'Explicit public projection of the declared single-manager/model run. Commit identities and change descriptions are declarations, not execution attestation; protocol and executed source bytes are checked. Supported intervention is one managed API replacement; unsupported histories are rejected. No new GPU or media decode test, calibration or finite-model results reused.'}
     documents = {'trace.json': public_trace, 'analysis.json': analyses['analysis'],
         'condition-analysis.json': analyses['condition_analysis'], 'client-receipt.json': public_client,
         'content-manifest.json': public_manifest, 'runtime-source-manifest.json': source_manifest,
@@ -539,9 +611,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source', type=Path)
     parser.add_argument('destination', type=Path)
-    parser.add_argument('--source-root', type=Path)
+    parser.add_argument('--source-root', type=Path, required=True, help='Exact executed source tree; use the bound historical snapshot for historical export, never current-runtime fallback')
+    parser.add_argument('--experiment', type=Path, required=True, help='Explicit descriptor inside PRIVATE_RUN, with protocol, baseline, executed-source and intervention bindings')
     args = parser.parse_args()
-    print(json.dumps(export(args.source, args.destination, source_root=args.source_root), ensure_ascii=False))
+    print(json.dumps(export(args.source, args.destination, source_root=args.source_root, experiment=args.experiment), ensure_ascii=False))
 
 
 if __name__ == '__main__':

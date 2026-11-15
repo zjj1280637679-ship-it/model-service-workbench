@@ -199,14 +199,14 @@
         "候选 URL 与可达 URL 分开；下载完成与模型 ready 分开；只有已知完整分母时显示下载百分比。",
         "普通快照和日志脱敏，密钥仅由专用回调取回；隐藏、断连或凭据变化清空前端明文。",
         "保存的静态输出是离线投射，不代表当前服务仍运行；观察带实例和时间。",
-        "0.4.0 后台和公共 API 已提供条件决策及阶段完成见证，但 ConsoleController 的 SAFE_STATE 不含 condition_gates；状态日志也只序列化这份缩减快照，默认面板没有新增条件摘要。",
-        "事件来源仍可人工查看最近 35 条管理器事件；这是有界诊断入口，不是条件完全不可审计，也不是完整历史。原布局和单启动单元保持，但没有新增 UI 条件命题的测量分母。"
+        "0.5.0 SAFE_STATE 包含有界脱敏 condition_summary；既有看板文案及右侧日志解释当前阻断、历史决定和阶段完成。无新常规弹窗，console CSS/DOM 布局保持。",
+        "最近35条事件仍为有界诊断；完整资源审计另有分页。实际控制台 JavaScript 与 Python 共用条件 fixture，覆盖四值、过期、恢复、旧实例及历史/当前边界；这些离线反例不测用户认知负荷。"
       ],
       "strategies": [
         "简短事实放看板，原因、必要确认和下载入口放日志区，避免常规成功弹窗。",
         "过期时撤销当前可用表达；历史成功可表达为上次已加载，不延续为当前 ready。",
         "组合标签必须可展开为原字段，显示规则不能凭同样颜色或词语替代命题映射。",
-        "待修复策略：在既有看板及右侧日志位置增加有界脱敏的条件阻断摘要，保留实例/任务/决策身份与时间；不新增常规弹窗、不改变三块布局，过期历史决定不显示为当前阻断。此项尚未修改运行时。"
+        "默认只展示有界条件摘要，详细事件留在原日志；未知不能显示为就绪，历史阶段允许不能当作当前许可。保持左上看板、左下常用及折叠高级控制、右侧动态日志。"
       ],
       "metrics": [
         {
@@ -291,14 +291,17 @@
     "evidence/runtime-conditions-2026-11-15/api-query-observation.json",
     "evidence/runtime-conditions-2026-11-15/client-receipt.json",
     "evidence/runtime-conditions-2026-11-15/condition-analysis.json",
-    "tests/test_console_delivery.cjs"
+    "tests/test_console_delivery.cjs",
+    "runtime/minimax_h3/condition_projection.py",
+    "runtime/minimax_h3/test_live_condition_projection.py",
+    "tests/fixtures/live-condition-projection.json"
   ],
   "gaps": [
     "通用非 Colab 传输与任意嵌套面板树尚未实现。",
     "本文指标尚未全部自动采集；没有认知负荷、用户完成时间 A/B 或可访问性全覆盖测量。",
     "通用模型能力到动态表单的映射与多宿主等效性需要新增证据。",
     "0.2.0 的 2026-11-15 研究未重测网页 UI、面板输入次数、呈现延迟、回调清理、认知负荷或同源表达映射；该轮全部面板指标保留 unknown。",
-    "0.4.0 新条件没有进入面板安全状态和默认诊断摘要；目前需人工定位管理器事件。该运行时债未在本次知识审计修复。",
-    "新增四值条件、授权与完成分离、取消意图与失败并存、旧 attempt 和过期决定尚缺同输入的控制器/API/JavaScript 投射分类与计数，当前命题错误率和跨表达不一致率保持 unknown。"
+    "0.5.0 已加入有界默认条件诊断，不改变CSS/DOM；没有新增用户认知负荷或云端面板呈现延迟测量。",
+    "同源fixture覆盖四值条件、授权/完成、取消意图、旧attempt及过期决定；严格命题错误率与跨表达全集指标未由有限fixture外推，保持unknown。"
   ]
 }

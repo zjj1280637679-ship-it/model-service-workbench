@@ -77,14 +77,16 @@ flowchart LR
 
 这些事实不自动满足九项候选指标的严格定义。两个最终下载均通过验证，但公开记录未包含全部下载尝试、重试和中断分母，因此 `interaction.verified-download-rate` 暂为 unknown。取消端到端流程已观察，不代表已经测得管理器接收至清理完成的精确单调时延。未注入的无效鉴权、丢响应、跨实例故障不记零；全受管端点关闭探测、跨表达输入分类和能力使用时刻也缺少完整样本。0.2.0 的九项指标各自保留 unknown 原因，正常路径通过与尚未测量可以同时成立。
 
-## 0.4.0 条件更新与策略、指标债
+## 0.4.0 历史条件与 0.5.0 当前投射
 
 外部调用者需要可审计入口、持续查询和正确结果的需求不变。0.4.0 已新增带实例、任务、尝试及决策身份的条件回执；[实测报告](../research/2026-11-15-runtime-condition-results.md)与[公共查询见证](../../evidence/runtime-conditions-2026-11-15/api-query-observation.json)确认运行中可通过单任务接口取得派发条件回执。这份见证不表示每个阶段的实时回执都已在同一路由提供。
 
 | 已更新的客观条件 | 现有策略的覆盖与缺口 | 应同步的验证范围 |
 | --- | --- | --- |
 | `public_condition_fields` 已投射 `condition_gate`、`execution_condition_gates`、`stage_completions`、`cancellation_requested`。必要条件保留 true/false/unknown/conflict；必要条件字段缺失或非全真却声称允许时降为 `allowed=null`。 | 单任务路由采用固定字段与上下文白名单，过滤任意参数和路径；这项收窄只描述该路由，不意味着 `/v1/system` 全量诊断也使用同一白名单。条件回执是历史决定，不是客户端可以持有并再次执行的授权票据。 | [公共投射反例测试](../../runtime/minimax_h3/test_server_condition_projection.py)覆盖所声明的本地字段行为；仍需将文档、单任务接口、系统诊断及客户端的同身份输入分类一一对齐。 |
-| 模型容器的活动 `attempts` 已包含阶段条件与完成见证。 | 管理器 `_public_job` 在运行中只复制阶段名称和实际配置，阶段条件及完成证据在 `_consume_result` 消费终态后才落入单任务记录。当前诊断可从 `/v1/system` 找匹配 attempt，但调用者需自己遍历。待修复策略是安全投射当前匹配 attempt 的阶段详情，同时标出来源、新鲜度与历史/当前区别。 | 补充运行中、终态、旧 attempt、模型重启、缺失及冲突字段的查询反例；不能仅用终态投射通过宣称实时查询完备。 |
-| 实际执行允许与实际完成已有不同见证，取消意图也不会覆盖已报告的条件失败。 | `waiting_for` 仍主要从旧 ready/accepting 分支概括原因，未按新增阻断条件展开；缺少身份/新鲜度与普通容量等待须可分辨。保持按 ID 对账和异步队列策略，不以重新提交来解决未知。 | `expression.contract-counterexamples` 的输入分类需要加入条件缺失/冲突、允许但未开始、开始但未完成、失败同时存在取消意图、过期阻断决定；未逐类核验的范围继续 unknown。 |
+| 模型容器的活动 `attempts` 已包含阶段条件与完成见证。 | 当前 `_public_job` 按 manager/job/attempt/model 身份和观察年龄投射运行中阶段回执，拒绝旧实例、旧尝试、缺时间及晚于快照的决定。`execution_observation.status` 区分 current/historical/stale/unknown/identity_mismatch；current 只限定快照，内部回执仍是历史决定。终态证据先落主账本再 ack，重启后仍可查询。 | [实时投射测试](../../runtime/minimax_h3/test_live_condition_projection.py)覆盖准备、GPU 等待、编码、迟到、缺失、取消、ack 和恢复；有限 CPU 反例不扩展历史 GPU 验收范围。 |
+| 实际执行允许与实际完成已有不同见证，取消意图也不会覆盖已报告的条件失败。 | `waiting_for` 当前区分 current_observation、condition_verification、model_identity、model_ready、model_capacity 等等待。`condition_summary` 的当前观察与 `last_decision` 分离，不把旧拒绝继续当作当前原因；取消意图由持久主任务状态保留，不被滞后的模型标志撤销。 | 继续区分条件缺失/冲突、允许但未开始、开始但未完成、失败同时存在取消意图；未检查范围保留 unknown。 |
 
-这次知识审计只同步契约和待修复项，未修改运行时代码。完整跨表达反例指标仍未知；0.2.0 历史观察不被覆盖，0.4.0 的正常 GPU 成功也不自动成为 UI、故障注入或下载全部请求分母的测量。
+新增 `GET /v1/audit/budget` 使用同一 Bearer 鉴权，要求 `model_instance_id`、`budget_instance_id`，接受非负 `after_sequence`、可选固定 `through_sequence` 与 1–256 的 `limit`。返回固定范围的事件、连续序号、首尾哈希、`page_complete` 和 `more`；调用方沿 `next_sequence` 分页并保留同一 cutoff。管理器在 RPC 前后复验模型归属，RPC 不持主状态锁；身份变化返回 409、游标错误 422、审计不可确认 503。固定白名单不提供路径、密钥或任意 grant 上下文；页内连续性和摘要必须核对。[真实持久页的 HTTP 边界测试](../../runtime/minimax_h3/test_budget_audit_projection.py)覆盖该链路，完整跨页覆盖仍由分析器核验。
+
+上述当前修复与历史证据分别记录。完整跨表达指标仍不能从有限反例推出；0.2.0 和 0.4.0 的 GPU 窗口不被新源码覆盖，也不自动成为 UI、故障注入或全部下载请求分母。

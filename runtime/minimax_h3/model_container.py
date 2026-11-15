@@ -32,7 +32,7 @@ import uuid
 from control_protocol import ControlError, make_server
 from condition_guard import evaluate_gate, negate_observation, observation_state
 from download_progress import read_progress
-from pipeline_scheduler import BudgetUnavailable, PipelineBudget
+from pipeline_scheduler import BudgetAuditUnavailable, BudgetUnavailable, PipelineBudget
 
 LOG = logging.getLogger("h3.model_container")
 IDENTIFIER = re.compile(r"[a-f0-9]{32}\Z")
@@ -278,13 +278,16 @@ class ModelContainer:
                     break
                 results.append(result)
                 result_bytes += size
-            return copy.deepcopy({
+            # A current capacity snapshot has fixed-size audit metadata. Read it
+            # once, then attach the independent copy after copying live state.
+            budget = self._budget.snapshot(include_history=False) if self._budget else None
+            response = copy.deepcopy({
                 "instance_id": self.instance_id, "phase": self._phase, "ready": ready,
                 "accepting": ready and self._draining is False and self._stop_requested is False and (
-                    self._budget.has_capacity() if self._pipeline else active is None),
+                    (budget is not None and budget['lease_journal']['complete'] is True
+                     and all(value > 0 for value in budget['free'].values())) if self._pipeline else active is None),
                 "pipeline": self._pipeline,
                 "downloads": downloads,
-                "budget": self._budget.snapshot() if self._budget else None,
                 "attempts": [{**self._accepted(item), "phase": item.get("stage", item["status"]),
                               "generation_options": item.get("generation_options"),
                               "condition_gates": item.get("condition_gates", {}),
@@ -301,6 +304,24 @@ class ModelContainer:
                 "error": self._error, "observed_at": time.time(), "event_sequence": self._sequence,
                 "last_condition_gate": self._last_condition_gate,
             })
+            response['budget'] = budget
+            return response
+
+    def budget_audit(self, payload):
+        self._check_instance(payload, required=True)
+        with self._lock:
+            budget = self._budget
+            if budget is None or payload.get('budget_instance_id') != budget.instance_id:
+                raise ControlError('Budget audit instance does not match', status=409)
+        # Read-only disk pages never wait under the model state lock.
+        try:
+            page = budget.audit_page(after_sequence=payload.get('after_sequence', 0),
+                through_sequence=payload.get('through_sequence'), limit=payload.get('limit', 128))
+        except ValueError as error:
+            raise ControlError(str(error), status=422) from error
+        except (BudgetAuditUnavailable, OSError, sqlite3.Error, KeyError, TypeError) as error:
+            raise ControlError('Budget audit is unavailable', status=503) from error
+        return {'model_instance_id': self.instance_id, **page}
 
     def _check_instance(self, payload, required=False):
         instance = payload.get("instance_id")
@@ -543,6 +564,8 @@ class ModelContainer:
         payload = payload or {}
         if operation == "status":
             return self.status()
+        if operation == "budget_audit":
+            return self.budget_audit(payload)
         if operation == "execute":
             return self.execute(payload)
         if operation == "cancel":
@@ -686,11 +709,13 @@ class ModelContainer:
             if witness is not None:
                 with self._lock:
                     released = self._budget.release_witness(witness["lease_id"])
+                    if released is None:
+                        self._event("lease.release_unconfirmed", job_id=job_id, attempt_id=identity, stage=name,
+                                    lease_id=witness["lease_id"], budget_instance_id=witness["budget_instance_id"])
+                        raise ConditionGateBlocked("Lease release evidence is unavailable")
                     self._event("lease.released", job_id=job_id, attempt_id=identity, stage=name,
                                 lease_id=witness["lease_id"], budget_instance_id=witness["budget_instance_id"],
                                 lease_witness=released)
-                    if released is None:
-                        raise ConditionGateBlocked("Lease release evidence is unavailable")
 
     def _run_pipeline_attempt(self, attempt):
         identity = attempt["attempt_id"]
@@ -794,7 +819,13 @@ class ModelContainer:
                 attempt.pop("parameters", None)
                 self._results[identity] = self._last_result = result
                 if result["cleanup_complete"]:
-                    self._budget.finish(identity, len(json.dumps(result).encode()))
+                    try:
+                        self._budget.finish(identity, len(json.dumps(result).encode()))
+                    except BudgetUnavailable:
+                        result.update(status='failed', artifact=None, cleanup_complete=False,
+                                      error='lease_release_unconfirmed')
+                        attempt['status'] = 'failed'
+                        self._revoke_pipeline('lease_release_unconfirmed', current=attempt)
                 if self._phase != "failed":
                     self._phase = "draining" if self._draining else ("running" if self._live_attempts() else "ready")
                 self._safe_event("execution." + result["status"], job_id=attempt["job_id"],
@@ -902,6 +933,7 @@ class ModelContainer:
                 raise RuntimeError("Production backend must implement the staged pipeline contract")
             if self._pipeline:
                 self._budget = PipelineBudget(self.root, limits=self._resource_limits,
+                                              audit_directory=self.event_directory / 'budget-audit',
                     model_peak_ram_bytes=getattr(self.backend, "pipeline_model_peak_ram_bytes", 144 * 1024 ** 3))
                 configure = getattr(self.backend, "configure_cpu_budget", None)
                 if callable(configure):
@@ -1002,7 +1034,11 @@ class ModelContainer:
                 torch = sys.modules.get("torch")
                 if torch is not None and torch.cuda.is_initialized():
                     torch.cuda.empty_cache()
-                self._worker_cleanup_complete = True
+                final_budget = self._budget.snapshot(include_history=False) if self._budget is not None else None
+                self._worker_cleanup_complete = (final_budget is None or
+                    (final_budget['active_leases'] == [] and final_budget['lease_journal']['complete'] is True))
+                if not self._worker_cleanup_complete:
+                    self._phase, self._error = 'failed', 'lease_cleanup_unconfirmed'
             except BaseException:
                 LOG.exception("Model worker cleanup failed")
                 self._phase, self._error = "failed", "model_unload_failed"

@@ -172,8 +172,9 @@ def test_console_embedded_programs_do_not_leak_colab_form_directives():
     embedded = console_bundle(source)
     assert set(embedded) == {'PACKAGE_FILES', 'CONSOLE_PROGRAMS'}
     files = embedded['PACKAGE_FILES']
-    assert len(files) == 33
+    assert len(files) == 35
     assert 'condition_guard.py' in files
+    assert {'condition_projection.py', 'queue_policy.py'} <= files.keys()
     assert 'generation_options.py' in files
     for name, content in files.items():
         assert content == (ROOT / 'runtime/minimax_h3' / name).read_text(encoding='utf-8')

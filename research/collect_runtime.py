@@ -25,7 +25,7 @@ MAX_BYTES = 64 * 1024 * 1024
 MAX_RECORDS = 100000
 ID = re.compile(r"[0-9a-f]{32}\Z")
 SOURCE_ALLOWLIST = (
-    "condition_guard.py",
+    "condition_guard.py", "condition_projection.py", "queue_policy.py",
     "adapter_config.py", "client.py", "console.html", "control_protocol.py", "download_progress.py",
     "generation_options.py", "global_manager.py", "lora_preflight.py", "model_backend.py", "model_container.py",
     "notebook_console.py", "notebook_ui.py", "performance_model.py", "pipeline_backend.py", "pipeline_scheduler.py",
@@ -144,9 +144,12 @@ class RuntimeCollector:
         self._lock = threading.RLock()
         self._stop = threading.Event()
         self._threads = []
+        self._audit_capture_lock = threading.Lock()
+        self._audit_cursors = {}
         self._state = {"schema_version": 1, "collector_id": self.collector_id, "manager_instance_id": self.instance_id,
                        "phase": "created", "snapshot_samples": 0, "gpu_samples": 0, "probe_errors": 0,
                        "started_at": None, "stopped_at": None, "threads": {}, "last_error_type": None,
+                       "budget_audit_pages": 0, "budget_audit_errors": 0,
                        "interval_seconds": self.interval, "gpu_interval_seconds": 2.0,
                        "source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                        "scope": "Observation only; owns sampler threads/files, never service termination or cloud release."}
@@ -226,10 +229,16 @@ class RuntimeCollector:
                 raise RuntimeError("A stopped collector cannot be restarted; use a new observation identity")
             self._state.update(phase="running", started_at=datetime.now(timezone.utc).isoformat(),
                                threads={"snapshot": "running", "gpu": "running"})
-            for kind, operation, filename, interval in (
+            probes = [
                 ("snapshot", self.host.snapshot, "system_snapshots.jsonl", self.interval),
                 ("gpu", gpu_observation, "gpu_samples.jsonl", 2.0),
-            ):
+            ]
+            if callable(getattr(self.host, 'budget_audit', None)):
+                self._state['threads']['budget'] = 'running'
+                self._state['budget_samples'] = 0
+                probes.append(('budget', lambda: self.capture_budget_audit(max_pages=4),
+                               'budget_audit_samples.jsonl', self.interval))
+            for kind, operation, filename, interval in probes:
                 thread = threading.Thread(target=self._probe, args=(kind, operation, filename, interval),
                                           name="research-" + kind + "-" + self.collector_id[:8], daemon=True)
                 self._threads.append(thread)
@@ -237,6 +246,66 @@ class RuntimeCollector:
             self._audit("collector.started")
             self._persist()
         return self
+
+    def capture_budget_audit(self, snapshot=None, *, max_pages=1024):
+        """Capture a fixed cutoff through the private owner-controlled interface.
+
+        A separate sampler avoids serializing status/GPU probes with disk audit
+        reads. Call explicitly after the final task releases and before shutdown.
+        Advancing a cursor means the page was persisted, not that the lifetime is
+        complete; the final worker receipt remains the completeness authority.
+        """
+        if type(max_pages) is not int or not 1 <= max_pages <= 1024:
+            raise ValueError('audit capture page budget must be 1..1024')
+        operation = getattr(self.host, 'budget_audit', None)
+        if not callable(operation):
+            return {'state': 'unavailable', 'reason': 'private_audit_interface_missing'}
+        with self._audit_capture_lock:
+            try:
+                snapshot = self.host.snapshot() if snapshot is None else snapshot
+                model = (snapshot.get('modules') or {}).get('model') or {}
+                budget = model.get('budget') or {}
+                journal = budget.get('lease_journal') or {}
+                model_id, budget_id = model.get('instance_id'), budget.get('budget_instance_id')
+                if not budget:
+                    return {'state': 'waiting', 'reason': 'budget_not_created'}
+                if (snapshot.get('instance_id') != self.instance_id or snapshot.get('model_instance_id') != model_id
+                        or any(not isinstance(value, str) or not ID.fullmatch(value) for value in (model_id, budget_id))
+                        or journal.get('budget_instance_id') != budget_id or journal.get('complete') is not True
+                        or type(journal.get('count')) is not int or journal['count'] < 0):
+                    raise ValueError('budget audit owner or journal is unconfirmed')
+                key = model_id, budget_id
+                cursor = self._audit_cursors.get(key, 0)
+                cutoff = journal['count']
+                if cursor > cutoff:
+                    raise ValueError('budget audit durable count regressed')
+                captured = 0
+                while cursor < cutoff and captured < max_pages:
+                    page = operation(model_instance_id=model_id, budget_instance_id=budget_id,
+                                     after_sequence=cursor, through_sequence=cutoff, limit=128)
+                    next_seq = page.get('next_sequence')
+                    if (page.get('model_instance_id') != model_id or page.get('budget_instance_id') != budget_id
+                            or page.get('after_sequence') != cursor or page.get('through_sequence') != cutoff
+                            or page.get('page_complete') is not True or type(next_seq) is not int
+                            or not cursor < next_seq <= min(cursor + 128, cutoff)
+                            or page.get('tail_sha256') != journal.get('tail_sha256')
+                            or page.get('more') is not (next_seq < cutoff)):
+                        raise ValueError('budget audit response identity, range or cutoff conflicts')
+                    with self._lock:
+                        self._append('budget_audit_pages.jsonl', page)
+                        self._audit_cursors[key] = cursor = next_seq
+                        self._state['budget_audit_pages'] += 1
+                        self._persist()
+                    captured += 1
+                return {'state': 'cutoff_captured' if cursor == cutoff else 'partial',
+                        'model_instance_id': model_id, 'budget_instance_id': budget_id,
+                        'after_sequence': cursor, 'through_sequence': cutoff, 'pages': captured}
+            except Exception as error:
+                with self._lock:
+                    self._state['budget_audit_errors'] += 1
+                    self._audit('budget_audit.failed', error_type=type(error).__name__)
+                    self._persist()
+                raise
 
     def status(self):
         with self._lock:
@@ -343,6 +412,13 @@ class RuntimeCollector:
                                 "model_event_sequence_final": model_events[-1].get("sequence") if model_complete else None,
                                 "basis": "Continuous declared lifetime, terminal audit event and independent matching process-owner exit observation.",
                                 "problems": problems, "collector_id": self.collector_id}}
+        page_path = self.directory / 'budget_audit_pages.jsonl'
+        if page_path.exists():
+            try:
+                trace['budget_audit_pages'] = [page for page in read_jsonl(page_path)
+                                               if page.get('model_instance_id') == model_id]
+            except Exception as error:
+                problems.append({'source': 'budget_audit_pages', 'error_type': type(error).__name__})
         if platform_release is not None:
             trace["platform_release"] = platform_release
         trace = redact(trace, self._secrets)

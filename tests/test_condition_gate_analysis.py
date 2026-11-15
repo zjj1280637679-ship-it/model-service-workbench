@@ -415,6 +415,75 @@ def test_gpu_host_charge_must_match_capacity_payload_even_if_row_is_consistent(t
 
 def test_actual_published_trace_still_passes_and_missing_versions_do_not():
     trace = json.loads((ROOT / "evidence/runtime-conditions-2026-11-15/trace.json").read_text(encoding="utf-8"))
-    assert analyzer.analyze(trace)["counts"] == {"pass": 7, "fail": 0, "unknown": 2}
+    binding = load('condition_source_binding', ROOT / 'research/source_bindings.py')
+    source = binding.bound_source_root('research/source-bindings/runtime-conditions-v040.json', trace=trace)
+    assert analyzer.analyze(trace, source)["counts"] == {"pass": 7, "fail": 0, "unknown": 2}
     omit_capacity_versions(trace)
-    assert analyzer.analyze(trace)["checks"]["atomic_budget_ledger"]["status"] == "unknown"
+    assert analyzer.analyze(trace, source)["checks"]["atomic_budget_ledger"]["status"] == "unknown"
+
+
+def paginated_fixture(tmp_path):
+    trace = fixture(tmp_path)
+    budget = trace['model_events'][-1]['budget_snapshot']
+    rows = deepcopy(budget['lease_history']['events'])
+    previous = '0' * 64
+    for row in rows:
+        row['previous_sha256'] = previous
+        row['sha256'] = previous = hashlib.sha256(json.dumps(row, sort_keys=True,
+            separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+    budget['lease_journal'] = {'schema_version': 1, 'budget_instance_id': 'budget-1',
+                              'count': len(rows), 'tail_sha256': previous, 'complete': True, 'error': None}
+    budget['lease_history'].update(events=rows[-2:], dropped=len(rows)-2, history_complete=False)
+    pages = []
+    for after in range(0, len(rows), 4):
+        next_seq = min(len(rows), after + 4)
+        pages.append({key: deepcopy(budget[key]) for key in
+                      ('budget_instance_id', 'capacity_version', 'limits', 'gpu_host_cpu_threads')})
+        pages[-1].update(schema_version=1, model_instance_id='model-1', after_sequence=after,
+            through_sequence=len(rows), next_sequence=next_seq, after_sha256=rows[after-1]['sha256'] if after else '0'*64,
+            tail_sha256=previous, events=rows[after:next_seq], page_complete=True, more=next_seq < len(rows))
+    trace['budget_audit_pages'] = pages
+    return trace
+
+
+def test_complete_pages_recover_truncated_tail_and_identical_overlap_is_allowed(tmp_path):
+    trace = paginated_fixture(tmp_path)
+    assert check(trace, tmp_path, 'atomic_budget_ledger')['status'] == 'pass'
+    trace['budget_audit_pages'].append(deepcopy(trace['budget_audit_pages'][0]))
+    trace['budget_audit_pages'].reverse()
+    assert check(trace, tmp_path, 'atomic_budget_ledger')['status'] == 'pass'
+
+
+@pytest.mark.parametrize('change', ['missing_middle', 'missing_release', 'no_final', 'incomplete_page'])
+def test_incomplete_durable_pages_remain_unknown(tmp_path, change):
+    trace = paginated_fixture(tmp_path)
+    if change == 'missing_middle':
+        trace['budget_audit_pages'].pop(1)
+    elif change == 'missing_release':
+        trace['budget_audit_pages'].pop()
+    elif change == 'no_final':
+        trace['model_events'][-1].pop('budget_snapshot')
+    else:
+        trace['budget_audit_pages'][1]['page_complete'] = False
+    assert check(trace, tmp_path, 'atomic_budget_ledger')['status'] == 'unknown'
+
+
+@pytest.mark.parametrize('change', ['duplicate_conflict', 'hash', 'cutoff', 'model_identity', 'budget_identity', 'final_tail', 'final_count'])
+def test_conflicting_durable_pages_fail(tmp_path, change):
+    trace = paginated_fixture(tmp_path)
+    if change == 'duplicate_conflict':
+        trace['budget_audit_pages'].append(deepcopy(trace['budget_audit_pages'][0]))
+        trace['budget_audit_pages'][-1]['events'][0]['cpu_threads'] = 99
+    elif change == 'hash':
+        trace['budget_audit_pages'][1]['events'][0]['previous_sha256'] = 'f' * 64
+    elif change == 'cutoff':
+        trace['budget_audit_pages'][1]['tail_sha256'] = 'f' * 64
+    elif change == 'model_identity':
+        trace['budget_audit_pages'][1]['model_instance_id'] = 'other-model'
+    elif change == 'budget_identity':
+        trace['budget_audit_pages'][1]['budget_instance_id'] = 'other-budget'
+    elif change == 'final_tail':
+        trace['model_events'][-1]['budget_snapshot']['lease_journal']['tail_sha256'] = 'f'*64
+    else:
+        trace['model_events'][-1]['budget_snapshot']['lease_journal']['count'] += 1
+    assert check(trace, tmp_path, 'atomic_budget_ledger')['status'] == 'fail'
