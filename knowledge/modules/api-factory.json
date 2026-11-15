@@ -77,12 +77,15 @@
         "幂等语义包含输入和加速参数指纹；v0.1.0 历史验收包含 job ID 的 503 后同 ID 查询和取消，未自动重发。",
         "当前上传并发最多 3 份，总参考最多 64 MiB；主队列无固定条数上限但仍受真实磁盘和准入条件约束。",
         "CORS 来源策略与 Bearer 鉴权是独立条件；HTTP 202 不表示视频完成。",
-        "2026-11-15 新研究在公网可用且模型尚未 ready 的观察后接纳三项全新内容任务；两项完成并经客户端长度、SHA 和完整解码核对，一项排队取消且未派发。没有把两条最终成功下载记录当作全量网络重试分母。"
+        "0.2.0 的 2026-11-15 研究在公网可用且模型尚未 ready 的观察后接纳三项全新内容任务；两项完成并经客户端长度、SHA 和完整解码核对，一项排队取消且未派发。没有把两条最终成功下载记录当作全量网络重试分母。",
+        "0.4.0 公共单任务查询新增 condition_gate、execution_condition_gates、stage_completions、cancellation_requested；实际运行中已查询到派发条件回执，条件允许、执行完成和取消意图是不同命题。",
+        "当前模型活动 attempts 已包含阶段条件和完成见证；_public_job 在运行中仅复制 active_phase 与 generation_options，阶段证据在 _consume_result 消费终态后才进入单任务记录。当前可从 /v1/system 按实例和 attempt 检索，但没有同等完整的单任务实时投射。"
       ],
       "strategies": [
         "当前采用异步 202 与按 ID 查询，未知提交保留输入及身份，先对账不盲重发。",
         "完成后使用鉴权下载、长度和 SHA 检查；未来可选事件流须保留恢复游标与同样终态判据。",
-        "取消排队与执行中取消分别处理，后者等待安全边界和局部清理，不把取消请求当完成。"
+        "取消排队与执行中取消分别处理，后者等待安全边界和局部清理，不把取消请求当完成。",
+        "待修复策略：保留按 ID 异步查询与对账，为运行中单任务安全投射当前匹配 attempt 的阶段条件、完成见证与观察边界；旧模型或旧 attempt 不得借用新任务身份。此项尚未修改运行时。"
       ],
       "metrics": [
         {
@@ -225,11 +228,13 @@
       "conditions": [
         "隧道候选 URL 分配与连接注册分开；manager 用匹配实例的公网 API 探测确认 public_api_ready。",
         "supported、configured、ready 分开；任务 requested 与 effective 分开，未执行时 effective 可为 null。",
-        "下载需 succeeded 与已提交产物，服务端再次核对路径归属、字节数和 SHA；HTTP 200 不能单独证明生成可用。"
+        "下载需 succeeded 与已提交产物，服务端再次核对路径归属、字节数和 SHA；HTTP 200 不能单独证明生成可用。",
+        "0.4.0 的 public_condition_fields 对单任务条件回执采用固定字段和上下文白名单；必要条件保留四值，条件缺失或非全真却声称允许时 allowed 降为 null，任意参数和路径不进入该投射。这不是 /v1/system 全量诊断的同一白名单保证。",
+        "waiting_for 仍以 ready/accepting 等分支概括当前等待，没有按新增身份、新鲜度及四值阻断条件展开；历史 condition_gate 也不能未经身份与时效核对就作为当前等待原因。"
       ],
       "strategies": [
         "结构化状态按实例与观察时间限定；unknown、stale、明确拒绝、当前失败各有表达。",
-        "OpenAPI、文档、JSON 与面板使用相同命题映射；聚合标签须能展开原条件。",
+        "OpenAPI、文档、JSON 与面板的目标是同一命题映射，聚合标签应能展开原条件；0.4.0 新条件回执尚未完成全部表达和输入分类的对齐，不能把这个设计目标描述为已经全量实现。",
         "没有完整分母不造百分比；历史完成记录保留但不替代当前 readiness。"
       ],
       "metrics": [
@@ -252,6 +257,19 @@
               "value": null,
               "reason": "本轮未定义并逐项比较文档、API 和客户端全部抽象输入类的命题映射；正常生成验证不是该完整反例集。",
               "evidence": "evidence/research-2026-11-15/client-receipt.json"
+            },
+            {
+              "review_id": "condition-drift-2026-11-15",
+              "review_kind": "source_audit_of_v0.4.0",
+              "status": "unknown",
+              "value": null,
+              "reason": "0.4.0 已有公共单任务字段反例与真实派发条件查询，但运行中阶段证据未完整投射，文档/API/客户端的新四值命题分类未冻结并逐项核验；不能把终态局部通过升级为完整跨表达指标。",
+              "evidence": "runtime/minimax_h3/test_server_condition_projection.py",
+              "corroborating_evidence": [
+                "docs/research/2026-11-15-runtime-condition-results.md",
+                "evidence/runtime-conditions-2026-11-15/api-query-observation.json"
+              ],
+              "scope": "Current source and published evidence review only; no new GPU execution or browser interaction measurement."
             }
           ]
         },
@@ -296,13 +314,21 @@
     "evidence/research-2026-11-15/client-receipt.json",
     "evidence/research-2026-11-15/trace.json",
     "evidence/research-2026-11-15/analysis.json",
-    "evidence/research-2026-11-15/content-manifest.json"
+    "evidence/research-2026-11-15/content-manifest.json",
+    "runtime/minimax_h3/model_container.py",
+    "runtime/minimax_h3/test_server_condition_projection.py",
+    "docs/research/2026-11-15-runtime-condition-results.md",
+    "evidence/runtime-conditions-2026-11-15/api-query-observation.json",
+    "evidence/runtime-conditions-2026-11-15/client-receipt.json",
+    "evidence/runtime-conditions-2026-11-15/condition-analysis.json"
   ],
   "gaps": [
     "通用模型能力到 API schema 的工厂、持久公网部署器、事件订阅及多实例租户隔离尚未实现。",
     "所有指标是设计定义，尚无覆盖全部故障条件与生产流量的连续测量。",
     "没有任意插件执行、任意模型兼容或数学最优吞吐量的保证；当前实测只支持明确记录的 MiniMax-H3 BF16 场景。",
-    "本轮未注入无效鉴权、跨实例回执或丢响应故障；这些候选指标不因正常路径通过而记零。",
-    "公开投射尚未提供完整下载请求尝试/重试分母与中断计数、取消接收的同钟起点及全受管端点关闭探测；对应严格指标保留 unknown。"
+    "0.2.0 实验未注入无效鉴权、跨实例回执或丢响应故障；这些候选指标不因正常路径通过而记零。",
+    "公开投射尚未提供完整下载请求尝试/重试分母与中断计数、取消接收的同钟起点及全受管端点关闭探测；对应严格指标保留 unknown。",
+    "0.4.0 的单任务实时阶段证据与更具体的条件阻断原因尚未同步；终态字段投射通过不证明运行中查询完备。",
+    "跨表达反例指标须加入四值条件、授权与完成分离、失败与取消意图并存、旧 attempt 及过期决定；现有公共投射 CPU 反例和一次正常公网查询不覆盖完整文档/API/客户端分类。"
   ]
 }

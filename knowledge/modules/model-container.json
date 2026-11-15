@@ -14,7 +14,8 @@
         "model_container.py 分别记录下载、加载、工作线程及 ready；下载完成不能推出模型 ready。",
         "当前验收 profile 是 A100 80GB 原生 BF16 主干及官方声明的 FP32 例外；model_backend.py 的实际参数审计用于核对精度，不允许把该 profile 静默替换为量化。",
         "当前 H3 产物验证读取完整音视频解码、尺寸、帧数和 SHA；它不评价所有提示词的语义质量。",
-        "2026-11-15 新研究批次有两项声明成功的任务；trace.json 的已提交产物与 client-receipt.json 的外部字节、SHA 和完整音视频解码证据对应，产物合约合格率为 2/2，语义质量不在该指标内。"
+        "0.2.0 的 2026-11-15 架构研究批次有两项声明成功的任务；evidence/research-2026-11-15 内提交产物与外部字节、SHA、完整音视频解码对应，产物合约合格率为 2/2。该历史窗口与 0.4.0 分开记录。",
+        "0.4.0 运行时条件实验另有两项声明成功的任务，evidence/runtime-conditions-2026-11-15 的提交与下载身份对应，产物合约合格率同为 2/2。加载参数审计覆盖 BF16 主干和上游 FP32 例外，不扩展为全部激活、缓冲区或内核算术精度。"
       ],
       "strategies": [
         "部署时选择模型适配器、模型 profile、允许精度、资产版本和 CPU offload 方案，并把选中的配置绑定到实例。",
@@ -47,6 +48,23 @@
                 "evidence/research-2026-11-15/analysis.json"
               ],
               "scope": "Two declared-success artifacts in this closed batch; committed server identity and external full audiovisual decode, length and SHA match. Not perceptual quality or general reliability."
+            },
+            {
+              "experiment_id": "3732565998754d26919f0706b838ebff",
+              "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+              "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+              "model_instance_id": "23de982643984911a92c5b2459eded28",
+              "window": "Retrospective 0.4.0 closed-batch review: first admission 2026-11-15T00:55:24.724426+00:00 through final owner observation 2026-11-15T01:17:19.495141+00:00. A managed API-only replacement occurred during download; manager/model identities were retained. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "measured",
+              "value": 1.0,
+              "numerator": 2,
+              "denominator": 2,
+              "evidence": "evidence/runtime-conditions-2026-11-15/client-receipt.json",
+              "corroborating_evidence": [
+                "evidence/runtime-conditions-2026-11-15/trace.json",
+                "evidence/runtime-conditions-2026-11-15/analysis.json"
+              ],
+              "scope": "Two declared-success artifacts in this 0.4.0 model instance; server artifact identity matches downloaded bytes, SHA and full audiovisual decoding. The queued cancellation is not a model attempt and is not included in this successful-artifact denominator. No semantic-quality or long-run reliability claim."
             }
           ]
         }
@@ -61,12 +79,14 @@
         "model_container.py 的私有控制接口监听 loopback 并使用独立密钥；公共 API 密钥不代替私有控制凭据。",
         "每次执行通过模型 instance_id、job_id、attempt_id 联合归属；同身份参数改变和旧实例结果在接纳边界拒绝。",
         "status 回执观察 ready、accepting、active_phase、取消请求与 cleanup；请求返回不能独自证明取消已生效。",
-        "模型保留未被总管理确认消费的终态结果；ack_results 与持久化主结果的先后顺序可从 global_manager.py 核对。"
+        "模型保留未被总管理确认消费的终态结果；ack_results 与持久化主结果的先后顺序可从 global_manager.py 核对。",
+        "model.execute 在容器锁内重新检查当前能力、实例/尝试及工作集预留；管理器的允许派发回执不能代替容器接纳，unknown/conflict 不授权。私有 status 的 last_condition_gate 和尝试 condition_gates 可查询，但它们是具身份及时间的历史决策，不是永久执行许可。"
       ],
       "strategies": [
         "根据用户操作选择排空、在安全阶段取消或显式强制停止；常规取消不伪装成安全中断任意 CUDA 指令。",
         "执行传输结果未知时按同一尝试身份核对，保留所有权，不自动创建另一轮生成。",
-        "控制查询与模型执行使用各自受管通道，按部署目标设置观察和截止时间。"
+        "控制查询与模型执行使用各自受管通道，按部署目标设置观察和截止时间。",
+        "条件复验跟随状态所有者：接纳与效果提交在同一仲裁域内完成；等待资源和实际推理在模型控制锁外进行。新增审计历史后，应单独评估状态查询负载，不能用已完成 GPU 生成替代控制延迟验收。"
       ],
       "metrics": [
         {
@@ -88,6 +108,17 @@
               "value": null,
               "reason": "没有按加载、推理、停止窗口记录私有 status 的完整单调时钟样本、错误及超时分母；宿主采样不是该指标。",
               "evidence": "evidence/research-2026-11-15/analysis.json"
+            },
+            {
+              "experiment_id": "3732565998754d26919f0706b838ebff",
+              "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+              "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+              "model_instance_id": "23de982643984911a92c5b2459eded28",
+              "window": "Retrospective 0.4.0 closed-batch review: first admission 2026-11-15T00:55:24.724426+00:00 through final owner observation 2026-11-15T01:17:19.495141+00:00. A managed API-only replacement occurred during download; manager/model identities were retained. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "reason": "0.4.0 的采集探测耗时覆盖总管理/设备观察，不是按加载、推理、停止分层的私有模型 status 请求全集；错误/超时分母与相应窗口未冻结。新增历史快照的查询成本也未有受控对照。",
+              "evidence": "evidence/runtime-conditions-2026-11-15/trace.json"
             }
           ]
         }
@@ -103,12 +134,15 @@
         "GPU 阶段也消耗主机 CPU；CPU 容量取逻辑核、affinity 和可见 cgroup quota 的约束，RAM/磁盘有预算及实时观察。",
         "GPU 租约须覆盖 CUDA 同步和 CPU 所有权交接；下一任务不得在共享配置恢复未确认时执行。",
         "父进程用 PID 与创建时间观察子所有者；子清理、租约归还和进程退出是不同事实，观察失败不能视为已清理。",
-        "本轮完整记录六个阶段及两次 GPU 阶段；阶段范围没有重叠冲突，跨任务 CPU/GPU 区间并集交集为约 3.502 秒。stage 事件不覆盖全部 acquire/release 边界，因此不能据此给独占租约指标填零。"
+        "0.2.0 历史窗口记录六个阶段及两次 GPU 阶段，跨任务 CPU/GPU 区间交叠约 3.502 秒；当时缺全部 acquire/release 边界，不能据 stage 事件给独占租约指标填零。",
+        "0.4.0 在 prepare、GPU、encode_validate 开始前分别复验身份、能力、前序成功、取消与当前预算授权；stage_completions 只在成功且完成事件持久化后建立。drain 关闭新接纳，不把已接纳任务的正常排空能力视为缺失。",
+        "0.4.0 的完整六租约十二端点账本中有两个 GPU 租约，归属同一模型/预算实例且互不重叠；独占 GPU 租约违规数为 0。该窗口终结历史无截断，不能外推为任意长会话或其他资源池都已完整审计。"
       ],
       "strategies": [
         "对有限子图选择串行、预算内并行或阶段流水；同任务真实依赖保持，跨任务准备和编码可与另一任务推理重叠。",
         "复合模型递归传递子身份、预算、截止时间和取消原因；共享物理资源仅在一个层级实际扣账，其他层引用该租约。",
-        "明确子失败是取消兄弟任务、保留部分已验证产物还是执行补偿；当前仅有固定三阶段和参考媒体子任务，任意递归 DAG 尚未实现。"
+        "明确子失败是取消兄弟任务、保留部分已验证产物还是执行补偿；当前仅有固定三阶段和参考媒体子任务，任意递归 DAG 尚未实现。",
+        "将已允许开始、成功完成和归还租约分别保留回执；按原尝试对账失败/取消，unknown/conflict 引起的失败不改写为取消成功。审核长会话时先确认历史端点覆盖，缺段保持 unknown。"
       ],
       "metrics": [
         {
@@ -131,6 +165,18 @@
               "reason": "两项执行尝试有局部 cleanup 回执和最终进程退出；但缺逐子事件、全部租约及临时文件完整清单与残留数。三项主任务也不等于三项模型尝试。",
               "evidence": "evidence/research-2026-11-15/analysis.json",
               "denominator": null
+            },
+            {
+              "experiment_id": "3732565998754d26919f0706b838ebff",
+              "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+              "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+              "model_instance_id": "23de982643984911a92c5b2459eded28",
+              "window": "Retrospective 0.4.0 closed-batch review: first admission 2026-11-15T00:55:24.724426+00:00 through final owner observation 2026-11-15T01:17:19.495141+00:00. A managed API-only replacement occurred during download; manager/model identities were retained. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "denominator": 2,
+              "reason": "0.4.0 的两项模型尝试有 cleanup 回执、完整阶段租约和最终进程退出；仍缺逐子事件与全部临时文件的完整清单和残留核对，不能把局部清理或平台释放升格为全资源清理闭合率。第三条队列取消未进入模型尝试分母。",
+              "evidence": "evidence/runtime-conditions-2026-11-15/trace.json"
             }
           ]
         },
@@ -153,6 +199,32 @@
               "value": null,
               "reason": "两段 GPU stage 未相交，但指标要求全部 acquire/release 租约区间；stage 包围事件不含取得/归还余量，不能把未覆盖范围记为零。",
               "evidence": "evidence/research-2026-11-15/analysis.json"
+            },
+            {
+              "experiment_id": "3732565998754d26919f0706b838ebff",
+              "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+              "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+              "model_instance_id": "23de982643984911a92c5b2459eded28",
+              "window": "Retrospective 0.4.0 closed-batch review: first admission 2026-11-15T00:55:24.724426+00:00 through final owner observation 2026-11-15T01:17:19.495141+00:00. A managed API-only replacement occurred during download; manager/model identities were retained. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "measured",
+              "value": 0,
+              "evidence": "evidence/runtime-conditions-2026-11-15/condition-analysis.json",
+              "corroborating_evidence": [
+                "evidence/runtime-conditions-2026-11-15/trace.json"
+              ],
+              "scope": "All two exclusive GPU leases in this model/budget lifetime have identified acquire/release boundaries, covered by the complete six-lease twelve-endpoint atomic ledger and final owner observation. Their intervals do not overlap. This is declared lease ownership, not CUDA kernel occupancy or physical RAM/disk isolation.",
+              "resource_scope": [
+                "exclusive_gpu_lease"
+              ],
+              "coverage": {
+                "all_stage_leases": 6,
+                "all_endpoint_events": 12,
+                "gpu_leases": 2,
+                "gpu_endpoint_events": 4,
+                "history_complete": true,
+                "dropped_events": 0
+              },
+              "violation_duration_seconds": 0
             }
           ]
         }
@@ -166,18 +238,20 @@
       "conditions": [
         "generation_options.requested 保存请求，effective 仅在 GPU 租约内实际配置应用后产生；queued/prepare 时 effective 为 null。",
         "下载进度、阶段事件、模型子实例、产物 SHA 与清理回执具有不同事实范围；旧实例或过期观察不能投射为当前 ready。",
-        "metrics.adapters 描述预加载部署，逐任务生效配置读取 generation_options；静态标签不替代本次 GPU 执行证据。"
+        "metrics.adapters 描述预加载部署，逐任务生效配置读取 generation_options；静态标签不替代本次 GPU 执行证据。",
+        "0.4.0 私有尝试 condition_gates、stage_completions 以及主任务 condition_gate、execution_condition_gates、cancellation_requested 保留各自语义；公共查询按固定结构投射。实际观察过公共条件回执，尚未冻结对应 UI/API/日志同源对照全集。"
       ],
       "strategies": [
         "选用通用状态字段并附模型专用扩展，为事件摘要和面板字段指定源事件身份。",
         "把缺失或过期观察明确显示为 unknown/stale；日志详略与历史保留按使用者任务选择，秘密值不进入普通投射。",
-        "对照同一事件版本验证自然语言、API 和面板，不比较异步不同时刻的值来伪造矛盾或一致。"
+        "对照同一事件版本验证自然语言、API 和面板，不比较异步不同时刻的值来伪造矛盾或一致。",
+        "条件契约变更后，表达对照样本须同时覆盖允许/阻断、四值条件、stage_completions 与取消意图；保留原始失败类别及决策身份，不用终态成功反推先前授权。"
       ],
       "metrics": [
         {
           "id": "MC-EXP-CONSISTENCY",
           "name": "同源表达一致率",
-          "definition": "符合源事件语义的比较字段数 / 全部比较字段数；字段集合含 requested/effective/phase/artifact/cleanup，绑定相同实例、任务、尝试和事件版本。",
+          "definition": "符合源事件语义的比较字段数 / 全部比较字段数；基础字段集合含 requested/effective/phase/artifact/cleanup，0.4.0 对照另含 condition_gate、condition_gates/execution_condition_gates、stage_completions、cancellation_requested，绑定相同实例、任务、尝试和事件版本。每次观察必须声明实际冻结的字段集合，不把新增字段追溯为旧实验已覆盖。",
           "unit": "ratio",
           "scope": "冻结一组事件后比较 API、面板投射和日志解释；每轮合约/投射变化记录样例集合及观察窗口。",
           "unknown_rule": "源版本无法绑定或必需字段缺失时为 unknown，另报缺失计数，不把缺字段自动记为一致。",
@@ -194,6 +268,18 @@
               "reason": "本轮未冻结同一事件版本的 API、面板和日志比较字段集合；网页 UI 未重测。",
               "evidence": "evidence/research-2026-11-15/analysis.json",
               "denominator": null
+            },
+            {
+              "experiment_id": "3732565998754d26919f0706b838ebff",
+              "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+              "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+              "model_instance_id": "23de982643984911a92c5b2459eded28",
+              "window": "Retrospective 0.4.0 closed-batch review: first admission 2026-11-15T00:55:24.724426+00:00 through final owner observation 2026-11-15T01:17:19.495141+00:00. A managed API-only replacement occurred during download; manager/model identities were retained. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "unknown",
+              "value": null,
+              "denominator": null,
+              "reason": "0.4.0 公共条件回执及字段投射局部回归已有证据，但未冻结含新增条件/完成/取消字段的 UI、API、日志同源比较全集；不能由一次公共查询或正常 GPU 成功填为一致率 1。",
+              "evidence": "evidence/runtime-conditions-2026-11-15/api-query-observation.json"
             }
           ]
         }
@@ -219,14 +305,26 @@
     "evidence/research-2026-11-15/client-receipt.json",
     "evidence/research-2026-11-15/timeline.json",
     "evidence/research-2026-11-15/calibration.json",
-    "evidence/research-2026-11-15/runtime-source-manifest.json"
+    "evidence/research-2026-11-15/runtime-source-manifest.json",
+    "runtime/minimax_h3/condition_guard.py",
+    "runtime/minimax_h3/test_condition_guard.py",
+    "runtime/minimax_h3/test_model_condition_gates.py",
+    "runtime/minimax_h3/test_server_condition_projection.py",
+    "docs/research/runtime-condition-gates.md",
+    "docs/research/2026-11-15-runtime-condition-results.md",
+    "evidence/runtime-conditions-2026-11-15/trace.json",
+    "evidence/runtime-conditions-2026-11-15/analysis.json",
+    "evidence/runtime-conditions-2026-11-15/condition-analysis.json",
+    "evidence/runtime-conditions-2026-11-15/client-receipt.json",
+    "evidence/runtime-conditions-2026-11-15/api-query-observation.json",
+    "evidence/runtime-conditions-2026-11-15/precision-audit.json"
   ],
   "gaps": [
     "当前是 MiniMax-H3 专用参考实现，稳定第三方适配器注册、版本协商和其他模型 profile 未实现。",
     "当前是独立受管进程和准入预算，不等于 Docker 隔离或 OS 级强制 RAM/磁盘配额。",
     "当前没有任意递归 DAG、多 GPU 执行和完整带宽标定；不可宣称全局物理最优。",
     "2026-11-15 的有限真实样例不证明所有输入语义质量、所有模型可用性或同输入 A/B 提速倍数。",
-    "本轮只有阶段包围事件，缺少全部租约 acquire/release 与逐子资源清单；清理闭合率及独占 GPU 租约违规指标继续 unknown。",
-    "本轮没有私有 status 分阶段 p95 或 UI/API/日志同源版本表达对照；不能由真实产物合格替代这些指标。"
+    "0.2.0 的租约重叠及全资源清理观察仍保留历史 unknown；0.4.0 已有完整六租约十二端点，可在该窗口给独占 GPU 租约违规数记 0，仍缺逐子事件/临时文件清单，全资源清理闭合率继续 unknown。有界历史不能自动保证任意长会话的完整审计。",
+    "两轮均未完成私有 status 分阶段 p95 或 UI/API/日志同源版本表达对照；0.4.0 新增条件与阶段完成字段也须纳入未来冻结的表达样本，不能由真实产物合格或单次公共查询代替这些指标。"
   ]
 }

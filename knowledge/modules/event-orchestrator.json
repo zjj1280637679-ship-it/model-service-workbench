@@ -145,7 +145,9 @@
         "可选择拓扑就绪队列、预算内阶段流水、失败传播或补偿；当前实现是固定服务树，不接受任意用户 DAG。",
         "父节点向有限子图传递身份、截止时间和资源引用，子节点可按同一合约组合；每一物理池只实际扣账一次。",
         "在工作量和带宽已标定时，可用 max(共享资源总工作量/容量, 依赖关键路径) 为乐观下界比较策略；缺测量时明确 unknown。",
-        "FIFO 用于当前持久派发秩序，不强制不同准备成本任务的 GPU 开始或完成顺序相同。"
+        "FIFO 用于当前持久派发秩序，不强制不同准备成本任务的 GPU 开始或完成顺序相同。",
+        "0.4.0 已有完整 CPU/GPU 端点，采用独立子指标评价；全资源总指标保留未知。长会话需另选有界分段持久审计，当前 512 端点环缓存不保证任意长度生命周期完整。",
+        "严格 FIFO 遇 409/429 仍保留队头；先记录可执行后继被队头阻塞的时长和公平性，再决定是否采用预算内回填，不能用一次重叠见证直接替换公平策略。"
       ],
       "metrics": [
         {
@@ -191,6 +193,35 @@
               "reason": "GPU stage 互斥与 1083 个预算样本不覆盖全部资源的 acquire/release 及容量版本事件；不能把局部未见超限提升为全资源零超借。",
               "evidence": "evidence/research-2026-11-15/analysis.json"
             },
+            {
+              "experiment_id": "3732565998754d26919f0706b838ebff",
+              "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+              "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+              "model_instance_id": "23de982643984911a92c5b2459eded28",
+              "window": "Complete owner-local lease history for this model lifetime, through model.worker_exited and final owner observation 2026-11-15T01:17:19.495141+00:00. Its 12 endpoints span 2026-11-15T01:03:43.201627+00:00 through 2026-11-15T01:15:25.956510+00:00; the final contiguous history explicitly reports no truncation.",
+              "evidence": "evidence/runtime-conditions-2026-11-15/condition-analysis.json",
+              "corroborating_evidence": [
+                "evidence/runtime-conditions-2026-11-15/trace.json",
+                "evidence/runtime-conditions-2026-11-15/analysis.json",
+                "evidence/runtime-conditions-2026-11-15/client-receipt.json",
+                "docs/research/2026-11-15-runtime-condition-results.md"
+              ],
+              "status": "unknown",
+              "value": null,
+              "reason": "0.4.0 完整端点只覆盖声明的 CPU/GPU 租约；RAM/磁盘确认预算没有同范围的完整事件账本。CPU/GPU 子范围的零值已转入 EO-REC-CPU-GPU-OVERCOMMIT，不能覆盖全资源总指标。",
+              "scope": "全部受管共享资源；部分覆盖不产生总量零值。"
+            }
+          ]
+        },
+        {
+          "id": "EO-REC-CPU-GPU-OVERCOMMIT",
+          "name": "声明 CPU/GPU 租约超借数",
+          "definition": "完整预算域事件序列中，CPU 通道扣账超过对应容量版本，或同一独占 GPU 同时属于多个租约的违规区间数；只计这两个声明资源池。",
+          "unit": "count",
+          "scope": "固定预算实例、完整获取/释放端点、容量版本与实际容量内容绑定；不是全资源指标，也不是物理 CPU/GPU 利用率。",
+          "unknown_rule": "端点、实例、版本或所需容量内容缺失时 unknown；同版容量矛盾或扣账不一致为错误；RAM/磁盘不纳入此子指标。",
+          "threshold_policy": "当前独占 GPU 与 CPU 通道契约要求 0；容量或共享策略变化须另审阈值。",
+          "observations": [
             {
               "experiment_id": "3732565998754d26919f0706b838ebff",
               "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
@@ -248,7 +279,8 @@
       "strategies": [
         "使用字段投射、状态表、DAG 或布尔前提表达同一合约，为每种表达写明来源和身份。",
         "对投射加入反例轨迹：下载完成未加载、旧实例迟到、取消竞争、资源不足和最终清理缺回执。",
-        "按使用场景选择事件摘要和审计保留，不用日志量、颜色或一项 success 标签替代各自事实。"
+        "按使用场景选择事件摘要和审计保留，不用日志量、颜色或一项 success 标签替代各自事实。",
+        "已发布历史证据与当前实现分开复核；新条件变化必须触发策略和指标复审，重算源文件指纹本身不构成复审通过。"
       ],
       "metrics": [
         {
@@ -304,7 +336,9 @@
     "evidence/runtime-conditions-2026-11-15/analysis.json",
     "evidence/runtime-conditions-2026-11-15/condition-analysis.json",
     "evidence/runtime-conditions-2026-11-15/client-receipt.json",
-    "docs/research/2026-11-15-runtime-condition-results.md"
+    "docs/research/2026-11-15-runtime-condition-results.md",
+    "knowledge/strategy-metric-debt.json",
+    "docs/research/condition-strategy-metric-debt.md"
   ],
   "gaps": [
     "当前是 MiniMax-H3 固定服务树和固定阶段，尚未实现任意 DAG、跨机器一致性或通用多模型公平调度。",
@@ -312,6 +346,7 @@
     "全模型工作量、主机传输和带宽未完整标定，不能声称达到全局数学最优或硬件物理极限。",
     "有限 CPU 反例与 GPU 验收路径不构成所有并发轨迹、平台或模型的全称证明。",
     "先前架构实验虽执行设备微基准，仍缺完整 H3 FLOPs/HBM 流量与全资源租约/容量事件，其物理下界差距比和共享资源超借观察继续保留 unknown。后续运行时条件实验新增了六租约、十二端点的完整 CPU/GPU 声明账本，本次窗口零超借不回写历史未知，也不证明物理 RAM/磁盘强隔离或全资源全生命周期零超借。",
-    "有限模型穷举只在声明模型 tick 与离散调度空间内最优；真实阶段重叠及微基准不证明云推理全局最优。"
+    "有限模型穷举只在声明模型 tick 与离散调度空间内最优；真实阶段重叠及微基准不证明云推理全局最优。",
+    "运行时仍存在长会话审计截断、状态查询复制完整审计缓存、FIFO 队头阻塞未量化及运行中任务门控投射不足；具体复验条件见技术债账本。"
   ]
 }

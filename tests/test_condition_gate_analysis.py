@@ -2,6 +2,7 @@
 from copy import deepcopy
 import hashlib
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -21,6 +22,9 @@ baseline = load("condition_gate_baseline_fixture", ROOT / "tests/test_research_t
 
 def fixture(tmp_path):
     trace = baseline.example()
+    limits = {"cpu_threads": 4, "ram_bytes": 100, "disk_bytes": 100}
+    capacity_version = hashlib.sha256(json.dumps(
+        {"limits": limits, "gpu_host_cpu_threads": 1}, sort_keys=True).encode()).hexdigest()
     hashes = {}
     for name in ("condition_guard.py", "global_manager.py", "model_container.py", "pipeline_scheduler.py"):
         path = tmp_path / name
@@ -36,7 +40,7 @@ def fixture(tmp_path):
         elif gate.startswith("model."):
             context["instance_id"] = "model-1"
         else:
-            context.update(budget_instance_id="budget-1", capacity_version="capacity-1", model_instance_id="model-1",
+            context.update(budget_instance_id="budget-1", capacity_version=capacity_version, model_instance_id="model-1",
                            reservation_id=job + "-reservation", resource_kind=gate.removeprefix("pipeline."))
         result = {"schema_version": "1.0", "gate_version": "1.0", "gate_id": gate,
                   "decision_id": decision or f"{gate}-{job}-{stamp}", "observed_at": 100 + stamp / 1e9,
@@ -54,7 +58,7 @@ def fixture(tmp_path):
         if kind == "execution.accepted":
             reserve = receipt("pipeline.reserve", job, stamp - 30_000_000)
             rows.append(event("reservation.acquired", job, stamp - 20_000_000, reservation_receipt=reserve,
-                reservation_witness={"owned": True, "budget_instance_id": "budget-1", "attempt_id": job + "-attempt", "reservation_id": job + "-reservation"}))
+                reservation_witness={"owned": True, "budget_instance_id": "budget-1", "attempt_id": job + "-attempt", "reservation_id": job + "-reservation", "capacity_version": capacity_version}))
             admission = receipt("model.execute", job, stamp - 10_000_000)
             admission["context"].update(budget_instance_id="budget-1", reservation_id=job + "-reservation")
             rows.append(event("condition.gate", job, stamp - 5_000_000, receipt=admission))
@@ -64,7 +68,7 @@ def fixture(tmp_path):
             grant = receipt("pipeline.stage." + resource, job, stamp - 40_000_000)
             lease = {"owned": True, "lease_id": f"lease-{job}-{stage}", "attempt_id": job + "-attempt", "kind": resource,
                 "budget_instance_id": "budget-1", "reservation_id": job + "-reservation", "cpu_threads": 1,
-                "capacity_version": "capacity-1", "decision_id": grant["decision_id"], "grant_receipt": grant,
+                "capacity_version": capacity_version, "decision_id": grant["decision_id"], "grant_receipt": grant,
                 "granted_at": 100 + (stamp - 30_000_000) / 1e9, "granted_monotonic_ns": stamp - 30_000_000}
             lease_ids[(job, stage)] = lease
             ledger_pairs.append(("lease.acquired", deepcopy(lease), stamp - 29_000_000))
@@ -110,10 +114,11 @@ def fixture(tmp_path):
         row = {key: lease[key] for key in ("lease_id", "budget_instance_id", "attempt_id", "kind", "cpu_threads", "capacity_version", "decision_id", "reservation_id")}
         row.update(event_id=f"budget-event-{len(ledger)+1}", sequence=len(ledger)+1, type=kind,
                    monotonic_ns=stamp, observed_at=100 + stamp / 1e9, cpu_threads_in_use=cpu,
-                   gpu_attempt_id=gpu, limits={"cpu_threads": 4, "ram_bytes": 100, "disk_bytes": 100})
+                   gpu_attempt_id=gpu, limits=deepcopy(limits))
         ledger.append(row)
     budget = trace["system_snapshots"][0]["modules"]["model"]["budget"]
-    budget.update(budget_instance_id="budget-1", active_leases=[],
+    budget.update(budget_instance_id="budget-1", active_leases=[], capacity_version=capacity_version,
+                  gpu_host_cpu_threads=1,
                   lease_history={"events": ledger, "count": len(ledger), "capacity": 512, "dropped": 0, "history_complete": True})
     trace["model_events"][-1]["budget_snapshot"] = deepcopy(budget)
     for stream in ("model", "manager"):
@@ -305,3 +310,111 @@ def test_stage_finish_cannot_change_the_gate_identity(tmp_path):
     end = next(event for event in trace["model_events"] if event["type"] == "stage.finished")
     end["condition_decision_id"] = "different-decision"
     assert check(trace, tmp_path, "actual_stage_lease_ownership")["status"] == "fail"
+
+
+def omit_capacity_versions(value):
+    if isinstance(value, dict):
+        value.pop("capacity_version", None)
+        for item in value.values():
+            omit_capacity_versions(item)
+    elif isinstance(value, list):
+        for item in value:
+            omit_capacity_versions(item)
+
+
+def test_all_missing_capacity_versions_are_unknown_not_equal_evidence(tmp_path):
+    trace = fixture(tmp_path)
+    omit_capacity_versions(trace)
+    report = analyzer.analyze(trace, tmp_path)
+    for name in ("gate_receipt_contract", "effects_have_allowed_gate", "actual_stage_lease_ownership", "atomic_budget_ledger"):
+        assert report["checks"][name]["status"] == "unknown"
+
+
+@pytest.mark.parametrize("field", ["capacity_version", "gpu_host_cpu_threads", "limits"])
+def test_capacity_payload_must_be_observed_not_assumed(tmp_path, field):
+    trace = fixture(tmp_path)
+    for snapshot in trace["system_snapshots"]:
+        snapshot["modules"]["model"]["budget"].pop(field, None)
+    trace["model_events"][-1]["budget_snapshot"].pop(field, None)
+    result = check(trace, tmp_path, "atomic_budget_ledger")
+    assert result["status"] == "unknown"
+
+
+@pytest.mark.parametrize("field", ["cpu_threads", "ram_bytes", "disk_bytes"])
+def test_ledger_limits_cannot_change_under_same_capacity_version(tmp_path, field):
+    trace = fixture(tmp_path)
+    ledger = trace["model_events"][-1]["budget_snapshot"]["lease_history"]["events"]
+    ledger[0]["limits"][field] *= 2
+    result = check(trace, tmp_path, "atomic_budget_ledger")
+    assert result["status"] == "fail"
+    assert "budget_event_limits_disagree_with_capacity_version" in result["errors"]
+
+
+@pytest.mark.parametrize("limits", [None, [], {"cpu_threads": 4}, {"cpu_threads": True, "ram_bytes": 100, "disk_bytes": 100}])
+def test_missing_or_malformed_ledger_capacity_is_unknown(tmp_path, limits):
+    trace = fixture(tmp_path)
+    trace["model_events"][-1]["budget_snapshot"]["lease_history"]["events"][0]["limits"] = limits
+    result = check(trace, tmp_path, "atomic_budget_ledger")
+    assert result["status"] == "unknown"
+
+
+@pytest.mark.parametrize("field", ["cpu_threads", "gpu_host_cpu_threads"])
+def test_snapshot_capacity_cannot_change_under_same_version(tmp_path, field):
+    trace = fixture(tmp_path)
+    budget = trace["model_events"][-1]["budget_snapshot"]
+    if field == "cpu_threads":
+        budget["limits"][field] *= 2
+    else:
+        budget[field] *= 2
+    result = check(trace, tmp_path, "atomic_budget_ledger")
+    assert result["status"] == "fail"
+    assert "capacity_version_payload_hash_mismatch" in result["errors"]
+
+
+def test_self_consistent_opaque_capacity_label_does_not_replace_payload_hash(tmp_path):
+    trace = fixture(tmp_path)
+    def rewrite(value):
+        if isinstance(value, dict):
+            if "capacity_version" in value:
+                value["capacity_version"] = "f" * 64
+            for child in value.values():
+                rewrite(child)
+        elif isinstance(value, list):
+            for child in value:
+                rewrite(child)
+    rewrite(trace)
+    result = check(trace, tmp_path, "atomic_budget_ledger")
+    assert result["status"] == "fail"
+    assert "capacity_version_payload_hash_mismatch" in result["errors"]
+
+
+def test_gpu_host_charge_must_match_capacity_payload_even_if_row_is_consistent(tmp_path):
+    trace = fixture(tmp_path)
+    # The capacity payload is valid in isolation but is incompatible with the
+    # unchanged one-lane GPU grants. Rebind every version consistently so the
+    # rejection must come from the resource charge, not an opaque label mismatch.
+    limits = trace["model_events"][-1]["budget_snapshot"]["limits"]
+    replacement = hashlib.sha256(json.dumps(
+        {"limits": limits, "gpu_host_cpu_threads": 2}, sort_keys=True).encode()).hexdigest()
+    def rewrite(value):
+        if isinstance(value, dict):
+            if "capacity_version" in value:
+                value["capacity_version"] = replacement
+            if "gpu_host_cpu_threads" in value:
+                value["gpu_host_cpu_threads"] = 2
+            for child in value.values():
+                rewrite(child)
+        elif isinstance(value, list):
+            for child in value:
+                rewrite(child)
+    rewrite(trace)
+    result = check(trace, tmp_path, "atomic_budget_ledger")
+    assert result["status"] == "fail"
+    assert "gpu_lease_cpu_charge_disagrees_with_capacity_version" in result["errors"]
+
+
+def test_actual_published_trace_still_passes_and_missing_versions_do_not():
+    trace = json.loads((ROOT / "evidence/runtime-conditions-2026-11-15/trace.json").read_text(encoding="utf-8"))
+    assert analyzer.analyze(trace)["counts"] == {"pass": 7, "fail": 0, "unknown": 2}
+    omit_capacity_versions(trace)
+    assert analyzer.analyze(trace)["checks"]["atomic_budget_ledger"]["status"] == "unknown"

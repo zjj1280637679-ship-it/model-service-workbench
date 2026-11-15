@@ -25,6 +25,16 @@
 
 这些是当前合约内的正确性义务。下面的统计指标可以按目标选择；不选择某个统计指标，并不解除相应义务。
 
+## 0.4.0 条件变化与策略对应
+
+原有需求保持不变。当前 [model_container.py](../../runtime/minimax_h3/model_container.py) 在自己的锁内复验 `model.execute`，工作集预留由预算所有者仲裁；管理器允许发出邀约不代表模型已经接纳。各阶段另行核对身份、执行能力、前序成功、取消与租约，只有必要条件全部为 true 才开始。unknown/conflict 不授权；drain 关闭新接纳，已接纳任务仍可按有效能力排空。
+
+`stage_completions` 只在阶段成功且完成事件持久化后建立。相应策略是分开保留“允许开始、实际完成、租约归还”的证据，不从最终成功倒推先前授权；未知/冲突引起的条件失败保持原失败类别，取消意图另记。等待资源和实际计算继续在模型控制锁外进行，维持按真实依赖和预算并行。
+
+私有查询现在包含 `last_condition_gate`、尝试 `condition_gates` 和 `stage_completions`；公共主任务投射包含 `condition_gate`、`execution_condition_gates`、`stage_completions` 和 `cancellation_requested`。这些是带身份与时间的决策/完成回执，不是永久许可。字段增加后，表达对照必须同步扩充冻结样本；一次公共查询不能替代 UI、API、日志全集的一致率。新增历史还改变了状态查询负载，应单独测控制延迟，不能用生成成功证明查询足够快。
+
+历史保留仍有界。0.4.0 的短实验有完整六租约十二端点；长会话若端点缺失，应继续记 unknown，不能由终结时占用为零声称全程无超借。相关契约和本地反例见[条件门控说明](../research/runtime-condition-gates.md)、[容器门控测试](../../runtime/minimax_h3/test_model_condition_gates.py)及[公共字段投射测试](../../runtime/minimax_h3/test_server_condition_projection.py)。
+
 ## 通用化边界与递归组合
 
 拟议的通用适配器边界是 `describe → prepare → infer → materialize → validate → cleanup`，配套 `load/status/cancel/drain/unload`。这是接口设计，不是声称仓库已有该名称的稳定插件 API。当前 `pipeline_backend.py` 的 `prepare/infer/encode/cleanup` 与 `ModelContainer` 提供了专用实现映射，注入 backend 也用于测试，并非第三方插件分发机制。
@@ -53,13 +63,21 @@ flowchart LR
 | `MC-INT-CONTROL-P95` | 私有 `status` 从发起到收到同实例响应的 p95；单位 ms；分母是窗口内有效请求样本，另报错误与超时数。 | 同一客户端单调时钟，分别测加载期、推理期、停止期；窗口与样本数随报告给出。 | 样本不足、时钟不可靠或只保留成功请求而丢弃失败计数则 unknown。 | 延迟预算由部署交互目标预先选择；不得将本次约 2 秒轮询间隔当作服务 p95。 |
 | `MC-REC-CLEANUP` | 清理闭合率 = 已核对全部自有子事件、租约及临时文件的终态尝试数 / 应清理的终态尝试数；单位比例，另列残留资源数。 | 一个容器实例从启动到停止的完整生命周期；包含成功、失败和取消。 | 终态清单或所有者观察缺失时 unknown；操作系统查询失败不当成无进程。 | 关闭验收要求当前实例清理闭合且残留数为 0；等待中的资源明确未确认，不能用平均值放行。 |
 | `MC-REC-GPU-OVERLAP` | 同一物理 GPU 租约同时有两个不同所有者的时间区间数；单位 count；检查范围为全部已记录 acquire/release 区间。 | 当前单 GPU 独占方案的一次实例；不是 GPU kernel 活跃率。 | 区间缺端点、身份或时间顺序不可信时 unknown。 | 当前独占方案要求 0；未来多租约方案必须另立资源隔离与容量合约，不能沿用此阈值。 |
-| `MC-EXP-CONSISTENCY` | 相同实例/任务/尝试/事件版本的表达字段一致率 = 符合源事件语义的字段数 / 比较字段数；单位比例，覆盖 requested/effective/phase/artifact/cleanup。 | 冻结一组源事件后比较 API、面板投射和日志解释；异步不同时刻的值不直接比较。 | 来源版本无法绑定或字段缺失时 unknown，缺失计数另报。 | 当前合约字段要求逐项一致；可选显示字段的覆盖目标由面板策略设定。 |
+| `MC-EXP-CONSISTENCY` | 相同实例/任务/尝试/事件版本的表达字段一致率 = 符合源事件语义的字段数 / 比较字段数；单位比例。基础字段为 requested/effective/phase/artifact/cleanup，0.4.0 对照增加条件回执、stage_completions 和 cancellation_requested。 | 每次观察声明实际冻结的字段集合后比较 API、面板投射和日志解释；不把新增字段追溯成旧样本已覆盖，不直接比较异步不同时刻。 | 来源版本无法绑定或字段缺失时 unknown，缺失计数另报。 | 当前合约字段要求逐项一致；可选显示字段的覆盖目标由面板策略设定。 |
 
-## 本轮研究观测与指标对应
+## 0.2.0 历史研究观测与指标对应
 
 独立于下述历史基线，[2026-11-15 研究结果](../research/2026-11-15-results.md)的封闭批次包含两项模型执行成功。[提交轨迹](../../evidence/research-2026-11-15/trace.json)与[客户端验收](../../evidence/research-2026-11-15/client-receipt.json)核对了这两项产物的长度、SHA 和完整音视频解码，因此 `MC-CORE-ARTIFACT` 可记录 **2/2**；这不评价内容语义质量或长期成功率。
 
-[轨迹分析](../../evidence/research-2026-11-15/analysis.json)观察到两段 GPU 阶段不相交，[阶段时间线](../../evidence/research-2026-11-15/timeline.json)记录跨任务 CPU/GPU 重叠。但 `MC-REC-GPU-OVERLAP` 定义要求全部 acquire/release 租约边界，当前 stage 包围事件不完全覆盖这些边界，该指标仍为 unknown。局部 cleanup 回执及进程退出也未形成逐子资源、租约和临时文件的完整枚举，因此 `MC-REC-CLEANUP` 继续 unknown；三项主任务不等于三项模型尝试。私有 status p95 和含 UI 的同源表达指标本轮没有相应样本。
+[轨迹分析](../../evidence/research-2026-11-15/analysis.json)观察到两段 GPU 阶段不相交，[阶段时间线](../../evidence/research-2026-11-15/timeline.json)记录跨任务 CPU/GPU 重叠。但 `MC-REC-GPU-OVERLAP` 定义要求全部 acquire/release 租约边界，当时 stage 包围事件不完全覆盖这些边界，该历史观察仍为 unknown。局部 cleanup 回执及进程退出也未形成逐子资源、租约和临时文件的完整枚举，因此 `MC-REC-CLEANUP` 保留 unknown；三项主任务不等于三项模型尝试。该轮也没有私有 status p95 和含 UI 的同源表达指标样本。
+
+## 0.4.0 新条件下的指标复核
+
+[运行时条件实测](../research/2026-11-15-runtime-condition-results.md)另有两项新的模型尝试成功，一项任务在队列中取消、没有进入模型尝试。依据本轮[提交轨迹](../../evidence/runtime-conditions-2026-11-15/trace.json)及[客户端回执](../../evidence/runtime-conditions-2026-11-15/client-receipt.json)，两件成功产物的下载长度、SHA 与完整音视频解码吻合，`MC-CORE-ARTIFACT` 追加本窗口 **2/2**。历史两件与本轮两件不合并成一个无版本分母，语义质量仍不在此指标内。
+
+[条件与租约分析](../../evidence/runtime-conditions-2026-11-15/condition-analysis.json)核对了同一模型/预算实例的六个阶段租约、十二个端点和终结账本，无截断。其中两个独占 GPU 租约具有完整获取/释放区间且不相交，故 `MC-REC-GPU-OVERLAP` 可追加本窗口 **0 次**，旧窗口的 unknown 不回写。这证明声明租约的互斥，不是 GPU 内核活跃率，也不覆盖其他资源池。
+
+`MC-REC-CLEANUP` 本轮仍为 unknown：租约端点和最终进程退出已补齐，但逐子事件和所有临时文件的完整清单与残留核对还缺失。已知模型尝试分母为 2，不把队列取消算成第三个模型尝试；服务清理及平台释放各自有证据，也不能代替这一更严格指标。`MC-INT-CONTROL-P95` 仍缺私有查询的分阶段请求全集；`MC-EXP-CONSISTENCY` 尚无包含新增条件字段的 UI/API/日志冻结对照，均追加本轮 unknown 和具体缺口，不以一次公共回执查询填为通过。
 
 ## 历史证据与未实现部分
 

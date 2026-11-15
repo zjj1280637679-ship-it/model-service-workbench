@@ -1,8 +1,12 @@
 {
   "schema_version": 1,
-  "repository_version": "0.4.0",
-  "recorded_at": "2026-11-15T01:29:32.106586+00:00",
+  "repository_version": "0.4.1",
+  "recorded_at": "2026-11-15T01:50:19.497596+00:00",
   "platform": "Windows, Python 3.12",
+  "new_gpu_run": false,
+  "runtime_executable_sources_unchanged_from": "v0.4.0",
+  "notebook_unchanged_from": "v0.4.0",
+  "historical_gpu_evidence_unchanged_from": "v0.4.0",
   "runs": [
     {
       "name": "full_cpu_regression",
@@ -15,82 +19,89 @@
         "-q"
       ],
       "exit_code": 0,
-      "passed": 1054,
+      "passed": 1093,
       "skipped": 8,
       "warnings": 1,
-      "duration_seconds": 41.23,
-      "skip_reason": "Windows account cannot create symbolic links; Linux CI runs independently.",
+      "duration_seconds": 43.69,
+      "skip_reason": "Windows account cannot create symbolic links.",
       "warning": "Existing Starlette TestClient httpx deprecation."
     },
     {
-      "name": "console_javascript",
-      "command": [
-        "node",
-        "--test",
-        "tests/test_console_delivery.cjs"
-      ],
+      "name": "condition_review_counterexamples",
       "exit_code": 0,
-      "passed": 2
+      "passed": 23,
+      "scope": "Includes missing declared source, conflicting baseline and omitted perspective-debt association."
     },
     {
-      "name": "notebook_ast",
+      "name": "unchanged_requirements",
       "exit_code": 0,
-      "cells": 1,
-      "drive_readback_exact_match": true,
-      "sha256": "33a94b6e2075b3b2c975cc5029cb7be7afa09dbc6f09f8554a9ae4b99582241e"
+      "baseline": "v0.4.0",
+      "perspectives": 16
     },
     {
-      "name": "published_trace_replay",
+      "name": "published_trace_and_condition_replay",
       "exit_code": 0,
-      "counts": {
+      "historical_counts": {
         "pass": 13,
         "fail": 0,
         "unknown": 0
-      }
-    },
-    {
-      "name": "published_condition_replay",
-      "exit_code": 0,
-      "counts": {
+      },
+      "condition_counts": {
         "pass": 7,
         "fail": 0,
         "unknown": 2
       },
-      "unknown_scope": "The normal GPU run did not trigger unknown/conflict blocked decisions; CPU counterexamples cover selected rejection paths."
+      "published_results_exactly_unchanged": true
     },
     {
-      "name": "local_document_links",
+      "name": "condition_strategy_metric_review",
       "exit_code": 0,
-      "checked": 208
+      "review_status": "current",
+      "drift": [],
+      "perspectives": 16,
+      "reviewed_sources": 76,
+      "debt_counts": {
+        "open": 8,
+        "resolved": 4
+      },
+      "open_debts": [
+        "TD-004",
+        "TD-005",
+        "TD-006",
+        "TD-007",
+        "TD-008",
+        "TD-010",
+        "TD-011",
+        "TD-012"
+      ],
+      "scope": "Freshness of this declared review only; current does not mean all debt resolved, complete condition discovery, runtime acceptance or semantic proof. No automatic refresh is provided."
     },
     {
       "name": "knowledge_structure_and_source_identity",
       "exit_code": 0,
       "modules": 4,
       "perspectives": 16,
-      "metrics": 27,
-      "fingerprints": 171
+      "metrics": 28,
+      "fingerprints": 176
+    },
+    {
+      "name": "local_document_links",
+      "exit_code": 0,
+      "checked": 231
+    },
+    {
+      "name": "notebook_ast",
+      "exit_code": 0,
+      "cells": 1,
+      "sha256": "33a94b6e2075b3b2c975cc5029cb7be7afa09dbc6f09f8554a9ae4b99582241e"
     },
     {
       "name": "publication_and_known_secret_check",
       "exit_code": 0,
-      "checked_files": 173,
+      "checked_files": 178,
       "known_secrets_supplied": true,
-      "scope": "Declared file, source, size and token checks plus this run API key and URL; no exhaustive secret-detection claim."
+      "scope": "Declared publication checks; not an exhaustive secret detector."
     }
   ],
-  "new_gpu_run": true,
-  "gpu_evidence": "evidence/runtime-conditions-2026-11-15/provenance.json",
-  "protocol": "research/runtime-condition-protocol.json",
-  "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
-  "model_instance_id": "23de982643984911a92c5b2459eded28",
-  "outcomes": {
-    "succeeded": 2,
-    "cancelled_while_queued": 1,
-    "failed": 0
-  },
-  "service_cleanup_complete": true,
-  "platform_released": true,
-  "runtime_intervention": "Managed API-only replacement during model download to expose condition receipts. Main manager, model and job identities retained; before/after hashes and commands recorded.",
-  "scope": "This CPU regression and one actual A100 lifetime are separately evidenced. Public/raw analyses match. No unknown/conflict GPU fault injection, serial performance control or global physical optimum claim. CI results are observed after commit and are not prefilled here."
+  "scope": "Offline condition/strategy/metric debt audit and bounded counterexamples. Four resolved debts and eight open debts; fresh review is not semantic completeness, universal metric replay or new GPU acceptance. Historical GPU files and requirements retained; current knowledge fixes the former aggregate-versus-subset metric interpretation."
 }

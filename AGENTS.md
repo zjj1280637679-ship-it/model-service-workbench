@@ -10,3 +10,4 @@
 - 修改路径、文档或 notebook 时记录迁移差异；已运行源码的历史 SHA 不回写为新源码。evidence 的摘要不是签名证明，结构校验不等于语义完备。
 - 秘钥、私有连接、模型缓存、用户参考、运行数据库、原始运行日志不进 Git。发布使用显式源文件范围；不要复制整个工作目录。
 - 修改完成后运行对应 CPU 测试、知识校验和 notebook 检查。更新 evidence/source-manifest.json 的明确方法见 docs/validation.md。不要把过期指纹包装成当前 MATCH。
+- 条件、策略、指标或已审输入改变时，检查 knowledge/condition-reviews.json 与技术债账本；先读差异、复审影响，再记录新指纹。check_condition_reviews 的 current 不是债务清零，freeze_sources 不替代此复审。运行时变更前先处理账本 TD-010 的历史源码绑定。

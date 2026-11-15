@@ -51,6 +51,15 @@ def _identity(value):
     return isinstance(value, str) and bool(re.fullmatch(r"[A-Za-z0-9._:-]{1,256}", value))
 
 
+def _capacity_version(value):
+    return isinstance(value, str) and bool(re.fullmatch(r"[0-9a-f]{64}", value))
+
+
+def _capacity_limits(value):
+    return (isinstance(value, dict) and set(value) == {"cpu_threads", "ram_bytes", "disk_bytes"}
+            and all(type(item) is int and item > 0 for item in value.values()))
+
+
 def _nested_receipts(value):
     if isinstance(value, dict):
         if "gate_id" in value and "conditions" in value and "allowed" in value:
@@ -167,6 +176,8 @@ def analyze(trace, source_root=None):
                     receipt_errors.append("model_gate_instance_mismatch")
             elif stream != "model" or not _identity(context.get("budget_instance_id")):
                 receipt_unknown.append("budget_gate_owner_not_bound")
+            if gate.startswith("pipeline.") and not _capacity_version(context.get("capacity_version")):
+                receipt_unknown.append("budget_gate_capacity_version_missing")
         errors.extend(receipt_errors)
         unknown.extend(receipt_unknown)
         valid[decision] = not receipt_errors and not receipt_unknown
@@ -200,6 +211,10 @@ def analyze(trace, source_root=None):
             witness = event.get("reservation_witness") or {}
             if witness.get("owned") is not True or witness.get("attempt_id") != event.get("attempt_id") or witness.get("budget_instance_id") != context.get("budget_instance_id") or not _identity(witness.get("reservation_id")):
                 effect_errors.append("reservation_gate_identity_mismatch")
+            if not all(_capacity_version(value) for value in (witness.get("capacity_version"), context.get("capacity_version"))):
+                effect_unknown.append("reservation_capacity_version_missing")
+            elif witness["capacity_version"] != context["capacity_version"]:
+                effect_errors.append("reservation_capacity_version_mismatch")
             if type(receipt.get("monotonic_ns")) is not int or type(event.get("monotonic_ns")) is not int:
                 effect_unknown.append("reservation_gate_time_missing")
             elif receipt["monotonic_ns"] > event["monotonic_ns"]:
@@ -210,7 +225,11 @@ def analyze(trace, source_root=None):
             if not prior:
                 effect_errors.append("effect_precedes_durable_gate")
         else:
-            if context.get("budget_instance_id") != lease.get("budget_instance_id") or context.get("capacity_version") != lease.get("capacity_version"):
+            if context.get("budget_instance_id") != lease.get("budget_instance_id"):
+                effect_errors.append("lease_gate_resource_identity_mismatch")
+            if not all(_capacity_version(value) for value in (context.get("capacity_version"), lease.get("capacity_version"))):
+                effect_unknown.append("lease_gate_capacity_version_missing")
+            elif context["capacity_version"] != lease["capacity_version"]:
                 effect_errors.append("lease_gate_resource_identity_mismatch")
             before = receipt.get("monotonic_ns")
             granted = lease.get("granted_monotonic_ns")
@@ -276,9 +295,13 @@ def analyze(trace, source_root=None):
             continue
         grant_event, grant = sides["grant"]
         release_event, release = sides["release"]
-        immutable = ("lease_id", "attempt_id", "budget_instance_id", "reservation_id", "kind", "cpu_threads", "capacity_version", "decision_id", "granted_monotonic_ns")
+        immutable = ("lease_id", "attempt_id", "budget_instance_id", "reservation_id", "kind", "cpu_threads", "decision_id", "granted_monotonic_ns")
         if any(grant.get(key) != release.get(key) for key in immutable):
             lease_errors.append("lease_identity_changed_before_release")
+        if not all(_capacity_version(value) for value in (grant.get("capacity_version"), release.get("capacity_version"))):
+            lease_unknown.append("lease_capacity_version_missing")
+        elif grant["capacity_version"] != release["capacity_version"]:
+            lease_errors.append("lease_capacity_version_changed_before_release")
         if grant.get("owned") is not True or release.get("owned") is not False:
             lease_errors.append("lease_owned_flag_contradiction")
         if grant_event.get("attempt_id") != grant.get("attempt_id") or release_event.get("attempt_id") != grant.get("attempt_id") or grant_event.get("job_id") != release_event.get("job_id"):
@@ -328,12 +351,39 @@ def analyze(trace, source_root=None):
                 lease_errors.append("exclusive_gpu_lease_overlap")
 
     ledgers, ledger_errors, ledger_unknown = {}, [], []
+    # A repeated opaque label is not capacity evidence. Bind each version to the
+    # exact payload hashed by PipelineBudget, then reconcile every ledger row.
+    capacities = {}
+    def capacity_observation(budget):
+        identity, version = budget.get("budget_instance_id"), budget.get("capacity_version")
+        limits, gpu_cpu = budget.get("limits"), budget.get("gpu_host_cpu_threads")
+        if not _identity(identity) or not _capacity_version(version):
+            ledger_unknown.append("budget_capacity_identity_missing")
+            return
+        if not _capacity_limits(limits) or type(gpu_cpu) is not int or gpu_cpu <= 0:
+            ledger_unknown.append("budget_capacity_payload_missing")
+            return
+        payload = {"limits": limits, "gpu_host_cpu_threads": gpu_cpu}
+        key = (identity, version)
+        if key in capacities and capacities[key] != payload:
+            ledger_errors.append("capacity_version_has_conflicting_payloads")
+        expected = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+        if version != expected:
+            ledger_errors.append("capacity_version_payload_hash_mismatch")
+            return
+        if gpu_cpu > limits["cpu_threads"]:
+            ledger_errors.append("gpu_host_cpu_charge_exceeds_capacity")
+            return
+        capacities[key] = payload
+
     final_budget_ids = set()
     for snapshot in trace.get("system_snapshots", []):
         component = (snapshot.get("modules") or {}).get("model") or {}
         if snapshot.get("instance_id") != identities["manager"] or component.get("instance_id") != identities["model"]:
             continue
         budget = component.get("budget") or {}
+        if budget:
+            capacity_observation(budget)
         identity, history = budget.get("budget_instance_id"), budget.get("lease_history")
         if not _identity(identity) or not isinstance(history, dict) or type(history.get("count")) is not int:
             continue
@@ -343,6 +393,8 @@ def analyze(trace, source_root=None):
         if event.get("type") != "model.worker_exited" or event.get("instance_id") != identities["model"]:
             continue
         budget = event.get("budget_snapshot") or {}
+        if budget:
+            capacity_observation(budget)
         identity, history = budget.get("budget_instance_id"), budget.get("lease_history")
         if not _identity(identity) or not isinstance(history, dict) or type(history.get("count")) is not int:
             continue
@@ -380,13 +432,34 @@ def analyze(trace, source_root=None):
                 continue
             if side not in recorded:
                 ledger_unknown.append("budget_event_has_no_model_owned_witness")
-            elif any(row.get(key) != recorded[side][1].get(key) for key in ("attempt_id", "kind", "cpu_threads", "decision_id", "reservation_id", "capacity_version")):
+            elif any(row.get(key) != recorded[side][1].get(key) for key in ("attempt_id", "kind", "cpu_threads", "decision_id", "reservation_id")):
                 ledger_errors.append("budget_and_model_witness_disagree")
+            version = row.get("capacity_version")
+            witness_version = recorded.get(side, ({}, {}))[1].get("capacity_version")
+            if not _capacity_version(version) or not _capacity_version(witness_version):
+                ledger_unknown.append("budget_event_capacity_version_missing")
+            elif version != witness_version:
+                ledger_errors.append("budget_and_model_capacity_versions_disagree")
+            capacity = capacities.get((budget_id, version)) if _capacity_version(version) else None
+            row_limits = row.get("limits")
+            if capacity is None:
+                ledger_unknown.append("budget_event_capacity_payload_not_observed")
+            if not _capacity_limits(row_limits):
+                ledger_unknown.append("budget_event_capacity_limits_missing")
+            elif capacity is not None and row_limits != capacity["limits"]:
+                ledger_errors.append("budget_event_limits_disagree_with_capacity_version")
+            if capacity is not None and row.get("kind") == "gpu" and row.get("cpu_threads") != capacity["gpu_host_cpu_threads"]:
+                ledger_errors.append("gpu_lease_cpu_charge_disagrees_with_capacity_version")
             charge = row.get("cpu_threads")
-            limit = (row.get("limits") or {}).get("cpu_threads")
-            if type(charge) is not int or charge < 1 or type(limit) is not int or limit < 1:
-                ledger_unknown.append("budget_cpu_charge_or_limit_missing")
-                continue
+            limit = row_limits.get("cpu_threads") if isinstance(row_limits, dict) else None
+            if type(charge) is not int or charge < 1:
+                ledger_unknown.append("budget_cpu_charge_missing")
+                # Subsequent totals cannot be reconstructed after an unknown
+                # charge; do not manufacture a release-without-grant failure.
+                break
+            if type(limit) is not int or limit < 1:
+                ledger_unknown.append("budget_cpu_limit_missing")
+                limit = None
             if side == "grant":
                 if identity in active:
                     ledger_errors.append("budget_duplicate_live_lease")
@@ -406,7 +479,7 @@ def analyze(trace, source_root=None):
                         ledger_errors.append("budget_gpu_release_owner_mismatch")
                     gpu_owner = None
             peak_cpu = max(peak_cpu, cpu_used)
-            if cpu_used < 0 or cpu_used > limit:
+            if cpu_used < 0 or (limit is not None and cpu_used > limit):
                 ledger_errors.append("budget_cpu_lease_limit_violated")
             if row.get("cpu_threads_in_use") != cpu_used or row.get("gpu_attempt_id") != gpu_owner:
                 ledger_errors.append("budget_reported_ownership_disagrees_with_events")

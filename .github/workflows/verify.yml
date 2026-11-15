@@ -32,6 +32,8 @@ jobs:
         run: python tools/check_publication.py
       - name: Validate module records and source identities
         run: python tools/check_knowledge.py
+      - name: Require current condition strategy and metric review
+        run: python tools/check_condition_reviews.py
       - name: Validate notebook construction without starting it
         run: python tools/build_notebook.py --check-only --preload-acceleration lightx2v-ref2va-4step
       - name: Run CPU ownership and contract counterexamples

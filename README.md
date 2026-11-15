@@ -1,6 +1,6 @@
 # Model Service Workbench
 
-可查询、可控制、可审计的模型服务工程与模块知识库。仓库封装版本 **0.4.0**；当前参考实现为 MiniMax-H3 ref2va API **0.4.0**，配套网页为独立项目 **0.9.0**。
+可查询、可控制、可审计的模型服务工程与模块知识库。仓库封装版本 **0.4.1**；当前参考实现为 MiniMax-H3 ref2va API **0.4.0**，配套网页为独立项目 **0.9.0**。
 
 从同一份契约看四件事：模块的核心能力、对外交互、内部递归组合、对外表达。每个视角分别写清 **主观抽象的需求 → 客观具象的条件 → 主观具象的可选策略 → 客观抽象的可选验证指标**。这四类是不同责任，不是可信度等级，也不能互相替代。
 
@@ -15,6 +15,7 @@
 | 复核架构假设与新研究 | [实验方法](docs/research/experimental-method.md)、[物理与经验参照](docs/research/physical-and-empirical-bounds.md)、[研究结果](docs/research/2026-11-15-results.md) |
 | 搜索与验证客观条件集合 | [条件设计](docs/research/objective-condition-sets.md)、[源码条件审查](docs/research/condition-source-audit.md)、[执行结果](docs/research/condition-search-results.md) |
 | 复核执行前条件验证与本轮 A100 闭环 | [运行时条件契约](docs/research/runtime-condition-gates.md)、[0.4.0 实测结果](docs/research/2026-11-15-runtime-condition-results.md) |
+| 检查条件变化后的策略与指标债 | [技术债审计](docs/research/condition-strategy-metric-debt.md)、[机器账本](knowledge/strategy-metric-debt.json) |
 | 修改代码或增加新模型 | [维护入口](AGENTS.md)、[知识索引](knowledge/index.json) |
 
 ## 四个模块
@@ -48,7 +49,9 @@ v0.1.0 建仓阶段只做本地和 CI 的 CPU 验证，没有重新申请 GPU；
 
 0.4.0 将已审查的条件契约接入实际派发、容器接纳、资源授予和阶段启动。每个状态所有者在自己的仲裁锁内复验；跨进程由接收方再次确认。未知、冲突和假都不放行，条件判断与执行完成各有回执；独立阶段仍按共享预算并行。实现范围和审计字段见[运行时条件验证](docs/research/runtime-condition-gates.md)。
 
-本版已在 Colab A100 80 GB、原生 BF16 主干与官方 FP32 例外下完成实际闭环：公网 API 在模型未就绪时接纳三个全新内容任务，指定取消一条，另两条自动生成并通过下载哈希及完整解码检查；最后确认服务进程清理与平台会话释放。当前面板布局未改动。运行中为补齐公共 API 的条件回执投射，管理器单独重启过一次 API；这项修正和源码身份保留在[实测报告](docs/research/2026-11-15-runtime-condition-results.md)。正常 GPU 运行没有触发未知/冲突故障，相关拒绝行为由 CPU 反例测试覆盖，不冒充已做 GPU 故障注入。
+0.4.0 已在 Colab A100 80 GB、原生 BF16 主干与官方 FP32 例外下完成实际闭环：公网 API 在模型未就绪时接纳三个全新内容任务，指定取消一条，另两条自动生成并通过下载哈希及完整解码检查；最后确认服务进程清理与平台会话释放。当前面板布局未改动。运行中为补齐公共 API 的条件回执投射，管理器单独重启过一次 API；这项修正和源码身份保留在[实测报告](docs/research/2026-11-15-runtime-condition-results.md)。正常 GPU 运行没有触发未知/冲突故障，相关拒绝行为由 CPU 反例测试覆盖，不冒充已做 GPU 故障注入。
+
+0.4.1 在不改变需求、运行时和布局的前提下复审条件变化后的策略与指标：登记12项债并修正4项，修复容量版本审计误放行、拆开CPU/GPU与全资源指标、补齐模块契约和独立复审检查。其余8项保留验收要求和依赖顺序；本版没有重新申请GPU。详见[审计结果](docs/research/condition-strategy-metric-debt.md)。
 
 在 Colab 打开 [自包含笔记本](https://colab.research.google.com/github/zjj1280637679-ship-it/model-service-workbench/blob/main/notebooks/minimax-h3-ref2va.ipynb)，选择 A100 / 高 RAM 后运行唯一启动单元。源码与构建入口均在本仓库；模型权重由运行时按配置下载，不存入 Git。
 
@@ -60,6 +63,7 @@ v0.1.0 建仓阶段只做本地和 CI 的 CPU 验证，没有重新申请 GPU；
 python -m pip install -r requirements-test.txt
 python -m pytest
 python tools/check_knowledge.py
+python tools/check_condition_reviews.py
 python tools/check_publication.py
 python tools/build_notebook.py --check-only --preload-acceleration lightx2v-ref2va-4step
 ```
