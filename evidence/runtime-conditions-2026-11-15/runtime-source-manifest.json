@@ -1,0 +1,130 @@
+{
+  "files": {
+    "condition_guard.py": {
+      "sha256": "1942c6d3da8ed9f7d4cddae93163f74b04c4d77e935814efc31144ce75f38339",
+      "bytes": 4226
+    },
+    "adapter_config.py": {
+      "sha256": "a82a5a4c591b8ec1915a61bfe89c98bcfba0de1dad14479a9e6154f3e12a60b4",
+      "bytes": 16815
+    },
+    "client.py": {
+      "sha256": "8b84bf531c614090cf86f56b9cb54dc04e924c0fe8493da16d16a5a85b588e11",
+      "bytes": 4056
+    },
+    "console.html": {
+      "sha256": "398051c3697903156e5bfc902b2e4c8bb505763011a1e818c62ba88fd459499a",
+      "bytes": 53343
+    },
+    "control_protocol.py": {
+      "sha256": "de22f8a110f4b832e161c662be3f3566e114ca7a43bec2376b53f001c7686323",
+      "bytes": 5852
+    },
+    "download_progress.py": {
+      "sha256": "3f2c5eefdc5302314448d925ff5b1dc5d3d1f64671d46ef24f7fb4d69a3bab3d",
+      "bytes": 16710
+    },
+    "generation_options.py": {
+      "sha256": "edbe6907b34880e98561b0b55f9dfbfcdfb6402cd81b66ab6e09403a3d7fc911",
+      "bytes": 4860
+    },
+    "global_manager.py": {
+      "sha256": "0cc8928ea5dd0509c9dd4c751eb0db6d19d3757fa0940ee09a45e58818c37607",
+      "bytes": 75920
+    },
+    "lora_preflight.py": {
+      "sha256": "2be58c4b1e6462a3aa49d29ede809cb11c1f9472fd2951a7800d3023bd91bb92",
+      "bytes": 4648
+    },
+    "model_backend.py": {
+      "sha256": "b6f57ebcaeaa03025a89f56c69555514922032d7ed2d3dc34e88fe2b215126e8",
+      "bytes": 11956
+    },
+    "model_container.py": {
+      "sha256": "209c42762f684d58b704dc1b813c507d27be09a3c74c9899696565e57a5640b8",
+      "bytes": 61656
+    },
+    "notebook_console.py": {
+      "sha256": "cf8f4a3b726103f3f41df5eef47856f593dad36b8e90cc6778e464aa72a128ab",
+      "bytes": 45010
+    },
+    "notebook_ui.py": {
+      "sha256": "88bfd645a5a09234c2ac7c1cd0639ec5a21f5530aa882b4325bde4b883e9ada7",
+      "bytes": 20135
+    },
+    "performance_model.py": {
+      "sha256": "52ec15811bd5522dcc00d47812af48404abcc504a69779c1b19e44c3f072eb63",
+      "bytes": 13083
+    },
+    "pipeline_backend.py": {
+      "sha256": "74b5301553791a7b49e1feff92b926f9ba864bc15c6166caa9396a464ba3b913",
+      "bytes": 24438
+    },
+    "pipeline_scheduler.py": {
+      "sha256": "24d6119962f94632e0f651017ecb0b567c271f07533e33a2b0557f35219c19f7",
+      "bytes": 19843
+    },
+    "pipeline_smoke_test.py": {
+      "sha256": "66fd3d41c48dd8e23a09cd90b904c0c7464015f17459ae28731d77a8a79843b3",
+      "bytes": 15439
+    },
+    "preflight.py": {
+      "sha256": "9966ae12716653db55665f76e4f226e5593a52becd7aeb3455915735ce808a6e",
+      "bytes": 13658
+    },
+    "process_owner.py": {
+      "sha256": "f61b227de6d457405b7e63f2866221d43d2af7ce08583c942fb112b6356943f0",
+      "bytes": 7086
+    },
+    "requirements-colab.txt": {
+      "sha256": "6a49628e7a7b152fc873a87269c759f55fdfc67433e772333d8d51f53ed47f87",
+      "bytes": 642
+    },
+    "requirements-lora.txt": {
+      "sha256": "bad2eeea985ad1172ee3c11cf56543a9b5d7137b135c8689a38a6bda5b47e2bc",
+      "bytes": 174
+    },
+    "requirements.txt": {
+      "sha256": "72af24aafd9e8e6ad3981e29a8f8ed170e4342008aa2a3cf33e2d6847af4f054",
+      "bytes": 448
+    },
+    "resource_scheduler.py": {
+      "sha256": "969f951c5e1238ed6db91f25d44c985b4ca8e4f391a037d83905b6c5531df8cf",
+      "bytes": 16193
+    },
+    "run.py": {
+      "sha256": "52bf1413ecfeb51774bd50f93b03f8d39eae7d151980e403111bdb64c50c7af5",
+      "bytes": 6191
+    },
+    "runtime_options.py": {
+      "sha256": "e32d27af207d9548072c522d207845c00f26caceb278c00f109e07dc55945852",
+      "bytes": 12109
+    },
+    "server.py": {
+      "sha256": "1b09072374ad9033a770676d52f4c1757d1ce7e9eab4944cafdf7daf30f6d2a7",
+      "bytes": 36293
+    },
+    "smoke_test.py": {
+      "sha256": "8e29584248603e97992133082b9058585b420600594ba1c42cdeb87403e28be8",
+      "bytes": 18411
+    },
+    "staged_backend.py": {
+      "sha256": "7fb7e4015f6f148754e528a827a3549658d02352ae01182cef551694c0cd150e",
+      "bytes": 11391
+    },
+    "staged_server.py": {
+      "sha256": "45ee85cca31388a4facde5a7b622dcc5b27a71464b4d75cf8589f3afac547e31",
+      "bytes": 158
+    },
+    "startup.py": {
+      "sha256": "dde06ee6e10f19a4d95399827f68723a60f6f6975fc6610f999dc6a050c4fb3b",
+      "bytes": 17842
+    },
+    "tunnel.py": {
+      "sha256": "ff097af7dfc956586dffe31e244ff4f06bfef695bdba44514899824cd2aac47e",
+      "bytes": 8019
+    }
+  },
+  "unavailable": [],
+  "scope": "Exact allowlisted on-disk runtime code identities at export, not proof already-imported memory matches these bytes."
+}

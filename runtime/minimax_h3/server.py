@@ -43,6 +43,94 @@ EXTENSIONS = {
 }
 JOB_ID = re.compile(r"^[a-f0-9]{32}$")
 security = HTTPBearer()
+
+# Public receipts are an explicit projection, not arbitrary owner-provided JSON.
+# Keep this contract independent of the model module: the API must not load it.
+PUBLIC_STAGE_CONDITIONS = ("instance_matches", "attempt_owned", "attempt_live", "model_loaded", "worker_alive",
+    "capability_available", "admission_confirmed", "predecessor_completed", "stage_not_started",
+    "cancel_flag_clear", "cancel_event_clear", "reservation_owned", "budget_grant_held")
+PUBLIC_GATE_CONDITIONS = {
+    "manager.dispatch": ("manager_open", "job_queued", "attempt_unassigned", "model_identity_current",
+        "model_observation_fresh", "model_process_alive", "model_ready", "worker_alive", "worker_accepting", "supervisor_alive"),
+    "model.execute": ("instance_matches", "request_validated", "model_loaded", "worker_alive", "capability_available",
+        "not_draining", "not_stopping", "attempt_available", "job_unowned", "artifact_absent",
+        "generation_options_valid", "resources_reserved"),
+    **{"model.stage." + stage: PUBLIC_STAGE_CONDITIONS for stage in ("prepare", "gpu", "encode_validate")},
+}
+
+
+def public_gate_receipt(value, expected_gate):
+    """Expose known decision facts; no free-form context, parameters or paths."""
+    if not isinstance(value, dict) or value.get("gate_id") != expected_gate or expected_gate not in PUBLIC_GATE_CONDITIONS:
+        return None
+    required = PUBLIC_GATE_CONDITIONS[expected_gate]
+    raw_conditions = value.get("conditions")
+    raw_conditions = raw_conditions if isinstance(raw_conditions, dict) else {}
+    states = {"true", "false", "unknown", "conflict"}
+    conditions = {name: raw_conditions.get(name) if type(raw_conditions.get(name)) is str
+                  and raw_conditions[name] in states else "unknown" for name in required}
+    result = {"gate_id": expected_gate, "conditions": conditions,
+              "allowed": value.get("allowed") if type(value.get("allowed")) is bool else None}
+    if result["allowed"] is True and any(state != "true" for state in conditions.values()):
+        # Do not publish a positive authorization whose required evidence is
+        # missing, malformed or contradictory; keep uncertainty visible.
+        result["allowed"] = None
+    for name in ("schema_version", "gate_version"):
+        if isinstance(value.get(name), str) and re.fullmatch(r"[0-9]{1,3}\.[0-9]{1,3}", value[name]):
+            result[name] = value[name]
+    if isinstance(value.get("decision_id"), str) and JOB_ID.fullmatch(value["decision_id"]):
+        result["decision_id"] = value["decision_id"]
+    observed = value.get("observed_at")
+    if type(observed) in {int, float} and math.isfinite(observed) and observed >= 0:
+        result["observed_at"] = observed
+    monotonic = value.get("monotonic_ns")
+    if type(monotonic) is int and 0 <= monotonic < 2 ** 63:
+        result["monotonic_ns"] = monotonic
+    blocked = value.get("blocked")
+    if isinstance(blocked, list):
+        result["blocked"] = [name for name in required if name in blocked]
+    raw = value.get("context")
+    context = {}
+    if isinstance(raw, dict):
+        for name in ("manager_instance_id", "model_instance_id", "instance_id", "job_id", "attempt_id",
+                     "budget_instance_id", "reservation_id", "lease_id", "budget_decision_id"):
+            if isinstance(raw.get(name), str) and JOB_ID.fullmatch(raw[name]):
+                context[name] = raw[name]
+        expected_source = "global_manager.py" if expected_gate == "manager.dispatch" else "model_container.py"
+        if raw.get("source_file") == expected_source:
+            context["source_file"] = expected_source
+        if isinstance(raw.get("source_sha256"), str) and re.fullmatch(r"[a-f0-9]{64}", raw["source_sha256"]):
+            context["source_sha256"] = raw["source_sha256"]
+        if type(raw.get("pipeline")) is bool:
+            context["pipeline"] = raw["pipeline"]
+        if raw.get("budget_scope") in ("stage_budget", "legacy_single_active"):
+            context["budget_scope"] = raw["budget_scope"]
+        if raw.get("stage") in ("prepare", "gpu", "encode_validate"):
+            context["stage"] = raw["stage"]
+    result["context"] = context
+    return result
+
+
+def public_condition_fields(record):
+    fields = {}
+    if "condition_gate" in record:
+        fields["condition_gate"] = public_gate_receipt(record["condition_gate"], "manager.dispatch")
+    if "execution_condition_gates" in record:
+        raw = record["execution_condition_gates"]
+        fields["execution_condition_gates"] = ({
+            name: public_gate_receipt(raw[name], name) for name in PUBLIC_GATE_CONDITIONS
+            if name.startswith("model.") and name in raw
+        } if isinstance(raw, dict) else None)
+    if "stage_completions" in record:
+        raw = record["stage_completions"]
+        fields["stage_completions"] = ({
+            name: raw.get(name) if type(raw.get(name)) is bool else None
+            for name in ("prepare", "gpu", "encode_validate")
+        } if isinstance(raw, dict) else None)
+    if "cancellation_requested" in record:
+        fields["cancellation_requested"] = (record["cancellation_requested"]
+            if type(record["cancellation_requested"]) is bool else None)
+    return fields
 DEFAULT_CORS_ORIGINS = (
     "https://zjj1280637679-ship-it.github.io",
     "http://localhost:8000",
@@ -272,6 +360,7 @@ def create_app(controller=None, api_key: str | None = None, output_dir: Path | N
                    "generation_parameters", "generation_options", "lifecycle", "metrics", "active_phase", "attempt_id", "instance_id",
                    "cancel_requested", "cleanup_complete", "replayed", "queue_position", "dispatch_state", "dispatch_reason", "waiting_for"}
         result = {"id": identity, **{key: record[key] for key in allowed if key in record}}
+        result.update(public_condition_fields(record))
         result["instance_id"] = instance_id
         if result.get("status") not in {"queued", "running", "cancel_requested", "succeeded", "failed", "cancelled"}:
             raise HTTPException(503, "Manager returned an invalid task state")

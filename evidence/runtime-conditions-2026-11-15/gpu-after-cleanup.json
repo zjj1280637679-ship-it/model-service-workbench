@@ -1,0 +1,7 @@
+{
+  "returncode": 0,
+  "instance_id": "f5d32604aad44ecbaed925602acd4886",
+  "compute_processes_output_empty": true,
+  "compute_processes_output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "scope": "Exit code and emptiness of the recorded process query; raw process strings are private. Not platform deallocation."
+}

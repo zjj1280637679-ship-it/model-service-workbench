@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "scope": "Finite observed trace checks, not universal correctness, mathematical optimality, device utilization or independently authenticated evidence.",
+  "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+  "model_instance_id": "23de982643984911a92c5b2459eded28",
+  "checks": {
+    "trace_integrity": {
+      "status": "pass",
+      "reason": "Recorded identity and contiguous-sequence checks; missing or partial streams cannot prove absence.",
+      "errors": [],
+      "model_complete": true,
+      "manager_complete": true
+    },
+    "stage_causality": {
+      "status": "pass",
+      "reason": "Each observed attempt must prepare, infer and encode/validate in causal order; failed/cancelled prefixes may stop early.",
+      "errors": [],
+      "paired_stages": 6,
+      "unproven_pairs_or_predecessors": 0
+    },
+    "terminal_receipt_coverage": {
+      "status": "pass",
+      "reason": "All event-observed jobs and model execution attempts must reconcile to terminal job receipts; omitted receipts are unknown, not success.",
+      "expected_jobs": 3,
+      "final_job_receipts": 3,
+      "missing_job_receipts": [],
+      "nonterminal_job_receipts": [],
+      "unreconciled_attempts": [],
+      "identity_conflicts": []
+    },
+    "model_ready_gate": {
+      "status": "pass",
+      "reason": "GPU stages require preceding same-instance model.ready without observed capability revocation. Drain/stop requests close admission but do not revoke already-admitted work by themselves.",
+      "gpu_starts": 2,
+      "violations": [],
+      "unproven": []
+    },
+    "gpu_stage_exclusivity": {
+      "status": "pass",
+      "reason": "Observed GPU stage scopes do not intersect; this is not a CUDA kernel occupancy measurement.",
+      "observed_gpu_stages": 2,
+      "collisions": []
+    },
+    "cross_task_cpu_gpu_overlap": {
+      "status": "pass",
+      "reason": "Positive interval intersection is witnessed by the single model event order. No overlap in a finite workload does not disprove the capability.",
+      "witnessed_overlaps": [
+        {
+          "jobs": [
+            "0607835d15b64e23b9755e8d61a5dab9",
+            "5783d0f311be4ddb917fa90392cc2c5c"
+          ],
+          "stages": [
+            "gpu",
+            "prepare"
+          ]
+        },
+        {
+          "jobs": [
+            "0607835d15b64e23b9755e8d61a5dab9",
+            "5783d0f311be4ddb917fa90392cc2c5c"
+          ],
+          "stages": [
+            "encode_validate",
+            "gpu"
+          ]
+        }
+      ]
+    },
+    "stage_durations": {
+      "status": "pass",
+      "reason": "Same model-instance monotonic host scopes only; wall clocks and different hosts are not subtracted.",
+      "clock": "model_instance_monotonic_ns",
+      "stages": [
+        {
+          "job_id": "0607835d15b64e23b9755e8d61a5dab9",
+          "attempt_id": "d3542e911c6443d3b2007fb523d14593",
+          "stage": "prepare",
+          "seconds": 0.026714778
+        },
+        {
+          "job_id": "0607835d15b64e23b9755e8d61a5dab9",
+          "attempt_id": "d3542e911c6443d3b2007fb523d14593",
+          "stage": "gpu",
+          "seconds": 519.086713648
+        },
+        {
+          "job_id": "0607835d15b64e23b9755e8d61a5dab9",
+          "attempt_id": "d3542e911c6443d3b2007fb523d14593",
+          "stage": "encode_validate",
+          "seconds": 3.209779465
+        },
+        {
+          "job_id": "5783d0f311be4ddb917fa90392cc2c5c",
+          "attempt_id": "5d401a6f696a4b2183537d5ad5606c3f",
+          "stage": "prepare",
+          "seconds": 0.015935293
+        },
+        {
+          "job_id": "5783d0f311be4ddb917fa90392cc2c5c",
+          "attempt_id": "5d401a6f696a4b2183537d5ad5606c3f",
+          "stage": "gpu",
+          "seconds": 181.795341151
+        },
+        {
+          "job_id": "5783d0f311be4ddb917fa90392cc2c5c",
+          "attempt_id": "5d401a6f696a4b2183537d5ad5606c3f",
+          "stage": "encode_validate",
+          "seconds": 1.786775165
+        }
+      ]
+    },
+    "sampled_resource_budgets": {
+      "status": "pass",
+      "reason": "Sampled scheduler reservations versus declared CPU/RAM/disk limits; not physical utilization or proof between samples.",
+      "usable_snapshots": 1290,
+      "excluded_snapshots": {
+        "stale_or_freshness_unknown": 10
+      },
+      "errors": []
+    },
+    "observed_stage_cpu_budget": {
+      "status": "pass",
+      "reason": "Concurrent stage-declared CPU lanes; event scopes can omit acquire/release margins and are not sampled physical CPU use.",
+      "peak_declared_lanes": 2,
+      "declared_limit": 12
+    },
+    "queued_cancel_not_dispatched": {
+      "status": "pass",
+      "reason": "Only explicitly declared queued-cancel targets are tested; cancellation after dispatch is a different contract.",
+      "jobs": [
+        {
+          "job_id": "bad5f458e5f943f794a357f2e4a7de7c",
+          "status": "pass",
+          "dispatch_observations": 0,
+          "execution_observations": 0
+        }
+      ]
+    },
+    "terminal_job_cleanup": {
+      "status": "pass",
+      "reason": "Terminal API receipts attest attempt-local cleanup; they do not release the model process or cloud VM.",
+      "terminal_receipts": 3,
+      "jobs": 3
+    },
+    "service_process_cleanup": {
+      "status": "pass",
+      "reason": "Matching final service state and process-owner exit, bound to manager_launcher_pid and a recorded process generation; not platform deallocation.",
+      "owner_identity_bound": true
+    },
+    "platform_release": {
+      "status": "pass",
+      "reason": "Separate dated platform observation explicitly bound to this manager lifetime. The analyzer cannot authenticate the external observation or its evidence hash.",
+      "instance_bound": true,
+      "dated_source_observed": true
+    }
+  },
+  "counts": {
+    "pass": 13,
+    "fail": 0,
+    "unknown": 0
+  }
+}

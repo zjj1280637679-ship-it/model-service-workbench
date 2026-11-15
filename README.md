@@ -1,6 +1,6 @@
 # Model Service Workbench
 
-可查询、可控制、可审计的模型服务工程与模块知识库。仓库封装版本 **0.3.0**；当前参考实现为 MiniMax-H3 ref2va API **0.4.0**，配套网页为独立项目 **0.9.0**。
+可查询、可控制、可审计的模型服务工程与模块知识库。仓库封装版本 **0.4.0**；当前参考实现为 MiniMax-H3 ref2va API **0.4.0**，配套网页为独立项目 **0.9.0**。
 
 从同一份契约看四件事：模块的核心能力、对外交互、内部递归组合、对外表达。每个视角分别写清 **主观抽象的需求 → 客观具象的条件 → 主观具象的可选策略 → 客观抽象的可选验证指标**。这四类是不同责任，不是可信度等级，也不能互相替代。
 
@@ -14,6 +14,7 @@
 | 查看真实生成和资源释放证据 | [验证范围](docs/validation.md)、[历史验收摘要](evidence/acceptance-2026-11-15.json) |
 | 复核架构假设与新研究 | [实验方法](docs/research/experimental-method.md)、[物理与经验参照](docs/research/physical-and-empirical-bounds.md)、[研究结果](docs/research/2026-11-15-results.md) |
 | 搜索与验证客观条件集合 | [条件设计](docs/research/objective-condition-sets.md)、[源码条件审查](docs/research/condition-source-audit.md)、[执行结果](docs/research/condition-search-results.md) |
+| 复核执行前条件验证与本轮 A100 闭环 | [运行时条件契约](docs/research/runtime-condition-gates.md)、[0.4.0 实测结果](docs/research/2026-11-15-runtime-condition-results.md) |
 | 修改代码或增加新模型 | [维护入口](AGENTS.md)、[知识索引](knowledge/index.json) |
 
 ## 四个模块
@@ -43,7 +44,11 @@ v0.1.0 建仓阶段只做本地和 CI 的 CPU 验证，没有重新申请 GPU；
 
 ## 使用
 
-0.3.0 新增研究工具：在声明的有限条件空间内搜索所有包含极小充分集合、给出不充分集合的反例，再以来源哈希、实例身份和有效窗口核对历史证据。未知与冲突单列，不能把条件证明当作执行成功。该工具用于审查，尚未接入生产调度；本次不启动 GPU。复核命令为 `python research/run_condition_study.py --output condition-report.json`。
+0.3.0 的离线研究工具在声明的有限条件空间内搜索所有包含极小充分集合、给出不充分集合的反例，再以来源哈希、实例身份和有效窗口核对历史证据。该版本未改动生产调度。复核命令为 `python research/run_condition_study.py --output condition-report.json`。
+
+0.4.0 将已审查的条件契约接入实际派发、容器接纳、资源授予和阶段启动。每个状态所有者在自己的仲裁锁内复验；跨进程由接收方再次确认。未知、冲突和假都不放行，条件判断与执行完成各有回执；独立阶段仍按共享预算并行。实现范围和审计字段见[运行时条件验证](docs/research/runtime-condition-gates.md)。
+
+本版已在 Colab A100 80 GB、原生 BF16 主干与官方 FP32 例外下完成实际闭环：公网 API 在模型未就绪时接纳三个全新内容任务，指定取消一条，另两条自动生成并通过下载哈希及完整解码检查；最后确认服务进程清理与平台会话释放。当前面板布局未改动。运行中为补齐公共 API 的条件回执投射，管理器单独重启过一次 API；这项修正和源码身份保留在[实测报告](docs/research/2026-11-15-runtime-condition-results.md)。正常 GPU 运行没有触发未知/冲突故障，相关拒绝行为由 CPU 反例测试覆盖，不冒充已做 GPU 故障注入。
 
 在 Colab 打开 [自包含笔记本](https://colab.research.google.com/github/zjj1280637679-ship-it/model-service-workbench/blob/main/notebooks/minimax-h3-ref2va.ipynb)，选择 A100 / 高 RAM 后运行唯一启动单元。源码与构建入口均在本仓库；模型权重由运行时按配置下载，不存入 Git。
 

@@ -1,0 +1,43 @@
+{
+  "scope": "Fresh content for condition runtime acceptance; not an acceleration comparison",
+  "parameters": {
+    "seconds": 5,
+    "width": 512,
+    "height": 288,
+    "steps": 5,
+    "acceleration_lora": "lightx2v-ref2va-4step",
+    "attention_backend": "native"
+  },
+  "jobs": [
+    {
+      "name": "plum-kite-dunes",
+      "seed": 204811501,
+      "disposition": "retain",
+      "prompt": "Use [image 1] as the visual reference. A plum-colored diamond kite glides gently above amber sand dunes. Its pale ribbon tail flutters, fine sand drifts along the ridges, and a small ivory desert sculpture remains still. Slow lateral camera movement, calm turquoise sky, coherent illustrated animation.",
+      "reference_file": "assets/plum-kite-dunes.png",
+      "reference_sha256": "46899271de89d0dd324a6138596e254766f1b04f691e629bdefda64fd8d75326",
+      "video_file": "assets/plum-kite-dunes.mp4",
+      "video_sha256": "1825e654447cfc2fa920a7df4ef5520302110c1131749509673bbc195478f935",
+      "video_bytes": 179056
+    },
+    {
+      "name": "porcelain-moon-gardener",
+      "seed": 204811502,
+      "disposition": "retain",
+      "prompt": "Use [image 1] as the visual reference. A small porcelain robot waters a mint-green tree in a terracotta pot on a quiet moon garden. Water droplets sparkle and the rounded leaves sway. The robot tilts its copper watering can, with distant stars behind it. Gentle cinematic push-in, preserve the reference design.",
+      "reference_file": "assets/porcelain-moon-gardener.png",
+      "reference_sha256": "bcb436c0bad9deff0bdaeb35a7a8ec38fcd03211c38812274a6c331b3e9a8a66",
+      "video_file": "assets/porcelain-moon-gardener.mp4",
+      "video_sha256": "cbd91953553a24f9ec59233b735c25d9a282677ae50a9ed23b58988032f1bfd1",
+      "video_bytes": 212600
+    },
+    {
+      "name": "cobalt-seahorse-book",
+      "seed": 204811503,
+      "disposition": "cancel",
+      "prompt": "Use [image 1] as the visual reference. A cobalt seahorse reads an open ochre book in a pale green underwater library. One page turns slowly and tiny bubbles drift upward. Stable storybook composition, soft light.",
+      "reference_file": "assets/cobalt-seahorse-book.png",
+      "reference_sha256": "c7551fa7083704b1f4e075bcdba4b3aa2b3523aa9860e3126c8fe1597953570f"
+    }
+  ]
+}

@@ -30,16 +30,39 @@ import time
 import uuid
 
 from control_protocol import ControlError, make_server
+from condition_guard import evaluate_gate, negate_observation, observation_state
 from download_progress import read_progress
 from pipeline_scheduler import BudgetUnavailable, PipelineBudget
 
 LOG = logging.getLogger("h3.model_container")
 IDENTIFIER = re.compile(r"[a-f0-9]{32}\Z")
 TERMINAL = {"succeeded", "failed", "cancelled"}
+SOURCE_SHA256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+EXECUTE_CONDITIONS = ("instance_matches", "request_validated", "model_loaded", "worker_alive",
+    "capability_available", "not_draining", "not_stopping", "attempt_available", "job_unowned",
+    "artifact_absent", "generation_options_valid", "resources_reserved")
+STAGE_CONDITIONS = ("instance_matches", "attempt_owned", "attempt_live", "model_loaded", "worker_alive",
+    "capability_available", "admission_confirmed", "predecessor_completed", "stage_not_started",
+    "cancel_flag_clear", "cancel_event_clear", "reservation_owned", "budget_grant_held")
 
 
 class ExecutionCancelled(Exception):
     pass
+
+
+class ConditionGateBlocked(RuntimeError):
+    """Missing or contradictory evidence is a failed execution, not cancellation."""
+    pass
+
+
+def _all_observed(values):
+    """Conjoin distinct obligations; a missing obligation is not a spare witness."""
+    states = [observation_state(value) for value in values]
+    if "conflict" in states:
+        return "conflict"
+    if "unknown" in states:
+        return None
+    return all(state == "true" for state in states)
 
 
 def parent_identity(parent_pid):
@@ -144,6 +167,7 @@ class ModelContainer:
         self._sequence = 0
         self._consecutive_failures = 0
         self._worker_cleanup_complete = False
+        self._last_condition_gate = None
         self._ledger_path = self.event_directory / "attempts.sqlite3"
         ledger = sqlite3.connect(self._ledger_path)
         try:
@@ -189,6 +213,28 @@ class ModelContainer:
         except BaseException:
             LOG.exception("Could not persist model event %s", kind)
 
+    def _gate(self, gate_id, required, observations, *, job_id, attempt_id, attempt=None, **context):
+        """Caller owns _lock; persist the decision before permitting its effect."""
+        receipt = evaluate_gate(gate_id, required, observations, {
+            "instance_id": self.instance_id, "job_id": job_id, "attempt_id": attempt_id,
+            "source_file": "model_container.py", "source_sha256": SOURCE_SHA256, **context})
+        self._event("condition.gate", job_id=job_id, attempt_id=attempt_id,
+                    gate_id=gate_id, receipt=receipt)
+        self._last_condition_gate = receipt
+        if attempt is not None:
+            attempt.setdefault("condition_gates", {})[gate_id] = receipt
+        return receipt
+
+    def _capability_observation(self, *, admitted=False):
+        if type(self._phase) is not str:
+            return None
+        allowed = {"ready", "running", "draining"} if admitted else {"ready", "running"}
+        if self._phase in allowed:
+            return True
+        if self._phase in {"loading", "starting", "failed", "stopped", "draining"}:
+            return False
+        return None
+
     def start(self):
         with self._lock:
             if self._worker is not None:
@@ -210,7 +256,7 @@ class ModelContainer:
             alive = self._worker is not None and self._worker.is_alive()
             if self._worker is not None and not alive and self._phase not in {"failed", "stopped"}:
                 self._phase, self._error, self._loaded = "failed", "worker_exited", False
-            ready = self._loaded and alive and self._phase not in {"failed", "stopped", "draining"}
+            ready = self._loaded is True and alive and self._capability_observation() is True
             downloads = read_progress(self.progress_path, expected_instance_id=self.instance_id)
             downloads.update(model_ready=ready, lifecycle=self._phase,
                              observation_stale=bool(downloads.get("observation_stale") or not alive))
@@ -234,13 +280,15 @@ class ModelContainer:
                 result_bytes += size
             return copy.deepcopy({
                 "instance_id": self.instance_id, "phase": self._phase, "ready": ready,
-                "accepting": ready and not self._draining and (
+                "accepting": ready and self._draining is False and self._stop_requested is False and (
                     self._budget.has_capacity() if self._pipeline else active is None),
                 "pipeline": self._pipeline,
                 "downloads": downloads,
                 "budget": self._budget.snapshot() if self._budget else None,
                 "attempts": [{**self._accepted(item), "phase": item.get("stage", item["status"]),
                               "generation_options": item.get("generation_options"),
+                              "condition_gates": item.get("condition_gates", {}),
+                              "stage_completions": item.get("stage_completions", {}),
                               "cancel_requested": item["cancel_requested"]} for item in live],
                 "results": results, "pending_results": len(self._results),
                 "active_job_id": active["job_id"] if active else None,
@@ -251,6 +299,7 @@ class ModelContainer:
                 "worker_cleanup_complete": self._worker_cleanup_complete,
                 "cleanup_scope": "Process exit must be confirmed by the owner before GPU ownership is released",
                 "error": self._error, "observed_at": time.time(), "event_sequence": self._sequence,
+                "last_condition_gate": self._last_condition_gate,
             })
 
     def _check_instance(self, payload, required=False):
@@ -340,7 +389,7 @@ class ModelContainer:
         # state lock while estimating an otherwise unadmitted request.
         resources = None
         with self._lock:
-            estimator = self.backend if self._pipeline and self._loaded and not self._draining else None
+            estimator = self.backend if self._pipeline and self._loaded is True and self._draining is False else None
         if estimator is not None:
             try:
                 resources = estimator.estimate_resources(parameters)
@@ -353,43 +402,91 @@ class ModelContainer:
                 if old["job_id"] != job_id or old["fingerprint"] != fingerprint:
                     raise ControlError("Attempt identity conflict", status=409)
                 return self._accepted(old)
-            if not self.status()["accepting"]:
-                raise ControlError(json.dumps({"guarantees_not_accepted": True,
-                                               "reason": "model_not_accepting"}), status=409)
-            if any(item["job_id"] == job_id for item in self._live_attempts()):
-                raise ControlError("Job already has an active attempt", status=409)
             output = self.root / job_id / "result.mp4"
-            if output.exists() or output.is_symlink():
-                raise ControlError("Job already has an artifact; reconcile before dispatch", status=409)
             validator = getattr(self.backend, "validate_request", None)
+            options_valid = True
             if validator:
                 try:
                     validator(steps=parameters["steps"], **{name: parameters[name]
                         for name in ("attention_backend", "acceleration_lora") if name in parameters})
-                except ValueError as error:
-                    raise ControlError(json.dumps({"guarantees_not_accepted": True,
-                                                   "reason": "invalid_generation_options", "detail": str(error)}), 422) from None
+                except ValueError:
+                    options_valid = False
+            observations = {
+                "instance_matches": payload.get("instance_id") == self.instance_id,
+                "request_validated": True,
+                "model_loaded": self._loaded,
+                "worker_alive": self._worker.is_alive() if self._worker is not None else False,
+                "capability_available": self._capability_observation(),
+                "not_draining": negate_observation(self._draining),
+                "not_stopping": negate_observation(self._stop_requested),
+                "attempt_available": old is None,
+                "job_unowned": not any(item["job_id"] == job_id for item in self._live_attempts()),
+                "artifact_absent": not (output.exists() or output.is_symlink()),
+                "generation_options_valid": options_valid,
+                "resources_reserved": None,
+            }
+            context = {"pipeline": self._pipeline, "budget_scope": "stage_budget" if self._pipeline else "legacy_single_active"}
+            if any(observation_state(value) != "true" for key, value in observations.items() if key != "resources_reserved"):
+                receipt = self._gate("model.execute", EXECUTE_CONDITIONS, observations,
+                    job_id=job_id, attempt_id=attempt_id, **context)
+                raise ControlError(json.dumps({"guarantees_not_accepted": True, "reason": "model_conditions_blocked",
+                    "decision_id": receipt["decision_id"], "blocked": receipt["blocked"]}), 409 if options_valid else 422)
             attempt = {"job_id": job_id, "attempt_id": attempt_id, "instance_id": self.instance_id,
                        "status": "accepted", "cancel_requested": False, "parameters": parameters,
-                       "fingerprint": fingerprint, "accepted_at": time.time()}
+                       "fingerprint": fingerprint, "accepted_at": time.time(), "condition_gates": {},
+                       "stage_started": {"prepare": False, "gpu": False, "encode_validate": False},
+                       "stage_completions": {"prepare": None, "gpu": None, "encode_validate": None}}
+            reserved = False
             if self._pipeline:
                 if resources is None:
+                    receipt = self._gate("model.execute", EXECUTE_CONDITIONS, observations,
+                        job_id=job_id, attempt_id=attempt_id, **context)
                     raise ControlError(json.dumps({"guarantees_not_accepted": True,
-                                                   "reason": "model_not_accepting"}), status=409)
+                                                   "reason": "model_not_accepting", "decision_id": receipt["decision_id"]}), status=409)
                 try:
                     self._budget.reserve(attempt_id, resources)
                 except BudgetUnavailable as error:
-                    raise ControlError(json.dumps({"guarantees_not_accepted": True, "reason": str(error)}),
+                    self._event("reservation.blocked", job_id=job_id, attempt_id=attempt_id,
+                                reservation_witness=self._budget.reservation_witness(attempt_id),
+                                reservation_receipt=self._budget.gate_receipt(attempt_id, "reserve"))
+                    observations["resources_reserved"] = False
+                    receipt = self._gate("model.execute", EXECUTE_CONDITIONS, observations,
+                        job_id=job_id, attempt_id=attempt_id, budget_reason=str(error), **context)
+                    raise ControlError(json.dumps({"guarantees_not_accepted": True, "reason": str(error),
+                                                   "decision_id": receipt["decision_id"]}),
                                        status=507 if error.permanent else 429) from None
+                reserved = True
                 attempt["resources"] = resources
                 attempt["_cancel_event"] = threading.Event()
+            try:
+                witness = self._budget.reservation_witness(attempt_id) if self._pipeline else None
+                if self._pipeline:
+                    self._event("reservation.acquired", job_id=job_id, attempt_id=attempt_id,
+                                reservation_witness=witness,
+                                reservation_receipt=self._budget.gate_receipt(attempt_id, "reserve"))
+                observations["resources_reserved"] = (_all_observed([
+                    witness.get("owned"), witness.get("attempt_id") == attempt_id,
+                    witness.get("budget_instance_id") == self._budget.instance_id,
+                    type(witness.get("reservation_id")) is str and bool(witness["reservation_id"])
+                ]) if witness is not None else self._active is None if not self._pipeline else None)
+                receipt = self._gate("model.execute", EXECUTE_CONDITIONS, observations,
+                    job_id=job_id, attempt_id=attempt_id, attempt=attempt,
+                    budget_instance_id=witness.get("budget_instance_id") if witness else None,
+                    reservation_id=witness.get("reservation_id") if witness else None, **context)
+                if receipt["allowed"] is not True:
+                    raise ControlError(json.dumps({"guarantees_not_accepted": True, "reason": "model_conditions_blocked",
+                        "decision_id": receipt["decision_id"], "blocked": receipt["blocked"]}), 409)
+            except BaseException:
+                if reserved:
+                    self._budget.finish(attempt_id)
+                raise
             self._attempts[attempt_id] = attempt
             if not self._pipeline:
                 self._active = attempt
             self._phase = "running"
             try:
                 self._event("execution.accepted", job_id=job_id, attempt_id=attempt_id,
-                            resources=attempt.get("resources"))
+                            resources=attempt.get("resources"), condition_decision_id=receipt["decision_id"])
                 self._queue.put_nowait(attempt)
             except BaseException:
                 attempt.update(status="failed", error="dispatch_failed")
@@ -419,6 +516,7 @@ class ModelContainer:
                 attempt.update(cancel_requested=True, status="cancel_requested")
                 if "_cancel_event" in attempt:
                     attempt["_cancel_event"].set()
+                    self._budget.set_cancelled(attempt["attempt_id"], True)
             return self._accepted(attempt)
 
     def drain(self, payload=None):
@@ -493,36 +591,106 @@ class ModelContainer:
                 if attempt is not current:
                     attempt["cancel_requested"] = True
                     attempt["_cancel_event"].set()
+                    self._budget.set_cancelled(attempt["attempt_id"], True)
 
     @contextmanager
     def _pipeline_stage(self, attempt, name, lease):
+        if name not in {"prepare", "gpu", "encode_validate"} or lease != ("gpu" if name == "gpu" else "cpu"):
+            raise ValueError("Unknown pipeline stage or resource lease")
         cancellation = attempt["_cancel_event"]
-        with self._budget.stage(attempt["attempt_id"], lease,
-                                cpu_threads=attempt["resources"]["cpu_threads"],
-                                cancelled=cancellation.is_set) as acquired:
-            with self._lock:
-                if not acquired or cancellation.is_set() or self._phase == "failed":
-                    raise ExecutionCancelled()
-                attempt["stage"] = name
-                attempt["status"] = {"prepare": "preparing", "gpu": "gpu_running",
-                                     "encode_validate": "encoding"}[name]
-                stage_resources = dict(attempt["resources"], cpu_threads=(
-                    self._budget.gpu_host_cpu_threads if lease == "gpu" else attempt["resources"]["cpu_threads"]))
-                self._event("stage.started", job_id=attempt["job_id"], attempt_id=attempt["attempt_id"],
-                            stage=name, resources=stage_resources)
-            succeeded = False
-            try:
-                yield
-                succeeded = True
-            except BaseException:
-                # An uncertain CUDA boundary cannot make the device reusable.
-                # Revoke every waiting task before this context releases its lock.
-                if lease == "gpu":
-                    self._revoke_pipeline("gpu_execution_failed", current=attempt)
-                raise
-            finally:
-                self._event("stage.finished", job_id=attempt["job_id"], attempt_id=attempt["attempt_id"],
-                            stage=name, succeeded=succeeded, resources=stage_resources)
+        identity, job_id = attempt["attempt_id"], attempt["job_id"]
+        witness = None
+        # Never hold the model lock while waiting for a budget grant. Budget
+        # callbacks read Event only and never acquire this model's lock.
+        try:
+            with self._budget.stage(identity, lease, cpu_threads=attempt["resources"]["cpu_threads"],
+                                    cancellation_event=cancellation,
+                                    context={"model_instance_id": self.instance_id, "job_id": job_id,
+                                             "stage": name}) as acquired:
+                with self._lock:
+                    witness = self._budget.lease_witness(identity, lease)
+                    reservation = self._budget.reservation_witness(identity)
+                    if witness is not None:
+                        self._event("lease.acquired", job_id=job_id, attempt_id=identity, stage=name,
+                                    lease_id=witness.get("lease_id"), budget_instance_id=witness.get("budget_instance_id"),
+                                    lease_witness=witness)
+                    admission = attempt.get("condition_gates", {}).get("model.execute", {})
+                    admission_context = admission.get("context", {})
+                    previous = {"prepare": None, "gpu": "prepare", "encode_validate": "gpu"}[name]
+                    live_state = attempt.get("status")
+                    live = (None if type(live_state) is not str else False if live_state in TERMINAL else True if live_state in {
+                        "accepted", "preparing", "gpu_wait", "gpu_running", "encoding", "validating", "cancel_requested"} else None)
+                    observations = {
+                        "instance_matches": attempt.get("instance_id") == self.instance_id,
+                        "attempt_owned": (self._attempts.get(identity) is attempt
+                            and admission_context.get("instance_id") == self.instance_id
+                            and admission_context.get("job_id") == job_id and admission_context.get("attempt_id") == identity),
+                        "attempt_live": live, "model_loaded": self._loaded,
+                        "worker_alive": self._worker.is_alive() if self._worker is not None else False,
+                        "capability_available": self._capability_observation(admitted=True),
+                        "admission_confirmed": admission.get("allowed"),
+                        "predecessor_completed": admission.get("allowed") if previous is None else attempt.get("stage_completions", {}).get(previous),
+                        "stage_not_started": negate_observation(attempt.get("stage_started", {}).get(name)),
+                        "cancel_flag_clear": negate_observation(attempt.get("cancel_requested")),
+                        "cancel_event_clear": negate_observation(cancellation.is_set()),
+                        "reservation_owned": _all_observed([
+                            reservation.get("owned"), reservation.get("attempt_id") == identity,
+                            reservation.get("budget_instance_id") == self._budget.instance_id,
+                            type(reservation.get("reservation_id")) is str and bool(reservation["reservation_id"])
+                        ]) if reservation else None,
+                        "budget_grant_held": False if acquired is False else _all_observed([acquired,
+                            witness.get("owned") if witness else (False if acquired is False else None),
+                            witness.get("attempt_id") == identity if witness else None,
+                            witness.get("kind") == lease if witness else None,
+                            witness.get("budget_instance_id") == self._budget.instance_id if witness else None,
+                            witness.get("reservation_id") == reservation.get("reservation_id") if witness and reservation else None]),
+                    }
+                    receipt = self._gate("model.stage." + name, STAGE_CONDITIONS, observations,
+                        job_id=job_id, attempt_id=identity, attempt=attempt, stage=name,
+                        lease_id=witness.get("lease_id") if witness else None,
+                        budget_instance_id=witness.get("budget_instance_id") if witness else None,
+                        budget_decision_id=witness.get("decision_id") if witness else None)
+                    if receipt["allowed"] is not True:
+                        # A confirmed cancellation is distinct from unknown or
+                        # contradictory ownership/capability/precedence evidence.
+                        non_cancel_unknown = any(state in {"unknown", "conflict"} for state in receipt["conditions"].values())
+                        if (not non_cancel_unknown and attempt.get("cancel_requested") is True
+                                and cancellation.is_set() is True):
+                            raise ExecutionCancelled()
+                        raise ConditionGateBlocked("Pipeline stage condition evidence is blocked")
+                    attempt["stage"] = name
+                    attempt["stage_started"][name] = True
+                    attempt["status"] = {"prepare": "preparing", "gpu": "gpu_running", "encode_validate": "encoding"}[name]
+                    stage_resources = dict(attempt["resources"], cpu_threads=(
+                        self._budget.gpu_host_cpu_threads if lease == "gpu" else attempt["resources"]["cpu_threads"]))
+                    event_context = {"condition_decision_id": receipt["decision_id"], "lease_id": witness["lease_id"],
+                                     "budget_instance_id": witness["budget_instance_id"], "lease_witness": witness}
+                    self._event("stage.started", job_id=job_id, attempt_id=identity, stage=name,
+                                resources=stage_resources, **event_context)
+                succeeded = False
+                try:
+                    yield
+                    succeeded = True
+                except BaseException:
+                    if lease == "gpu":
+                        self._revoke_pipeline("gpu_execution_failed", current=attempt)
+                    raise
+                finally:
+                    with self._lock:
+                        # A successfully persisted finish precedes the completion
+                        # witness. An audit failure cannot unlock the next stage.
+                        self._event("stage.finished", job_id=job_id, attempt_id=identity,
+                                    stage=name, succeeded=succeeded, resources=stage_resources, **event_context)
+                        attempt["stage_completions"][name] = succeeded
+        finally:
+            if witness is not None:
+                with self._lock:
+                    released = self._budget.release_witness(witness["lease_id"])
+                    self._event("lease.released", job_id=job_id, attempt_id=identity, stage=name,
+                                lease_id=witness["lease_id"], budget_instance_id=witness["budget_instance_id"],
+                                lease_witness=released)
+                    if released is None:
+                        raise ConditionGateBlocked("Lease release evidence is unavailable")
 
     def _run_pipeline_attempt(self, attempt):
         identity = attempt["attempt_id"]
@@ -573,7 +741,8 @@ class ModelContainer:
             result["status"] = "cancelled"
         except BaseException as error:
             LOG.exception("Pipeline attempt failed: %s/%s", attempt["job_id"], identity)
-            result["error"] = "generation_failed; inspect model log"
+            result["error"] = ("condition_gate_blocked" if isinstance(error, ConditionGateBlocked)
+                               else "generation_failed; inspect model log")
             with self._lock:
                 if not isinstance(error, ValueError):
                     self._consecutive_failures += 1
@@ -584,6 +753,8 @@ class ModelContainer:
             try:
                 if isinstance(attempt.get("generation_options"), dict):
                     result["generation_options"] = copy.deepcopy(attempt["generation_options"])
+                result["condition_gates"] = copy.deepcopy(attempt.get("condition_gates", {}))
+                result["stage_completions"] = copy.deepcopy(attempt.get("stage_completions", {}))
                 # This operation is strictly CPU cleanup; it must not empty the
                 # CUDA cache while the next attempt owns the GPU lease.
                 self.backend.cleanup(prepared=prepared, result=cpu_result)
@@ -817,6 +988,7 @@ class ModelContainer:
                 for attempt in self._live_attempts():
                     attempt["cancel_requested"] = True
                     attempt["_cancel_event"].set()
+                    self._budget.set_cancelled(attempt["attempt_id"], True)
                     self._run_pipeline_attempt(attempt)
             try:
                 backend, self.backend = self.backend, None
@@ -838,7 +1010,8 @@ class ModelContainer:
                 if self._phase != "failed":
                     self._phase = "stopped"
                 self._safe_event("model.worker_exited", phase=self._phase,
-                                 worker_cleanup_complete=self._worker_cleanup_complete)
+                                 worker_cleanup_complete=self._worker_cleanup_complete,
+                                 budget_snapshot=self._budget.snapshot() if self._budget is not None else None)
             self._done.set()
 
     def join(self, timeout=None):

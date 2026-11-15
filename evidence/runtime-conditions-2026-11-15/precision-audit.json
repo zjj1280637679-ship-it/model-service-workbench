@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+  "model_instance_id": "23de982643984911a92c5b2459eded28",
+  "observed_at": 1794705403.2756355,
+  "status": "passed",
+  "scope": "loaded_parameters_only",
+  "source_log_snapshot_sha256": "8ea7a105e8f437f8e5f05b06c46cf92b918bc2c7bb0c41d25dc2dd0a6223f9c3",
+  "source_file": "model_backend.py",
+  "source_sha256": "b6f57ebcaeaa03025a89f56c69555514922032d7ed2d3dc34e88fe2b215126e8",
+  "gpu_query": "NVIDIA A100-SXM4-80GB, 81920, 580.82.07",
+  "python_version": "3.13.16",
+  "interpretation": "Native parameter metadata with upstream FP32 exceptions; not an activation, buffer or kernel arithmetic precision audit.",
+  "components": {
+    "text_encoder": {
+      "component": "text_encoder",
+      "status": "passed",
+      "parameter_counts": {
+        "torch.bfloat16": 33357390064
+      },
+      "tensor_counts": {
+        "torch.bfloat16": 1058
+      },
+      "keep_in_fp32_modules": []
+    },
+    "vae": {
+      "component": "vae",
+      "status": "passed",
+      "parameter_counts": {
+        "torch.bfloat16": 2423232088,
+        "torch.float32": 180636896
+      },
+      "tensor_counts": {
+        "torch.bfloat16": 439,
+        "torch.float32": 264
+      },
+      "keep_in_fp32_modules": [
+        "encoder",
+        "quant_conv",
+        "norm1",
+        "norm2",
+        "norm_out",
+        "scale1",
+        "scale2"
+      ]
+    },
+    "audio_vae": {
+      "component": "audio_vae",
+      "status": "passed",
+      "parameter_counts": {
+        "torch.float32": 151321489
+      },
+      "tensor_counts": {
+        "torch.float32": 832
+      },
+      "keep_in_fp32_modules": [
+        "encoder",
+        "decoder",
+        "pre_block",
+        "dec_in_proj",
+        "mean_proj",
+        "logs_proj"
+      ]
+    },
+    "transformer_ref": {
+      "component": "transformer_ref",
+      "status": "passed",
+      "parameter_counts": {
+        "torch.bfloat16": 33797568768,
+        "torch.float32": 17222144
+      },
+      "tensor_counts": {
+        "torch.bfloat16": 1250,
+        "torch.float32": 12
+      },
+      "keep_in_fp32_modules": [
+        "proj_in",
+        "audio_proj_in",
+        "time_embedder",
+        "proj_out",
+        "audio_proj_out",
+        "rope"
+      ]
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+  "status": "planned_not_a_result",
+  "scope": "One bounded Colab lifetime, one public authenticated API, one model process and one A100 80GB. Recorded before task submission; startup allocation and preflight already observed.",
+  "requirements": [
+    "Owner-local condition evaluation and admission share one arbitration domain; remote acceptance rechecks its own state.",
+    "Unknown or conflicting necessary observations never authorize an effect.",
+    "Independent prepare, GPU and encode/validate work may overlap within budget.",
+    "A terminal task, artifact integrity, service cleanup and platform release require separate evidence."
+  ],
+  "selected_strategy": {
+    "model": "MiniMax-H3 ref2va",
+    "precision": "native BF16 with upstream FP32 exceptions; no quantization",
+    "attention_backend": "native",
+    "acceleration_lora": "lightx2v-ref2va-4step",
+    "steps": 5,
+    "seconds": 5,
+    "width": 512,
+    "height": 288,
+    "jobs": [
+      {"name": "plum-kite-dunes", "disposition": "retain", "seed": 204811501},
+      {"name": "porcelain-moon-gardener", "disposition": "retain", "seed": 204811502},
+      {"name": "cobalt-seahorse-book", "disposition": "cancel_while_queued", "seed": 204811503}
+    ],
+    "submission_precondition": "Observed current public API ready and current model_ready strictly false before each original submission.",
+    "client_deadline_seconds": 2700,
+    "unknown_submission": "Reconcile original persisted job identity; do not resubmit or automatically start another GPU.",
+    "cleanup": "After terminal observations or bounded failure, stop owned service, retain cleanup and no-GPU-process observation, then release Colab runtime and independently observe no active sessions."
+  },
+  "evidence": [
+    "Exact executed source hashes, instance/job/attempt/decision/lease identities and timestamps",
+    "Complete manager/model events plus final bounded budget ledger, with truncation explicitly checked",
+    "Authenticated public health/system queries, reference uploads and durable queue/cancellation responses",
+    "Loaded parameter precision and effective per-task generation options",
+    "Full artifact decode, media shape and downloaded SHA256",
+    "Separate service and platform release receipts"
+  ],
+  "interpretation_limits": [
+    "CPU counterexamples cover unknown/conflict and races without running the full GPU model.",
+    "If no unknown/conflict occurs in this normal GPU run, those branches remain not_exercised, not passed by absence.",
+    "Different fresh content cannot establish acceleration benefit or a latency distribution.",
+    "Stage/lease overlap is not CUDA kernel occupancy; no full-model physical optimum or bandwidth optimum is claimed.",
+    "This protocol is a plan; success must be recorded separately with actual observations."
+  ]
+}

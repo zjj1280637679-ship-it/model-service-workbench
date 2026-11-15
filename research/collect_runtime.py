@@ -25,6 +25,7 @@ MAX_BYTES = 64 * 1024 * 1024
 MAX_RECORDS = 100000
 ID = re.compile(r"[0-9a-f]{32}\Z")
 SOURCE_ALLOWLIST = (
+    "condition_guard.py",
     "adapter_config.py", "client.py", "console.html", "control_protocol.py", "download_progress.py",
     "generation_options.py", "global_manager.py", "lora_preflight.py", "model_backend.py", "model_container.py",
     "notebook_console.py", "notebook_ui.py", "performance_model.py", "pipeline_backend.py", "pipeline_scheduler.py",

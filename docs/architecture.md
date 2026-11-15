@@ -50,6 +50,16 @@ flowchart LR
 
 A 编码与 B GPU、B 预处理与 A GPU可以重叠，但仍受 CPU、RAM、磁盘、设备预算约束。箭头表示真实依赖或资源互斥；不存在“每个阶段全队列做完才到下一阶段”的批次屏障。GPU 租约覆盖 CUDA 同步和 CPU 产物交接，不能因 Python 函数返回就假设异步设备工作已结束。
 
+## 已实现的条件授权边界
+
+当前 [condition_guard.py](../runtime/minimax_h3/condition_guard.py) 对必要条件区分 true、false、unknown、conflict；只有全部为 true 才允许对应动作。管理器在本地取消/派发仲裁和事务内记录 manager.dispatch，容器接收邀约后仍在自己的锁内复验 model.execute，阶段预算在自己的锁内授予租约；跨进程观察没有组成一个全局原子事务。
+
+[model_container.py](../runtime/minimax_h3/model_container.py) 在 prepare、GPU、encode_validate 实际开始前再次核对当前实例/尝试、能力、前序成功、取消与预算见证。阶段工作及等待资源不占用模型控制锁；只有工作成功且完成事件持久化后，stage_completions 才为 True。该顺序保留前述跨任务独立并行，drain 只阻止容器新接纳。
+
+未知或冲突会阻断对应动作并保留 failed / condition_gate_blocked，不把取消意图覆盖成“取消成功”。查询分别投射最近门控、任务执行回执与阶段完成证据；租约获取/释放带身份、容量版本，worker 终结事件保存最终预算快照。有界历史发生截断时仍须保持 unknown，不能由当前占用为零推出整个运行没有超卖。
+
+范围与字段见[运行时条件门控](research/runtime-condition-gates.md)；对应 [manager 反例](../runtime/minimax_h3/test_manager_condition_gates.py)与[容器反例](../runtime/minimax_h3/test_model_condition_gates.py)验证声明的本地轨迹。[0.4.0 A100 实测](research/2026-11-15-runtime-condition-results.md)单独记录新增门控的执行、并行及释放证据；正常 GPU 路径未触发未知/冲突故障，既有实验结论不因此自动扩大。
+
 ## 控制闭环与递归组合
 
 主事件管理器持有 durable job / attempt / command 与实例身份。模型容器持有阶段资源和 GPU 租约。进程所有者持有子进程身份与退出证明。停止、取消和最终清理分别闭环：排队取消在同一仲裁域内阻止派发；已经派发需等可安全取消边界；不确定接收先按原 ID 对账，不重复生成。

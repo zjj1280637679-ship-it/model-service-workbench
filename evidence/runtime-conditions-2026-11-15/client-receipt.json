@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "run_id": "3732565998754d26919f0706b838ebff",
+  "instance_id": "f5d32604aad44ecbaed925602acd4886",
+  "manifest_sha256": "7b8928a16db29de99800db207da21f601bf9356d17264fc5e1e149166e64eb7e",
+  "state": "completed",
+  "started_at": 1794704122.3810604,
+  "updated_at": 1794705338.3316371,
+  "finished_at": 1794705338.3316371,
+  "reason": "retained_artifacts_verified_and_cancelled_job_terminal",
+  "parameters": {
+    "seconds": 5,
+    "width": 512,
+    "height": 288,
+    "steps": 5,
+    "acceleration_lora": "lightx2v-ref2va-4step",
+    "attention_backend": "native"
+  },
+  "cold_queue_precondition": {
+    "model_ready": false,
+    "public_api_ready": true,
+    "observed_at": 1794704123.4894125
+  },
+  "jobs": [
+    {
+      "name": "plum-kite-dunes",
+      "disposition": "retain",
+      "state": "succeeded",
+      "job_id": "0607835d15b64e23b9755e8d61a5dab9",
+      "reference_sha256": "46899271de89d0dd324a6138596e254766f1b04f691e629bdefda64fd8d75326",
+      "submission_http_status": 202,
+      "admission_state": "queued",
+      "attempt_id": "d3542e911c6443d3b2007fb523d14593",
+      "cleanup_complete": true,
+      "pre_submit_observation": {
+        "model_ready": false,
+        "observed_at": 1794704124.1578982
+      },
+      "download": {
+        "verified": true,
+        "state": "verified",
+        "sha256": "1825e654447cfc2fa920a7df4ef5520302110c1131749509673bbc195478f935",
+        "expected_sha256": "1825e654447cfc2fa920a7df4ef5520302110c1131749509673bbc195478f935",
+        "bytes": 179056,
+        "media": {
+          "frames": 124,
+          "fps": 24.0,
+          "width": 512,
+          "height": 288,
+          "audio_channels": 2,
+          "full_decode_passed": true
+        }
+      }
+    },
+    {
+      "name": "porcelain-moon-gardener",
+      "disposition": "retain",
+      "state": "succeeded",
+      "job_id": "5783d0f311be4ddb917fa90392cc2c5c",
+      "reference_sha256": "bcb436c0bad9deff0bdaeb35a7a8ec38fcd03211c38812274a6c331b3e9a8a66",
+      "submission_http_status": 202,
+      "admission_state": "queued",
+      "attempt_id": "5d401a6f696a4b2183537d5ad5606c3f",
+      "cleanup_complete": true,
+      "pre_submit_observation": {
+        "model_ready": false,
+        "observed_at": 1794704132.426653
+      },
+      "download": {
+        "verified": true,
+        "state": "verified",
+        "sha256": "cbd91953553a24f9ec59233b735c25d9a282677ae50a9ed23b58988032f1bfd1",
+        "expected_sha256": "cbd91953553a24f9ec59233b735c25d9a282677ae50a9ed23b58988032f1bfd1",
+        "bytes": 212600,
+        "media": {
+          "frames": 124,
+          "fps": 24.0,
+          "width": 512,
+          "height": 288,
+          "audio_channels": 2,
+          "full_decode_passed": true
+        }
+      }
+    },
+    {
+      "name": "cobalt-seahorse-book",
+      "disposition": "cancel",
+      "state": "cancelled",
+      "job_id": "bad5f458e5f943f794a357f2e4a7de7c",
+      "reference_sha256": "c7551fa7083704b1f4e075bcdba4b3aa2b3523aa9860e3126c8fe1597953570f",
+      "submission_http_status": 202,
+      "admission_state": "queued",
+      "attempt_id": null,
+      "cleanup_complete": true,
+      "cancel_http_status": 202,
+      "pre_submit_observation": {
+        "model_ready": false,
+        "observed_at": 1794704133.3560154
+      },
+      "cancel_intent": {
+        "source": "planned_queued_cancellation",
+        "observed_at": 1794704134.4869053
+      }
+    }
+  ]
+}

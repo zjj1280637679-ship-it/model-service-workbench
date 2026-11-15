@@ -32,6 +32,12 @@ can_start(e,t) = 本事件的当前尝试尚未开始
 
 例如，权重下载完成后应重新检查模型加载的真实前置条件；公网隧道本来就是独立准备分支。可以在同一个决策周期检查它是否已经 ready，但不能因此强迫它等下载后才启动。
 
+当前已在具体所有者中实现这一判据的有限条件集合：[condition_guard.py](../../runtime/minimax_h3/condition_guard.py) 只允许必要条件全部为 true，false、unknown、conflict 均阻断。manager.dispatch 在本地仲裁和事务内检查后发出邀约；[model_container.py](../../runtime/minimax_h3/model_container.py) 收到邀约后重新检查 model.execute，各阶段开始前再检查自己的身份、能力、前序完成、取消与租约。管理器观察允许发邀约，不替代接收端授权，也不构成跨进程全局原子事务。
+
+模型阶段完成证据只在实际成功且完成事件持久化后建立；等待租约与实际计算不持模型控制锁，独立 CPU/GPU 子事件仍可按预算并行。未知或冲突引起的条件失败保留 failed / condition_gate_blocked，管理器另记 cancellation_requested，不把已报告的失败改成取消成功。
+
+查询保留管理器 condition_gates、任务 condition_gate、终态 execution_condition_gates 和 stage_completions；容器另外提供 last_condition_gate、带 decision_id 的授权事件和租约见证。最终 worker 事件保存预算快照，但有界 lease_history 被截断后不能声称覆盖全程。详见[运行时条件门控](../research/runtime-condition-gates.md)；这一新增实现及本地反例证据不改写下文历史 GPU 指标。
+
 ```mermaid
 flowchart TD
   S[宿主创建管理器与本次身份] --> A[启动 API]
@@ -105,6 +111,7 @@ flowchart TD
 ## 实现、历史证据与缺口
 
 - [global_manager.py](../../runtime/minimax_h3/global_manager.py) 与 [test_global_manager.py](../../runtime/minimax_h3/test_global_manager.py)：持久队列、派发/取消仲裁、独立准备、结果确认、实例隔离和最终回执。
+- [condition_guard.py](../../runtime/minimax_h3/condition_guard.py)、[model_container.py](../../runtime/minimax_h3/model_container.py)、[test_condition_guard.py](../../runtime/minimax_h3/test_condition_guard.py)、[test_manager_condition_gates.py](../../runtime/minimax_h3/test_manager_condition_gates.py)、[test_model_condition_gates.py](../../runtime/minimax_h3/test_model_condition_gates.py)：四值授权、本地原子域、跨进程复验与阶段完成/失败的反例覆盖；字段和边界见[实现说明](../research/runtime-condition-gates.md)。
 - [process_owner.py](../../runtime/minimax_h3/process_owner.py) 与 [test_process_owner.py](../../runtime/minimax_h3/test_process_owner.py)：进程所有权、PID 世代和退出观察。
 - [startup.py](../../runtime/minimax_h3/startup.py) 与 [test_startup_delivery.py](../../runtime/minimax_h3/test_startup_delivery.py)：受管启动、交付与清理闭环。
 - [pipeline_scheduler.py](../../runtime/minimax_h3/pipeline_scheduler.py)、[resource_scheduler.py](../../runtime/minimax_h3/resource_scheduler.py)、[performance_model.py](../../runtime/minimax_h3/performance_model.py)：实际阶段预算、参考媒体分配与物理下界的不同范围。

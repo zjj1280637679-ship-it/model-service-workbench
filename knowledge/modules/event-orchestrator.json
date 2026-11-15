@@ -14,6 +14,7 @@
         "API、模型和隧道的活性、就绪与退出由独立探测和 process_owner 观察；进程存活不等于可服务，缺失观察不等于成功。",
         "主结果先持久化，再向模型 ack_results；清理未确认的执行保持租约和所有权，源码与针对性反例测试可定位该顺序。",
         "主队列 job_count_limit 为 null，但上传字节和实际磁盘资源仍约束准入，不能把不设条数上限解释为无限资源。",
+        "condition_guard 的必要条件采用 true/false/unknown/conflict 四值，只有全部 true 才授权；管理器、模型接纳及阶段预算各自在本地所有者原子域内复验并记录带身份的决策。",
         "2026-11-15 新研究封闭批次的接纳账本、终态和清理记录对齐：三项任务中两成功、一排队取消，统一截止复核下主事件完整率为 3/3；该比例不表示长期可靠性。"
       ],
       "strategies": [
@@ -54,6 +55,32 @@
                 "running": 0,
                 "unknown": 0
               }
+            },
+            {
+              "experiment_id": "3732565998754d26919f0706b838ebff",
+              "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+              "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+              "model_instance_id": "23de982643984911a92c5b2459eded28",
+              "window": "Retrospective closed-batch review: first admission 2026-11-15T00:55:24.724426+00:00 through final owner observation 2026-11-15T01:17:19.495141+00:00. This is an analysis cutoff, not a preregistered latency target.",
+              "status": "measured",
+              "value": 1.0,
+              "numerator": 3,
+              "denominator": 3,
+              "evidence": "evidence/runtime-conditions-2026-11-15/trace.json",
+              "corroborating_evidence": [
+                "evidence/runtime-conditions-2026-11-15/analysis.json",
+                "evidence/runtime-conditions-2026-11-15/condition-analysis.json",
+                "evidence/runtime-conditions-2026-11-15/client-receipt.json",
+                "docs/research/2026-11-15-runtime-condition-results.md"
+              ],
+              "scope": "All three admitted jobs at the common final-owner cutoff: two succeeded with downloaded artifact hashes and full decoding verified, one queue-cancelled without a dispatch or model execution, zero running/unknown. Admission, causal stages where applicable, terminal receipts and cleanup reconcile; service exit and platform release remain separate observations. No general reliability inference.",
+              "outcomes": {
+                "succeeded": 2,
+                "cancelled": 1,
+                "failed": 0,
+                "running": 0,
+                "unknown": 0
+              }
             }
           ]
         }
@@ -68,7 +95,8 @@
         "公共任务回执 instance_id 归属管理器，model_instance_id 标识可替换模型；消费结果核对 job_id/attempt_id/model instance。",
         "派发检查当前 ready、accepting 和资源准入；API 本身可查询且接纳开放时，模型未 ready 仍可保持持久排队。",
         "API、模型、隧道是独立准备分支；公网业务可达依赖 API 和隧道探测，但模型权重下载不是隧道启动的前置条件。",
-        "API stop/start 意图和探测 epoch 用于拒绝迟到旧探测；旧观察不能重新发布已停止实例的 ready。"
+        "API stop/start 意图和探测 epoch 用于拒绝迟到旧探测；旧观察不能重新发布已停止实例的 ready。",
+        "manager.dispatch 只授权发出邀约，跨进程接收端仍复验 model.execute 和阶段门控；远程 ready 观察与本地事务不能组成全局原子授权。"
       ],
       "strategies": [
         "选择本地入口或临时公网入口；只在本地使用时不把隧道列为必需能力。",
@@ -108,6 +136,7 @@
       "conditions": [
         "同一任务的取消与派发在同一控制边界仲裁，主结果提交先于模型丢弃；这些顺序不要求独立准备分支串行。",
         "当前固定执行图为 prepare→GPU 与 CPU 交接→encode_validate；多个 running 尝试不表示多个 GPU 所有者。",
+        "每阶段实际开始前复验当前实例/attempt、能力、前序成功、取消与预算租约；工作成功且完成事件持久化后才建立 stage_completions。等待预算与实际计算不占用模型控制锁，跨任务独立阶段仍按共享预算并行。",
         "共享 CPU/GPU/RAM/磁盘约束由真实资源池和预算快照描述；CPU 容量读取 affinity/cgroup，RAM/磁盘是准入估算而非 OS 强制配额。",
         "performance_model.py 保留未知工作量和容量；完整 H3 FLOPs、主机传输及实测带宽尚未全部接入跨任务调度。",
         "新研究的 1083 个有效预算样本未见声明 CPU/RAM/磁盘预算超限；阶段声明 CPU 并发峰值为 2、预算为 12。它们不覆盖采样间隙、全部租约边界或真实物理用量，不能替代共享资源超借总指标。"
@@ -161,6 +190,43 @@
               "value": null,
               "reason": "GPU stage 互斥与 1083 个预算样本不覆盖全部资源的 acquire/release 及容量版本事件；不能把局部未见超限提升为全资源零超借。",
               "evidence": "evidence/research-2026-11-15/analysis.json"
+            },
+            {
+              "experiment_id": "3732565998754d26919f0706b838ebff",
+              "protocol_id": "runtime-conditions-a100-bf16-2026-11-15",
+              "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+              "model_instance_id": "23de982643984911a92c5b2459eded28",
+              "budget_instance_id": "e94817a4d5a74692bea397f3e5f6a8b5",
+              "window": "Complete owner-local lease history for this model lifetime, through model.worker_exited and final owner observation 2026-11-15T01:17:19.495141+00:00. Its 12 endpoints span 2026-11-15T01:03:43.201627+00:00 through 2026-11-15T01:15:25.956510+00:00; the final contiguous history explicitly reports no truncation.",
+              "status": "measured",
+              "value": 0,
+              "evidence": "evidence/runtime-conditions-2026-11-15/condition-analysis.json",
+              "corroborating_evidence": [
+                "evidence/runtime-conditions-2026-11-15/trace.json",
+                "evidence/runtime-conditions-2026-11-15/analysis.json",
+                "evidence/runtime-conditions-2026-11-15/client-receipt.json",
+                "docs/research/2026-11-15-runtime-condition-results.md"
+              ],
+              "scope": "Zero overcommit intervals in the complete declared CPU-lane and exclusive-GPU lease ledger, reconciled by budget/attempt/lease/decision identities and the recorded capacity version. Four CPU leases and two GPU leases have all 12 acquire/release endpoints; peak CPU charge is 2 of 12, GPU leases do not overlap, and no active lease remains. RAM/disk admission estimates and sampled reservations are separate evidence, not a complete physical resource ledger or OS-enforced isolation. This measured zero does not replace the historical unknown or cover unobserved resources and lifetimes.",
+              "resource_scope": [
+                "declared_cpu_threads",
+                "exclusive_gpu_lease"
+              ],
+              "capacity_versions": [
+                "7b603fe986c827a047ac69e7165fb841fab54bef7b765c8c46b6db7425ed85a2"
+              ],
+              "coverage": {
+                "leases": 6,
+                "cpu_leases": 4,
+                "gpu_leases": 2,
+                "endpoint_events": 12,
+                "history_complete": true,
+                "dropped_events": 0,
+                "peak_cpu_lease_charge": 2,
+                "declared_cpu_limit": 12,
+                "final_active_leases": 0
+              },
+              "violation_duration_seconds": 0
             }
           ]
         }
@@ -175,6 +241,8 @@
         "waiting_for 是当前阻塞条件，dispatch_reason 是上次拒绝原因；active_phase 绑定当前执行尝试，二者不能互换。",
         "completed 记录历史结果，ready 表示当前可撤销能力，can_start 还要检查真实依赖、资源、身份和当前策略。",
         "API 可达、主任务终态、产物验证、局部清理、进程退出与平台释放是不同观察者支持的独立命题。",
+        "unknown/conflict 阻断对应动作；condition_gate_blocked 保留 failed，取消意图另记 cancellation_requested，不能覆盖已报告的失败。管理器及任务查询保留 condition_gates/condition_gate、execution_condition_gates 和 stage_completions。",
+        "租约端点带实例、decision_id 和 capacity_version，worker 终结事件保存预算快照；有界 lease_history 的 history_complete/dropped 明示截断，不能把当前零占用投射为全程零超借。",
         "2026-11-15 验收摘要包含最终成功、取消、早期依赖失败与短暂 503；证据表达不应把恢复后的成功改写为零故障历史。"
       ],
       "strategies": [
@@ -210,6 +278,12 @@
   },
   "sources": [
     "runtime/minimax_h3/global_manager.py",
+    "runtime/minimax_h3/condition_guard.py",
+    "runtime/minimax_h3/model_container.py",
+    "runtime/minimax_h3/test_condition_guard.py",
+    "runtime/minimax_h3/test_manager_condition_gates.py",
+    "runtime/minimax_h3/test_model_condition_gates.py",
+    "docs/research/runtime-condition-gates.md",
     "runtime/minimax_h3/process_owner.py",
     "runtime/minimax_h3/startup.py",
     "runtime/minimax_h3/pipeline_scheduler.py",
@@ -225,14 +299,19 @@
     "evidence/research-2026-11-15/client-receipt.json",
     "evidence/research-2026-11-15/timeline.json",
     "evidence/research-2026-11-15/calibration.json",
-    "evidence/research-2026-11-15/finite-model.json"
+    "evidence/research-2026-11-15/finite-model.json",
+    "evidence/runtime-conditions-2026-11-15/trace.json",
+    "evidence/runtime-conditions-2026-11-15/analysis.json",
+    "evidence/runtime-conditions-2026-11-15/condition-analysis.json",
+    "evidence/runtime-conditions-2026-11-15/client-receipt.json",
+    "docs/research/2026-11-15-runtime-condition-results.md"
   ],
   "gaps": [
     "当前是 MiniMax-H3 固定服务树和固定阶段，尚未实现任意 DAG、跨机器一致性或通用多模型公平调度。",
     "部分反馈与超时策略存在，但未证明所有工作负载下的控制稳定性。",
     "全模型工作量、主机传输和带宽未完整标定，不能声称达到全局数学最优或硬件物理极限。",
     "有限 CPU 反例与 GPU 验收路径不构成所有并发轨迹、平台或模型的全称证明。",
-    "本轮虽执行设备微基准，仍缺完整 H3 FLOPs/HBM 流量与全资源容量版本；物理下界差距比和共享资源超借总指标继续 unknown。",
+    "先前架构实验虽执行设备微基准，仍缺完整 H3 FLOPs/HBM 流量与全资源租约/容量事件，其物理下界差距比和共享资源超借观察继续保留 unknown。后续运行时条件实验新增了六租约、十二端点的完整 CPU/GPU 声明账本，本次窗口零超借不回写历史未知，也不证明物理 RAM/磁盘强隔离或全资源全生命周期零超借。",
     "有限模型穷举只在声明模型 tick 与离散调度空间内最优；真实阶段重叠及微基准不证明云推理全局最优。"
   ]
 }

@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "scope": "Finite auditable gate/lease observations for a single model/GPU instance; no causal completeness, live authorization, universal fault tolerance or throughput optimality proof.",
+  "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+  "model_instance_id": "23de982643984911a92c5b2459eded28",
+  "checks": {
+    "complete_base_trace": {
+      "status": "pass",
+      "reason": "Uses unchanged historical identity/sequence/final-owner checks."
+    },
+    "gate_source_bytes": {
+      "status": "pass",
+      "reason": "Recorded source hashes compared with the supplied runtime source tree; not an execution attestation.",
+      "files": {
+        "condition_guard.py": "pass",
+        "global_manager.py": "pass",
+        "model_container.py": "pass",
+        "pipeline_scheduler.py": "pass"
+      }
+    },
+    "gate_receipt_contract": {
+      "status": "pass",
+      "reason": "Known gate contract, required four-valued conditions, strict all-true decision, source, instance and event identities.",
+      "observed_decisions": 19,
+      "errors": [],
+      "missing": []
+    },
+    "effects_have_allowed_gate": {
+      "status": "pass",
+      "reason": "Each observed dispatch, model admission, stage start and budget grant is linked to its own allowed decision before the effect.",
+      "observed_effects": 18,
+      "errors": [],
+      "missing": []
+    },
+    "actual_stage_lease_ownership": {
+      "status": "pass",
+      "reason": "Paired model-persisted lease witnesses cover every recorded stage; GPU leases share one physical model pool. Lease time is not kernel busy time.",
+      "paired_leases": 6,
+      "gpu_leases": 2,
+      "errors": [],
+      "missing": []
+    },
+    "atomic_budget_ledger": {
+      "status": "pass",
+      "reason": "Complete budget-domain event sequence reconciled to model-persisted leases; replayed CPU charges and GPU owner must match each atomic record.",
+      "budget_instances": 1,
+      "observed_leases": 6,
+      "peak_cpu_lease_charge": 2,
+      "errors": [],
+      "missing": []
+    },
+    "existing_stage_overlap": {
+      "status": "pass",
+      "reason": "Positive interval intersection is witnessed by the single model event order. No overlap in a finite workload does not disprove the capability.",
+      "witnessed_overlaps": [
+        {
+          "jobs": [
+            "0607835d15b64e23b9755e8d61a5dab9",
+            "5783d0f311be4ddb917fa90392cc2c5c"
+          ],
+          "stages": [
+            "gpu",
+            "prepare"
+          ]
+        },
+        {
+          "jobs": [
+            "0607835d15b64e23b9755e8d61a5dab9",
+            "5783d0f311be4ddb917fa90392cc2c5c"
+          ],
+          "stages": [
+            "encode_validate",
+            "gpu"
+          ]
+        }
+      ]
+    },
+    "unknown_blocked_without_effect": {
+      "status": "unknown",
+      "reason": "Only this blocked decision is prohibited; a subsequent fresh allowed decision may legitimately progress. Unexercised paths stay unknown.",
+      "observed_blocked_decisions": 0,
+      "effect_violations": []
+    },
+    "conflict_blocked_without_effect": {
+      "status": "unknown",
+      "reason": "Only this blocked decision is prohibited; a subsequent fresh allowed decision may legitimately progress. Unexercised paths stay unknown.",
+      "observed_blocked_decisions": 0,
+      "effect_violations": []
+    }
+  },
+  "counts": {
+    "pass": 7,
+    "fail": 0,
+    "unknown": 2
+  }
+}

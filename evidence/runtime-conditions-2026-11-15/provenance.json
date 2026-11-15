@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "baseline_commit": "de107b151df2e425f25ad37f89e225e0d65aff40",
+  "runtime_changes": "Uncommitted runtime condition gates and ownership receipts; observed runtime source hashes are checked separately.",
+  "runtime_source_match": {
+    "condition_guard.py": true,
+    "adapter_config.py": true,
+    "client.py": true,
+    "console.html": true,
+    "control_protocol.py": true,
+    "download_progress.py": true,
+    "generation_options.py": true,
+    "global_manager.py": true,
+    "lora_preflight.py": true,
+    "model_backend.py": true,
+    "model_container.py": true,
+    "notebook_console.py": true,
+    "notebook_ui.py": true,
+    "performance_model.py": true,
+    "pipeline_backend.py": true,
+    "pipeline_scheduler.py": true,
+    "pipeline_smoke_test.py": true,
+    "preflight.py": true,
+    "process_owner.py": true,
+    "requirements-colab.txt": true,
+    "requirements-lora.txt": true,
+    "requirements.txt": true,
+    "resource_scheduler.py": true,
+    "run.py": true,
+    "runtime_options.py": true,
+    "server.py": true,
+    "smoke_test.py": true,
+    "staged_backend.py": true,
+    "staged_server.py": true,
+    "startup.py": true,
+    "tunnel.py": true
+  },
+  "private_input_sha256": {
+    "trace": "ba99b58ca340f03210ef551423cc5c333b875c5a0854792e6625cf49756782c2",
+    "runtime": "7b70b4fa5a1519db8b535978495b3ed195eb7b0ce0b28c7f3de72ecb7e884381",
+    "client": "dfb1ca2226980c4671a7ef3ab1c6198a53d4c84f154087e1807715b0bead7b4f",
+    "manifest": "7b8928a16db29de99800db207da21f601bf9356d17264fc5e1e149166e64eb7e",
+    "gpu_after_cleanup": "4032936bb73d2246b8eefe219c325d1e4b1c2aa3fa6e22b35be11a2dc3a69d77",
+    "gpu_samples": "da5b0f22685a3e37494e19d7fc1bc95065fb1746311376bb87d91951ea02343f",
+    "api_update": "4bf33adc8693cf12371046cf4149ee25923f945e71587809801933129f03c45a",
+    "api_query": "16811556969a7ba5ccdfc8a5df986d587cf18c709a0680009b22cc69fa791b30",
+    "precision": "f37ed7b19826b6ee1f951c69dde108f343c32ed31db8ff0c1769541d3fc32a91",
+    "platform_release": "3b64a8160e535edab525164a917f254fed7a2012311c6a1bc76d833f89b32b5e"
+  },
+  "analysis_equivalence": {
+    "historical_trace": true,
+    "condition_gates": true
+  },
+  "asset_sha256": {
+    "assets/plum-kite-dunes.png": "46899271de89d0dd324a6138596e254766f1b04f691e629bdefda64fd8d75326",
+    "assets/plum-kite-dunes.mp4": "1825e654447cfc2fa920a7df4ef5520302110c1131749509673bbc195478f935",
+    "assets/porcelain-moon-gardener.png": "bcb436c0bad9deff0bdaeb35a7a8ec38fcd03211c38812274a6c331b3e9a8a66",
+    "assets/porcelain-moon-gardener.mp4": "cbd91953553a24f9ec59233b735c25d9a282677ae50a9ed23b58988032f1bfd1",
+    "assets/cobalt-seahorse-book.png": "c7551fa7083704b1f4e075bcdba4b3aa2b3523aa9860e3126c8fe1597953570f"
+  },
+  "research_source_sha256": {
+    "export_condition_evidence.py": "d55f297f8e52fdded2e6241d2dc12706e272bb994cc9a273b0d0716dce4ff87a",
+    "analyze_trace.py": "60326a0bd582dc12492be0ea99f7b9781b5044738aab0afcf70a5546a4fff689",
+    "analyze_condition_gates.py": "29f22ca030260f230a3eb1391bc3d435e351e2c716b701b5e122b75d445d9774"
+  },
+  "scope": "Explicit public projection of this run only. Byte identities are not execution attestation; exporter performs no new GPU or media decode test. No calibration or finite-model results reused.",
+  "api_query_update": {
+    "initial_server_sha256": "70db435493c80297c3bac12623ff7ed9e3f3c1790d251474f30810c62ad2d487",
+    "replacement_server_sha256": "1b09072374ad9033a770676d52f4c1757d1ce7e9eab4944cafdf7daf30f6d2a7",
+    "gate_source_endpoint_matches": {
+      "condition_guard.py": true,
+      "global_manager.py": true,
+      "model_container.py": true,
+      "pipeline_scheduler.py": true
+    },
+    "recorded_phase": "completed",
+    "scope": "Two recorded source/instance observations around managed API replacement; unchanged endpoint hashes do not attest every intermediate memory state.",
+    "evidence_file": "api-query-update.json"
+  },
+  "api_query_observation": {
+    "evidence_file": "api-query-observation.json",
+    "job_id": "0607835d15b64e23b9755e8d61a5dab9",
+    "recorded_status": "running",
+    "scope": "Historical single-job HTTP response in this lifetime; state may precede final completion. No endpoint or credential published."
+  },
+  "parameter_precision_audit": {
+    "evidence_file": "precision-audit.json",
+    "status": "passed",
+    "scope": "loaded_parameters_only",
+    "source_log_snapshot_sha256": "8ea7a105e8f437f8e5f05b06c46cf92b918bc2c7bb0c41d25dc2dd0a6223f9c3",
+    "interpretation": "Reported loaded native parameter metadata and upstream FP32 exceptions only; activation, buffer and kernel arithmetic precision are unmeasured."
+  },
+  "platform_time_representation": {
+    "original_observed_at": "2026-11-15T01:20:30.703Z",
+    "trace_observed_at_epoch_seconds": 1794705630.703,
+    "scope": "Exact timezone-aware representation conversion of the original platform observation; no new observation or clock estimate."
+  }
+}

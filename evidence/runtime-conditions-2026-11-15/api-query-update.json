@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "phase": "completed",
+  "started_at": 1794704587.7890294,
+  "finished_at": 1794704605.732671,
+  "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+  "model_instance_id": "23de982643984911a92c5b2459eded28",
+  "model_pid_before": 1461,
+  "model_pid_after": 1461,
+  "api_pid_before": 1460,
+  "api_pid_after": 15371,
+  "source_file": "server.py",
+  "before_sha256": "70db435493c80297c3bac12623ff7ed9e3f3c1790d251474f30810c62ad2d487",
+  "after_sha256": "1b09072374ad9033a770676d52f4c1757d1ce7e9eab4944cafdf7daf30f6d2a7",
+  "reason": "Expose durable condition receipts on public single-job queries",
+  "public_api_ready": true,
+  "model_identity_preserved": true,
+  "manager_identity_preserved": true,
+  "job_identities_preserved": true,
+  "gate_sources_preserved": true,
+  "commands": [
+    {
+      "command_id": "condition-query-stop_api-f5d32604aad44ecbaed925602acd4886",
+      "action": "stop_api",
+      "status": "succeeded",
+      "created_at": 1794704587.8077958,
+      "finished_at": 1794704601.8270075,
+      "error": null
+    },
+    {
+      "command_id": "condition-query-start_api-f5d32604aad44ecbaed925602acd4886",
+      "action": "start_api",
+      "status": "succeeded",
+      "created_at": 1794704602.3683872,
+      "finished_at": 1794704602.3903217,
+      "error": null
+    }
+  ],
+  "gate_source_sha256_before": {
+    "condition_guard.py": "1942c6d3da8ed9f7d4cddae93163f74b04c4d77e935814efc31144ce75f38339",
+    "global_manager.py": "0cc8928ea5dd0509c9dd4c751eb0db6d19d3757fa0940ee09a45e58818c37607",
+    "model_container.py": "209c42762f684d58b704dc1b813c507d27be09a3c74c9899696565e57a5640b8",
+    "pipeline_scheduler.py": "24d6119962f94632e0f651017ecb0b567c271f07533e33a2b0557f35219c19f7"
+  },
+  "gate_source_sha256_after": {
+    "condition_guard.py": "1942c6d3da8ed9f7d4cddae93163f74b04c4d77e935814efc31144ce75f38339",
+    "global_manager.py": "0cc8928ea5dd0509c9dd4c751eb0db6d19d3757fa0940ee09a45e58818c37607",
+    "model_container.py": "209c42762f684d58b704dc1b813c507d27be09a3c74c9899696565e57a5640b8",
+    "pipeline_scheduler.py": "24d6119962f94632e0f651017ecb0b567c271f07533e33a2b0557f35219c19f7"
+  },
+  "job_ids_before": [
+    "0607835d15b64e23b9755e8d61a5dab9",
+    "5783d0f311be4ddb917fa90392cc2c5c",
+    "bad5f458e5f943f794a357f2e4a7de7c"
+  ],
+  "job_ids_after": [
+    "0607835d15b64e23b9755e8d61a5dab9",
+    "5783d0f311be4ddb917fa90392cc2c5c",
+    "bad5f458e5f943f794a357f2e4a7de7c"
+  ]
+}

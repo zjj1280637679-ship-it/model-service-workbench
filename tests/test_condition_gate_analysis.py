@@ -1,0 +1,307 @@
+"""Counterexamples for offline gate and actual lease receipt analysis."""
+from copy import deepcopy
+import hashlib
+import importlib.util
+from pathlib import Path
+
+import pytest
+
+
+def load(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+ROOT = Path(__file__).resolve().parents[1]
+analyzer = load("condition_gate_analysis_test", ROOT / "research/analyze_condition_gates.py")
+baseline = load("condition_gate_baseline_fixture", ROOT / "tests/test_research_trace.py")
+
+
+def fixture(tmp_path):
+    trace = baseline.example()
+    hashes = {}
+    for name in ("condition_guard.py", "global_manager.py", "model_container.py", "pipeline_scheduler.py"):
+        path = tmp_path / name
+        path.write_text("synthetic receipt source: " + name, encoding="utf-8")
+        hashes[name] = hashlib.sha256(path.read_bytes()).hexdigest()
+    trace["runtime_source_identity"] = {"files": {name: {"sha256": digest} for name, digest in hashes.items()}}
+    decisions, lease_ids, ledger_pairs = {}, {}, []
+    def receipt(gate, job, stamp, decision=None):
+        source, required = analyzer.CONTRACTS[gate]
+        context = {"job_id": job, "attempt_id": job + "-attempt", "source_file": source, "source_sha256": hashes[source]}
+        if gate.startswith("manager."):
+            context.update(manager_instance_id="manager-1", model_instance_id="model-1")
+        elif gate.startswith("model."):
+            context["instance_id"] = "model-1"
+        else:
+            context.update(budget_instance_id="budget-1", capacity_version="capacity-1", model_instance_id="model-1",
+                           reservation_id=job + "-reservation", resource_kind=gate.removeprefix("pipeline."))
+        result = {"schema_version": "1.0", "gate_version": "1.0", "gate_id": gate,
+                  "decision_id": decision or f"{gate}-{job}-{stamp}", "observed_at": 100 + stamp / 1e9,
+                  "monotonic_ns": stamp, "context": context,
+                  "conditions": {name: "true" for name in required}, "allowed": True, "blocked": []}
+        return result
+    def event(kind, job, stamp, **data):
+        return {"type": kind, "event_id": f"{kind}-{job}-{stamp}", "instance_id": "model-1", "job_id": job,
+                "attempt_id": job + "-attempt" if job else None, "monotonic_ns": stamp,
+                "observed_at": 100 + stamp / 1e9, **data}
+    rows = []
+    for original in trace["model_events"]:
+        kind, job, stage = original["type"], original.get("job_id"), original.get("stage")
+        stamp = original["monotonic_ns"]
+        if kind == "execution.accepted":
+            reserve = receipt("pipeline.reserve", job, stamp - 30_000_000)
+            rows.append(event("reservation.acquired", job, stamp - 20_000_000, reservation_receipt=reserve,
+                reservation_witness={"owned": True, "budget_instance_id": "budget-1", "attempt_id": job + "-attempt", "reservation_id": job + "-reservation"}))
+            admission = receipt("model.execute", job, stamp - 10_000_000)
+            admission["context"].update(budget_instance_id="budget-1", reservation_id=job + "-reservation")
+            rows.append(event("condition.gate", job, stamp - 5_000_000, receipt=admission))
+            original["condition_decision_id"] = admission["decision_id"]
+        elif kind == "stage.started":
+            resource = "gpu" if stage == "gpu" else "cpu"
+            grant = receipt("pipeline.stage." + resource, job, stamp - 40_000_000)
+            lease = {"owned": True, "lease_id": f"lease-{job}-{stage}", "attempt_id": job + "-attempt", "kind": resource,
+                "budget_instance_id": "budget-1", "reservation_id": job + "-reservation", "cpu_threads": 1,
+                "capacity_version": "capacity-1", "decision_id": grant["decision_id"], "grant_receipt": grant,
+                "granted_at": 100 + (stamp - 30_000_000) / 1e9, "granted_monotonic_ns": stamp - 30_000_000}
+            lease_ids[(job, stage)] = lease
+            ledger_pairs.append(("lease.acquired", deepcopy(lease), stamp - 29_000_000))
+            rows.append(event("lease.acquired", job, stamp - 20_000_000, lease_witness=deepcopy(lease)))
+            decision = receipt("model.stage." + stage, job, stamp - 10_000_000)
+            decision["context"].update(stage=stage, lease_id=lease["lease_id"], budget_instance_id="budget-1", budget_decision_id=lease["decision_id"])
+            decisions[(job, stage)] = decision["decision_id"]
+            rows.append(event("condition.gate", job, stamp - 5_000_000, receipt=decision))
+            original.update(condition_decision_id=decision["decision_id"], lease_id=lease["lease_id"],
+                            budget_instance_id="budget-1", lease_witness=deepcopy(lease))
+        elif kind == "stage.finished":
+            lease = lease_ids[(job, stage)]
+            original.update(condition_decision_id=decisions[(job, stage)], lease_id=lease["lease_id"],
+                            budget_instance_id="budget-1", lease_witness=deepcopy(lease))
+        rows.append(original)
+        if kind == "stage.finished":
+            release = {**lease, "owned": False, "released_monotonic_ns": stamp + 10_000_000,
+                       "released_at": 100 + (stamp + 10_000_000) / 1e9}
+            rows.append(event("lease.released", job, stamp + 20_000_000, lease_witness=deepcopy(release)))
+            ledger_pairs.append(("lease.released", deepcopy(release), stamp + 11_000_000))
+    trace["model_events"] = rows
+    manager = []
+    for original in trace["manager_events"]:
+        stamp = original["sequence"] * 1_000_000_000
+        original["monotonic_ns"] = stamp
+        if original["type"] == "job.dispatch_accepted":
+            job = original["job_id"]
+            gate = receipt("manager.dispatch", job, stamp - 20_000_000)
+            manager.append({"instance_id": "manager-1", "event_id": "manager-gate-" + job,
+                "type": "condition.checked", "job_id": job, "attempt_id": None,
+                "monotonic_ns": stamp - 10_000_000, "observed_at": 100, "data": {"receipt": gate}})
+            manager.append({"instance_id": "manager-1", "event_id": "dispatch-intent-" + job,
+                "type": "job.dispatch_intent", "job_id": job, "attempt_id": job + "-attempt",
+                "monotonic_ns": stamp - 5_000_000, "observed_at": 100,
+                "data": {"condition_decision_id": gate["decision_id"]}})
+        manager.append(original)
+    trace["manager_events"] = manager
+    ledger, cpu, gpu = [], 0, None
+    for kind, lease, stamp in sorted(ledger_pairs, key=lambda value: value[2]):
+        cpu += 1 if kind == "lease.acquired" else -1
+        if lease["kind"] == "gpu":
+            gpu = lease["attempt_id"] if kind == "lease.acquired" else None
+        row = {key: lease[key] for key in ("lease_id", "budget_instance_id", "attempt_id", "kind", "cpu_threads", "capacity_version", "decision_id", "reservation_id")}
+        row.update(event_id=f"budget-event-{len(ledger)+1}", sequence=len(ledger)+1, type=kind,
+                   monotonic_ns=stamp, observed_at=100 + stamp / 1e9, cpu_threads_in_use=cpu,
+                   gpu_attempt_id=gpu, limits={"cpu_threads": 4, "ram_bytes": 100, "disk_bytes": 100})
+        ledger.append(row)
+    budget = trace["system_snapshots"][0]["modules"]["model"]["budget"]
+    budget.update(budget_instance_id="budget-1", active_leases=[],
+                  lease_history={"events": ledger, "count": len(ledger), "capacity": 512, "dropped": 0, "history_complete": True})
+    trace["model_events"][-1]["budget_snapshot"] = deepcopy(budget)
+    for stream in ("model", "manager"):
+        for sequence, row in enumerate(trace[stream + "_events"], 1):
+            row["sequence"] = sequence
+        trace["collection"][stream + "_event_sequence_final"] = len(trace[stream + "_events"])
+    return trace
+
+
+def check(trace, tmp_path, name):
+    return analyzer.analyze(trace, tmp_path)["checks"][name]
+
+
+def receipts(trace):
+    return [event["receipt"] for event in trace["model_events"] if event["type"] == "condition.gate"]
+
+
+def test_complete_gated_trace_passes_positive_checks_but_unexercised_rejections_are_unknown(tmp_path):
+    result = analyzer.analyze(fixture(tmp_path), tmp_path)
+    assert result["counts"] == {"pass": 7, "fail": 0, "unknown": 2}
+    assert result["checks"]["unknown_blocked_without_effect"]["observed_blocked_decisions"] == 0
+    assert result["checks"]["actual_stage_lease_ownership"]["paired_leases"] == 6
+    assert result["checks"]["atomic_budget_ledger"]["observed_leases"] == 6
+
+
+@pytest.mark.parametrize("state", ["unknown", "conflict", "false"])
+def test_allowed_decision_must_not_hide_a_nontrue_condition(tmp_path, state):
+    trace = fixture(tmp_path)
+    receipts(trace)[0]["conditions"]["model_loaded"] = state
+    assert check(trace, tmp_path, "gate_receipt_contract")["status"] == "fail"
+
+
+def test_empty_conditions_cannot_prove_allowance(tmp_path):
+    trace = fixture(tmp_path)
+    receipts(trace)[0]["conditions"] = {}
+    assert check(trace, tmp_path, "gate_receipt_contract")["status"] == "fail"
+
+
+@pytest.mark.parametrize("field", ["source_sha256", "attempt_id"])
+def test_missing_source_or_attempt_evidence_stays_unknown(tmp_path, field):
+    trace = fixture(tmp_path)
+    receipts(trace)[0]["context"].pop(field)
+    result = analyzer.analyze(trace, tmp_path)
+    assert result["counts"]["pass"] < 7
+    assert result["checks"]["effects_have_allowed_gate"]["status"] != "pass"
+
+
+def test_changed_source_file_cannot_match_old_runtime_receipt(tmp_path):
+    trace = fixture(tmp_path)
+    (tmp_path / "condition_guard.py").write_text("changed", encoding="utf-8")
+    assert check(trace, tmp_path, "gate_source_bytes")["status"] == "fail"
+    assert check(trace, tmp_path, "effects_have_allowed_gate")["status"] == "unknown"
+
+
+def test_source_receipt_hash_must_match_manifest(tmp_path):
+    trace = fixture(tmp_path)
+    receipts(trace)[0]["context"]["source_sha256"] = "0" * 64
+    assert check(trace, tmp_path, "gate_receipt_contract")["status"] == "fail"
+
+
+def test_effect_cannot_reference_another_attempts_gate(tmp_path):
+    trace = fixture(tmp_path)
+    accepted = [event for event in trace["model_events"] if event["type"] == "execution.accepted"]
+    accepted[1]["condition_decision_id"] = accepted[0]["condition_decision_id"]
+    assert check(trace, tmp_path, "effects_have_allowed_gate")["status"] == "fail"
+
+
+def test_effect_before_persisted_gate_is_rejected(tmp_path):
+    trace = fixture(tmp_path)
+    gate = next(event for event in trace["model_events"] if event["type"] == "condition.gate")
+    effect = next(event for event in trace["model_events"] if event["type"] == "execution.accepted")
+    gate["sequence"], effect["sequence"] = effect["sequence"], gate["sequence"]
+    assert check(trace, tmp_path, "effects_have_allowed_gate")["status"] == "fail"
+
+
+def add_blocked(trace, state):
+    first = next(event for event in trace["manager_events"] if event["type"] == "condition.checked")
+    blocked = deepcopy(first)
+    blocked["event_id"] = "manager-blocked-" + state
+    blocked["monotonic_ns"] -= 1_000_000
+    receipt = blocked["data"]["receipt"]
+    receipt["decision_id"] = "blocked-" + state
+    receipt["monotonic_ns"] -= 1_000_000
+    receipt["conditions"]["model_ready"] = state
+    receipt.update(allowed=False, blocked=["model_ready"])
+    trace["manager_events"].insert(trace["manager_events"].index(first), blocked)
+    for sequence, event in enumerate(trace["manager_events"], 1):
+        event["sequence"] = sequence
+    trace["collection"]["manager_event_sequence_final"] = len(trace["manager_events"])
+    return receipt
+
+
+@pytest.mark.parametrize("state", ["unknown", "conflict"])
+def test_blocked_then_new_allowed_decision_is_valid_progress(tmp_path, state):
+    trace = fixture(tmp_path)
+    add_blocked(trace, state)
+    assert check(trace, tmp_path, state + "_blocked_without_effect")["status"] == "pass"
+    assert check(trace, tmp_path, "effects_have_allowed_gate")["status"] == "pass"
+
+
+@pytest.mark.parametrize("state", ["unknown", "conflict"])
+def test_same_blocked_decision_cannot_authorize_dispatch(tmp_path, state):
+    trace = fixture(tmp_path)
+    gate = add_blocked(trace, state)
+    effect = next(event for event in trace["manager_events"] if event["type"] == "job.dispatch_intent")
+    effect["data"]["condition_decision_id"] = gate["decision_id"]
+    assert check(trace, tmp_path, state + "_blocked_without_effect")["status"] == "fail"
+
+
+def test_partial_stream_does_not_prove_no_blocked_effect(tmp_path):
+    trace = fixture(tmp_path)
+    add_blocked(trace, "unknown")
+    trace["collection"]["manager_events_complete"] = False
+    assert check(trace, tmp_path, "unknown_blocked_without_effect")["status"] == "unknown"
+
+
+def test_stage_after_release_is_not_owned(tmp_path):
+    trace = fixture(tmp_path)
+    stage = next(event for event in trace["model_events"] if event["type"] == "stage.finished")
+    release = next(event for event in trace["model_events"] if event["type"] == "lease.released")
+    release["lease_witness"]["released_monotonic_ns"] = stage["monotonic_ns"] - 1
+    assert check(trace, tmp_path, "actual_stage_lease_ownership")["status"] == "fail"
+
+
+def test_stage_cannot_borrow_another_jobs_lease(tmp_path):
+    trace = fixture(tmp_path)
+    stages = [event for event in trace["model_events"] if event["type"] == "stage.started" and event["stage"] == "gpu"]
+    stages[1]["lease_id"] = stages[0]["lease_id"]
+    assert check(trace, tmp_path, "actual_stage_lease_ownership")["status"] == "fail"
+
+
+def test_missing_release_is_unknown_not_assumed_success(tmp_path):
+    trace = fixture(tmp_path)
+    index = next(index for index, event in enumerate(trace["model_events"]) if event["type"] == "lease.released")
+    trace["model_events"].pop(index)
+    assert check(trace, tmp_path, "actual_stage_lease_ownership")["status"] == "unknown"
+
+
+def test_periodic_samples_cannot_replace_final_budget_history(tmp_path):
+    trace = fixture(tmp_path)
+    trace["model_events"][-1].pop("budget_snapshot")
+    assert check(trace, tmp_path, "atomic_budget_ledger")["status"] == "unknown"
+
+
+def test_truncated_final_budget_history_cannot_prove_lease_coverage(tmp_path):
+    trace = fixture(tmp_path)
+    history = trace["model_events"][-1]["budget_snapshot"]["lease_history"]
+    history.update(history_complete=False, dropped=1)
+    history["events"].pop(0)
+    assert check(trace, tmp_path, "atomic_budget_ledger")["status"] == "unknown"
+
+
+def test_final_budget_cannot_keep_active_leases(tmp_path):
+    trace = fixture(tmp_path)
+    trace["model_events"][-1]["budget_snapshot"]["active_leases"] = [{"lease_id": "orphan"}]
+    assert check(trace, tmp_path, "atomic_budget_ledger")["status"] == "fail"
+
+
+def test_ledger_reported_cpu_count_cannot_disagree_with_real_grants(tmp_path):
+    trace = fixture(tmp_path)
+    trace["model_events"][-1]["budget_snapshot"]["lease_history"]["events"][0]["cpu_threads_in_use"] = 0
+    assert check(trace, tmp_path, "atomic_budget_ledger")["status"] == "fail"
+
+
+def test_budget_ledger_event_identity_must_be_unique(tmp_path):
+    trace = fixture(tmp_path)
+    ledger = trace["model_events"][-1]["budget_snapshot"]["lease_history"]["events"]
+    ledger[1]["event_id"] = ledger[0]["event_id"]
+    assert check(trace, tmp_path, "atomic_budget_ledger")["status"] == "fail"
+
+
+def test_missing_reservation_event_cannot_be_inferred_from_all_true_gate(tmp_path):
+    trace = fixture(tmp_path)
+    trace["model_events"] = [event for event in trace["model_events"] if event["type"] != "reservation.acquired"]
+    for sequence, event in enumerate(trace["model_events"], 1):
+        event["sequence"] = sequence
+    trace["collection"]["model_event_sequence_final"] = len(trace["model_events"])
+    assert check(trace, tmp_path, "effects_have_allowed_gate")["status"] == "unknown"
+
+
+def test_admission_cannot_borrow_another_reservation_id(tmp_path):
+    trace = fixture(tmp_path)
+    receipts(trace)[0]["context"]["reservation_id"] = "other-reservation"
+    assert check(trace, tmp_path, "effects_have_allowed_gate")["status"] == "fail"
+
+
+def test_stage_finish_cannot_change_the_gate_identity(tmp_path):
+    trace = fixture(tmp_path)
+    end = next(event for event in trace["model_events"] if event["type"] == "stage.finished")
+    end["condition_decision_id"] = "different-decision"
+    assert check(trace, tmp_path, "actual_stage_lease_ownership")["status"] == "fail"

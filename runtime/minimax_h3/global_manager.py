@@ -26,6 +26,7 @@ from control_protocol import ControlError, make_server, rpc_call
 from process_owner import ProcessOwner, stop_many
 from generation_options import requested_options, validate_generation_options
 from adapter_config import load_adapter_settings
+from condition_guard import evaluate_gate
 
 LOG = logging.getLogger("h3_manager")
 TERMINAL = {"succeeded", "failed", "cancelled"}
@@ -33,6 +34,10 @@ NONTERMINAL = {"queued", "running", "cancel_requested"}
 IDENTIFIER = re.compile(r"[a-f0-9]{32}")
 DRIVE_FILE_ID = re.compile(r"[A-Za-z0-9_-]{1,128}")
 SHA256 = re.compile(r"[a-f0-9]{64}")
+GATE_SOURCE_SHA256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+DISPATCH_CONDITIONS = ("manager_open", "job_queued", "attempt_unassigned", "model_identity_current",
+                       "model_observation_fresh", "model_process_alive", "model_ready", "worker_alive",
+                       "worker_accepting", "supervisor_alive")
 
 
 class RootLock:
@@ -158,6 +163,8 @@ class GlobalManager:
         self._error = None
         self._cleanup_errors = []
         self._signature = None
+        self._condition_gates = {}
+        self._dispatch_gate_signature = None
         self._export_sequence = 0
         self._background = False
         self._ever_ready = False
@@ -313,6 +320,7 @@ class GlobalManager:
                       "observed_at": time.time(), "observation_age_seconds": round(age, 3) if age is not None else None,
                       "observation_stale": stale, "supervisor_alive": supervised,
                       "process_observation_errors": process_errors, "draining": self._draining,
+                      "condition_gates": deepcopy(self._condition_gates),
                       "queue": self._queue_summary(),
                       "owned_processes": {name: owner.observe() for name, owner in self.owners.items()},
                       "state_path": str(self.state_path), "events_path": str(self.events_path),
@@ -657,7 +665,8 @@ class GlobalManager:
                     self._event("job.cleanup_pending", job=job)
                     continue  # Retain ownership until process exit is confirmed.
                 target, artifact = result["status"], result.get("artifact")
-                if job["status"] == "cancel_requested":
+                cancellation_requested = job["status"] == "cancel_requested"
+                if cancellation_requested and target != "failed":
                     target, artifact = "cancelled", None
                 elif target == "succeeded":
                     artifact = self._verified_artifact(job["job_id"], artifact)
@@ -667,6 +676,9 @@ class GlobalManager:
                 self._transition(job, target, artifact=artifact if target == "succeeded" else None,
                                  error=None if target == "succeeded" else result.get("error") or "result_not_committed",
                                  metrics=result.get("metrics"), finished_at=time.time(), cleanup_complete=cleaned,
+                                 cancellation_requested=cancellation_requested,
+                                 execution_condition_gates=deepcopy(result.get("condition_gates")),
+                                 stage_completions=deepcopy(result.get("stage_completions")),
                                  generation_options=result.get("generation_options") or job.get("generation_options"),
                                  cleanup_errors=cleanup_errors, model_lease_released=True, dispatch_state="completed")
                 acknowledgements.append(job["attempt_id"])
@@ -701,11 +713,51 @@ class GlobalManager:
         except (KeyError, OSError, TypeError, ValueError):
             return None
 
+    def _dispatch_gate(self, model, job, attempt_id):
+        """Called only in the dispatch/cancel arbitration and state transaction.
+
+        The remote observation permits an offer, not remote execution. Container
+        admission and resource ownership are revalidated by their own owners.
+        """
+        model = model if isinstance(model, dict) else {}
+        alive, errors = self._liveness()
+        age = self._clock() - self._last_observation if self._last_observation is not None else None
+        bound = 3 * self.probe_timeout + self.poll_interval + 2
+        identity = self.model_instance_id
+        identities = (identity, model.get("instance_id"), self._model.get("instance_id"))
+        current_identity = (all(value == identity for value in identities)
+                            if all(isinstance(value, str) and value for value in identities) else None)
+        def capability(field):
+            witnesses = [model.get(field), self._model.get(field)]
+            # Missing or malformed fresh evidence cannot borrow a previous True.
+            return witnesses if all(type(value) is bool for value in witnesses) else None
+        observations = {
+            # Draining closes new admission; the already-owned queue still drains.
+            "manager_open": self._shutdown_started is False and self._model_failure is None,
+            "job_queued": job.get("status") == "queued", "attempt_unassigned": job.get("attempt_id") is None,
+            "model_identity_current": current_identity,
+            "model_observation_fresh": None if age is None else 0 <= age <= bound,
+            "model_process_alive": None if "model" in errors else alive.get("model"),
+            "model_ready": capability("ready"),
+            "worker_alive": capability("worker_alive"),
+            "worker_accepting": capability("accepting"),
+            "supervisor_alive": not self._background or (self._thread is not None and self._thread.is_alive()),
+        }
+        receipt = evaluate_gate("manager.dispatch", DISPATCH_CONDITIONS, observations,
+            {"manager_instance_id": self.instance_id, "model_instance_id": identity, "job_id": job["job_id"],
+             "attempt_id": attempt_id, "source_file": "global_manager.py", "source_sha256": GATE_SOURCE_SHA256})
+        # Commit every positive authorization; coalesce unchanged blocked polls.
+        signature = json.dumps({"job_id": job["job_id"], "model_instance_id": identity,
+                                "conditions": receipt["conditions"]}, sort_keys=True)
+        if receipt["allowed"] or signature != self._dispatch_gate_signature:
+            self._dispatch_gate_signature = signature
+            self._condition_gates["manager.dispatch"] = receipt
+            job["condition_gate"] = receipt
+            self._store_job(job)
+            self._event("condition.checked", job=job, data={"receipt": receipt})
+        return receipt
+
     def _dispatch_next(self, model):
-        # A download/process/progress signal is not an execution capability.
-        # Only the container's explicit ready acknowledgement opens dispatch.
-        if any(model.get(field) is not True for field in ("ready", "accepting", "worker_alive")):
-            return
         with self._control_lock:
             deadline = time.monotonic() + max(.01, min(.25, self.poll_interval))
             while not self._shutdown_started and not self._model_failure:
@@ -714,10 +766,14 @@ class GlobalManager:
                     if not row:
                         return
                     job = json.loads(row[0])
-                    self._transition(job, "running", attempt_id=uuid.uuid4().hex,
+                    prospective_attempt = uuid.uuid4().hex
+                    receipt = self._dispatch_gate(model, job, prospective_attempt)
+                    if receipt["allowed"] is not True:
+                        return
+                    self._transition(job, "running", attempt_id=prospective_attempt,
                                      model_instance_id=self.model_instance_id, started_at=time.time(), cleanup_complete=False,
                                      model_lease_released=False, dispatch_state="offering", dispatch_reason=None)
-                    self._event("job.dispatch_intent", job=job)
+                    self._event("job.dispatch_intent", job=job, data={"condition_decision_id": receipt["decision_id"]})
                 # running means this attempt's ownership, not ownership of the GPU.
                 # The model stage scheduler alone grants the one GPU lease.
                 payload = {"job_id": job["job_id"], "attempt_id": job["attempt_id"],

@@ -23,6 +23,7 @@ NAMES += ["pipeline_backend.py", "pipeline_scheduler.py", "pipeline_smoke_test.p
 NAMES += ["notebook_console.py", "console.html", "download_progress.py"]
 NAMES += ["generation_options.py"]
 NAMES += ["lora_preflight.py"]
+NAMES += ["condition_guard.py"]
 FILES = {name: (PROJECT / name).read_text(encoding="utf-8") for name in NAMES}
 
 

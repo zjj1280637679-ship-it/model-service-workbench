@@ -1,70 +1,96 @@
 {
   "schema_version": 1,
-  "repository_version": "0.3.0",
-  "recorded_at": "2026-11-15T00:29:47.520633+00:00",
+  "repository_version": "0.4.0",
+  "recorded_at": "2026-11-15T01:29:32.106586+00:00",
   "platform": "Windows, Python 3.12",
   "runs": [
     {
-      "name": "new_condition_counterexamples",
+      "name": "full_cpu_regression",
       "command": [
         "python",
         "-m",
         "pytest",
-        "tests/test_condition_sets.py",
+        "runtime/minimax_h3",
+        "tests",
         "-q"
       ],
       "exit_code": 0,
-      "passed": 73
+      "passed": 1054,
+      "skipped": 8,
+      "warnings": 1,
+      "duration_seconds": 41.23,
+      "skip_reason": "Windows account cannot create symbolic links; Linux CI runs independently.",
+      "warning": "Existing Starlette TestClient httpx deprecation."
     },
     {
-      "name": "bounded_condition_study",
+      "name": "console_javascript",
       "command": [
-        "python",
-        "research/run_condition_study.py",
-        "--output",
-        "evidence/conditions-2026-11-15/report.json"
+        "node",
+        "--test",
+        "tests/test_console_delivery.cjs"
       ],
       "exit_code": 0,
-      "models": 8,
-      "minimal_sets": 9,
-      "valid_worlds_across_models": 952,
-      "counterexamples": 3,
-      "fact_states": {
-        "true": 6,
-        "false": 1,
-        "unknown": 4,
-        "conflict": 0
-      }
+      "passed": 2
     },
     {
       "name": "notebook_ast",
       "exit_code": 0,
-      "cells": 1
+      "cells": 1,
+      "drive_readback_exact_match": true,
+      "sha256": "33a94b6e2075b3b2c975cc5029cb7be7afa09dbc6f09f8554a9ae4b99582241e"
     },
     {
-      "name": "publication_and_known_secret_check",
-      "exit_code": 0
+      "name": "published_trace_replay",
+      "exit_code": 0,
+      "counts": {
+        "pass": 13,
+        "fail": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "name": "published_condition_replay",
+      "exit_code": 0,
+      "counts": {
+        "pass": 7,
+        "fail": 0,
+        "unknown": 2
+      },
+      "unknown_scope": "The normal GPU run did not trigger unknown/conflict blocked decisions; CPU counterexamples cover selected rejection paths."
     },
     {
       "name": "local_document_links",
-      "exit_code": 0
+      "exit_code": 0,
+      "checked": 208
     },
     {
       "name": "knowledge_structure_and_source_identity",
       "exit_code": 0,
       "modules": 4,
       "perspectives": 16,
-      "metrics": 27
+      "metrics": 27,
+      "fingerprints": 171
+    },
+    {
+      "name": "publication_and_known_secret_check",
+      "exit_code": 0,
+      "checked_files": 173,
+      "known_secrets_supplied": true,
+      "scope": "Declared file, source, size and token checks plus this run API key and URL; no exhaustive secret-detection claim."
     }
   ],
-  "new_gpu_run": false,
-  "runtime_executable_sources_unchanged_from": "v0.2.0",
-  "notebook_unchanged_from": "v0.2.0",
-  "source_sha256": {
-    "research/condition_sets.py": "7a8ccdb2634973aff9d601b1e8ba4fd59397d0f150289e97422f82b99a02f21f",
-    "research/condition-models.json": "fa8cfff31e68a9e5799ff2806c42815129b5ce48faf2bb9038766bdd0dd67f06",
-    "research/run_condition_study.py": "9293b3728c78e6bc2943370c54d145b06202e93172d4953f755616d16c807ca8",
-    "tests/test_condition_sets.py": "e7df841d7a0b959f8acfc2219c4358b21e8f86d82b8b756348791e816dab194e"
+  "new_gpu_run": true,
+  "gpu_evidence": "evidence/runtime-conditions-2026-11-15/provenance.json",
+  "protocol": "research/runtime-condition-protocol.json",
+  "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+  "model_instance_id": "23de982643984911a92c5b2459eded28",
+  "outcomes": {
+    "succeeded": 2,
+    "cancelled_while_queued": 1,
+    "failed": 0
   },
-  "scope": "New CPU counterexamples and historical evidence recheck. Full prior Windows run remains at v0.2.0; CI independently runs all tests on the new commit."
+  "service_cleanup_complete": true,
+  "platform_released": true,
+  "runtime_intervention": "Managed API-only replacement during model download to expose condition receipts. Main manager, model and job identities retained; before/after hashes and commands recorded.",
+  "scope": "This CPU regression and one actual A100 lifetime are separately evidenced. Public/raw analyses match. No unknown/conflict GPU fault injection, serial performance control or global physical optimum claim. CI results are observed after commit and are not prefilled here."
 }

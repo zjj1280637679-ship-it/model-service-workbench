@@ -1,0 +1,36 @@
+{
+  "id": "0607835d15b64e23b9755e8d61a5dab9",
+  "instance_id": "f5d32604aad44ecbaed925602acd4886",
+  "status": "running",
+  "attempt_id": "d3542e911c6443d3b2007fb523d14593",
+  "condition_gate": {
+    "schema_version": "1.0",
+    "gate_version": "1.0",
+    "gate_id": "manager.dispatch",
+    "decision_id": "4762a87b373044ea8a0fda238f8e2dff",
+    "observed_at": 1794704623.1219356,
+    "monotonic_ns": 895501468952,
+    "allowed": true,
+    "context": {
+      "manager_instance_id": "f5d32604aad44ecbaed925602acd4886",
+      "model_instance_id": "23de982643984911a92c5b2459eded28",
+      "job_id": "0607835d15b64e23b9755e8d61a5dab9",
+      "attempt_id": "d3542e911c6443d3b2007fb523d14593",
+      "source_file": "global_manager.py",
+      "source_sha256": "0cc8928ea5dd0509c9dd4c751eb0db6d19d3757fa0940ee09a45e58818c37607"
+    },
+    "conditions": {
+      "manager_open": "true",
+      "job_queued": "true",
+      "attempt_unassigned": "true",
+      "model_identity_current": "true",
+      "model_observation_fresh": "true",
+      "model_process_alive": "true",
+      "model_ready": "true",
+      "worker_alive": "true",
+      "worker_accepting": "true",
+      "supervisor_alive": "true"
+    },
+    "blocked": []
+  }
+}

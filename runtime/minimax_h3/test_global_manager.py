@@ -1168,10 +1168,35 @@ def test_pipeline_fifo_with_many_jobs_and_cancelled_middle(rig):
     assert not (rig.manager.root / cancelled_id / "inputs").exists()
 
 
-def test_multiple_results_commit_before_ack_and_retry_ack_without_duplicate_events(rig):
+@pytest.mark.parametrize("dispatch_slice_exhausted", [False, True])
+def test_multiple_results_commit_before_ack_and_retry_ack_without_duplicate_events(rig, monkeypatch, dispatch_slice_exhausted):
     rig.capacity = 4
     submitted = [rig.submit() for _ in range(4)]
+    if dispatch_slice_exhausted:
+        class DispatchClock:
+            value = 0
+
+            def monotonic(self):
+                self.value += 1
+                return self.value
+
+            def __getattr__(self, name):
+                return getattr(time, name)
+
+        # Exhaust each dispatch slice without delaying the test or changing the
+        # real clock used by the bounded wait below.
+        monkeypatch.setattr(gm, "time", DispatchClock())
     rig.ready()
+    if dispatch_slice_exhausted:
+        assert len(rig.inflight) == 1
+    # One refresh has a time budget; model readiness does not imply all queued
+    # jobs have already reached execute. Drive the foreground fixture until the
+    # actual admissions needed by this result-batch test have been observed.
+    deadline = time.monotonic() + 5
+    expected_jobs = {item["job_id"] for item in submitted}
+    while {item["job_id"] for item in rig.inflight.values()} != expected_jobs and time.monotonic() < deadline:
+        rig.manager.refresh()
+    assert {item["job_id"] for item in rig.inflight.values()} == expected_jobs
     for attempt in reversed(list(rig.inflight)):
         rig.complete(target_attempt=attempt)
     rig.ack_error = True
