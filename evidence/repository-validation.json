@@ -1,76 +1,70 @@
 {
   "schema_version": 1,
-  "repository_version": "0.2.0",
-  "recorded_at": "2026-11-14T23:58:15.877276+00:00",
-  "platform": "Windows, Python 3.12 and Node 24",
+  "repository_version": "0.3.0",
+  "recorded_at": "2026-11-15T00:29:47.520633+00:00",
+  "platform": "Windows, Python 3.12",
   "runs": [
     {
-      "name": "python",
+      "name": "new_condition_counterexamples",
       "command": [
         "python",
         "-m",
         "pytest",
-        "-q",
-        "-ra"
+        "tests/test_condition_sets.py",
+        "-q"
       ],
       "exit_code": 0,
-      "passed": 781,
-      "skipped": 8,
-      "warning_count": 1,
-      "skipped_reason": "Windows symbolic-link permission unavailable; Linux CI covers these independently.",
-      "warning": "Existing Starlette httpx TestClient deprecation.",
-      "local_stdout_sha256": "d82ca31162f2e0992bc17070e879330a302c13023102be75132a57af46287f91"
+      "passed": 73
     },
     {
-      "name": "javascript",
-      "command": [
-        "node",
-        "--test",
-        "tests/test_console_delivery.cjs"
-      ],
-      "exit_code": 0,
-      "passed": 2,
-      "local_stdout_sha256": "81753c49b31475d77b970ced7e3d009e1f66843dbaf5fa8b41071fae711f6923"
-    },
-    {
-      "name": "notebook",
+      "name": "bounded_condition_study",
       "command": [
         "python",
-        "tools/build_notebook.py",
-        "--check-only",
-        "--preload-acceleration",
-        "lightx2v-ref2va-4step"
+        "research/run_condition_study.py",
+        "--output",
+        "evidence/conditions-2026-11-15/report.json"
       ],
+      "exit_code": 0,
+      "models": 8,
+      "minimal_sets": 9,
+      "valid_worlds_across_models": 952,
+      "counterexamples": 3,
+      "fact_states": {
+        "true": 6,
+        "false": 1,
+        "unknown": 4,
+        "conflict": 0
+      }
+    },
+    {
+      "name": "notebook_ast",
       "exit_code": 0,
       "cells": 1
     },
     {
-      "name": "knowledge",
+      "name": "publication_and_known_secret_check",
+      "exit_code": 0
+    },
+    {
+      "name": "local_document_links",
+      "exit_code": 0
+    },
+    {
+      "name": "knowledge_structure_and_source_identity",
       "exit_code": 0,
       "modules": 4,
       "perspectives": 16,
       "metrics": 27
-    },
-    {
-      "name": "publication",
-      "exit_code": 0,
-      "known_private_key_and_origin_checked": true
-    },
-    {
-      "name": "research_trace_replay",
-      "exit_code": 0,
-      "counts": {
-        "pass": 13,
-        "fail": 0,
-        "unknown": 0
-      }
     }
   ],
-  "new_gpu_run": true,
-  "gpu_evidence": "evidence/research-2026-11-15/provenance.json",
-  "runtime_executable_sources_unchanged": false,
-  "runtime_changes": [
-    "manager/model audit event monotonic_ns"
-  ],
-  "scope": "Local verification receipts; research observation is separately attributed. CI runs independently on the committed revision; no CI outcome is preclaimed."
+  "new_gpu_run": false,
+  "runtime_executable_sources_unchanged_from": "v0.2.0",
+  "notebook_unchanged_from": "v0.2.0",
+  "source_sha256": {
+    "research/condition_sets.py": "7a8ccdb2634973aff9d601b1e8ba4fd59397d0f150289e97422f82b99a02f21f",
+    "research/condition-models.json": "fa8cfff31e68a9e5799ff2806c42815129b5ce48faf2bb9038766bdd0dd67f06",
+    "research/run_condition_study.py": "9293b3728c78e6bc2943370c54d145b06202e93172d4953f755616d16c807ca8",
+    "tests/test_condition_sets.py": "e7df841d7a0b959f8acfc2219c4358b21e8f86d82b8b756348791e816dab194e"
+  },
+  "scope": "New CPU counterexamples and historical evidence recheck. Full prior Windows run remains at v0.2.0; CI independently runs all tests on the new commit."
 }

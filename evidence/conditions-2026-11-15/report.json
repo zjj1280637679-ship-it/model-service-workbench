@@ -1,0 +1,952 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-15T00:29:30.351168+00:00",
+  "new_gpu_run": false,
+  "network_used": false,
+  "catalog_sha256": "fa8cfff31e68a9e5799ff2806c42815129b5ce48faf2bb9038766bdd0dd67f06",
+  "implementation_sha256": "7a8ccdb2634973aff9d601b1e8ba4fd59397d0f150289e97422f82b99a02f21f",
+  "searches": [
+    {
+      "model_id": "queue_admission",
+      "scope": "Conditional proof in the declared finite Boolean model; not empirical causation, live authorization or eventual completion.",
+      "minimal_sets": [
+        [
+          {
+            "atom": "auth_valid",
+            "value": true
+          },
+          {
+            "atom": "request_valid",
+            "value": true
+          },
+          {
+            "atom": "uploads_committed",
+            "value": true
+          },
+          {
+            "atom": "queue_accepting",
+            "value": true
+          },
+          {
+            "atom": "storage_available",
+            "value": true
+          }
+        ]
+      ],
+      "necessary_literals": [
+        {
+          "atom": "auth_valid",
+          "value": true
+        },
+        {
+          "atom": "request_valid",
+          "value": true
+        },
+        {
+          "atom": "uploads_committed",
+          "value": true
+        },
+        {
+          "atom": "queue_accepting",
+          "value": true
+        },
+        {
+          "atom": "storage_available",
+          "value": true
+        }
+      ],
+      "examined_subsets": 125,
+      "model_already_implies_target": false,
+      "necessary_literals_status": "evaluated",
+      "minimality": "inclusion-minimal, not merely minimum cardinality",
+      "valid_worlds": 128,
+      "target_reachable": true,
+      "status": "complete"
+    },
+    {
+      "model_id": "public_api_transport",
+      "scope": "Conditional proof in the declared finite Boolean model; not empirical causation, live authorization or eventual completion.",
+      "minimal_sets": [
+        [
+          {
+            "atom": "api_usable",
+            "value": true
+          },
+          {
+            "atom": "tunnel_alive",
+            "value": true
+          },
+          {
+            "atom": "tunnel_connected",
+            "value": true
+          },
+          {
+            "atom": "probe_same_instance",
+            "value": true
+          },
+          {
+            "atom": "observation_fresh",
+            "value": true
+          }
+        ]
+      ],
+      "necessary_literals": [
+        {
+          "atom": "api_usable",
+          "value": true
+        },
+        {
+          "atom": "tunnel_alive",
+          "value": true
+        },
+        {
+          "atom": "tunnel_connected",
+          "value": true
+        },
+        {
+          "atom": "probe_same_instance",
+          "value": true
+        },
+        {
+          "atom": "observation_fresh",
+          "value": true
+        }
+      ],
+      "examined_subsets": 125,
+      "model_already_implies_target": false,
+      "necessary_literals_status": "evaluated",
+      "minimality": "inclusion-minimal, not merely minimum cardinality",
+      "valid_worlds": 128,
+      "target_reachable": true,
+      "status": "complete"
+    },
+    {
+      "model_id": "manager_execution_offer",
+      "scope": "Conditional proof in the declared finite Boolean model; not empirical causation, live authorization or eventual completion.",
+      "minimal_sets": [
+        [
+          {
+            "atom": "queued_job_owned",
+            "value": true
+          },
+          {
+            "atom": "dispatch_policy_open",
+            "value": true
+          },
+          {
+            "atom": "model_ready",
+            "value": true
+          },
+          {
+            "atom": "worker_alive",
+            "value": true
+          },
+          {
+            "atom": "worker_accepting",
+            "value": true
+          }
+        ]
+      ],
+      "necessary_literals": [
+        {
+          "atom": "queued_job_owned",
+          "value": true
+        },
+        {
+          "atom": "dispatch_policy_open",
+          "value": true
+        },
+        {
+          "atom": "model_ready",
+          "value": true
+        },
+        {
+          "atom": "worker_alive",
+          "value": true
+        },
+        {
+          "atom": "worker_accepting",
+          "value": true
+        }
+      ],
+      "examined_subsets": 63,
+      "model_already_implies_target": false,
+      "necessary_literals_status": "evaluated",
+      "minimality": "inclusion-minimal, not merely minimum cardinality",
+      "valid_worlds": 64,
+      "target_reachable": true,
+      "status": "complete"
+    },
+    {
+      "model_id": "container_new_attempt_admission",
+      "scope": "Conditional proof in the declared finite Boolean model; not empirical causation, live authorization or eventual completion.",
+      "minimal_sets": [
+        [
+          {
+            "atom": "current_model_usable",
+            "value": true
+          },
+          {
+            "atom": "worker_accepting",
+            "value": true
+          },
+          {
+            "atom": "request_identity_valid",
+            "value": true
+          },
+          {
+            "atom": "attempt_identity_unused",
+            "value": true
+          },
+          {
+            "atom": "output_conflict_absent",
+            "value": true
+          },
+          {
+            "atom": "stage_ram_reserved",
+            "value": true
+          },
+          {
+            "atom": "disk_reserved",
+            "value": true
+          }
+        ]
+      ],
+      "necessary_literals": [
+        {
+          "atom": "current_model_usable",
+          "value": true
+        },
+        {
+          "atom": "worker_accepting",
+          "value": true
+        },
+        {
+          "atom": "request_identity_valid",
+          "value": true
+        },
+        {
+          "atom": "attempt_identity_unused",
+          "value": true
+        },
+        {
+          "atom": "output_conflict_absent",
+          "value": true
+        },
+        {
+          "atom": "stage_ram_reserved",
+          "value": true
+        },
+        {
+          "atom": "disk_reserved",
+          "value": true
+        }
+      ],
+      "examined_subsets": 255,
+      "model_already_implies_target": false,
+      "necessary_literals_status": "evaluated",
+      "minimality": "inclusion-minimal, not merely minimum cardinality",
+      "valid_worlds": 256,
+      "target_reachable": true,
+      "status": "complete"
+    },
+    {
+      "model_id": "gpu_stage_eligibility",
+      "scope": "Conditional proof in the declared finite Boolean model; not empirical causation, live authorization or eventual completion.",
+      "minimal_sets": [
+        [
+          {
+            "atom": "model_ready",
+            "value": true
+          },
+          {
+            "atom": "prepare_succeeded",
+            "value": true
+          },
+          {
+            "atom": "not_cancelled",
+            "value": true
+          },
+          {
+            "atom": "gpu_grant_atomic",
+            "value": true
+          },
+          {
+            "atom": "cpu_grant_atomic",
+            "value": true
+          }
+        ]
+      ],
+      "necessary_literals": [
+        {
+          "atom": "assets_downloaded",
+          "value": true
+        },
+        {
+          "atom": "model_loaded",
+          "value": true
+        },
+        {
+          "atom": "model_ready",
+          "value": true
+        },
+        {
+          "atom": "attempt_owned",
+          "value": true
+        },
+        {
+          "atom": "prepare_succeeded",
+          "value": true
+        },
+        {
+          "atom": "not_cancelled",
+          "value": true
+        },
+        {
+          "atom": "gpu_grant_atomic",
+          "value": true
+        },
+        {
+          "atom": "cpu_grant_atomic",
+          "value": true
+        }
+      ],
+      "examined_subsets": 249,
+      "model_already_implies_target": false,
+      "necessary_literals_status": "evaluated",
+      "minimality": "inclusion-minimal, not merely minimum cardinality",
+      "valid_worlds": 96,
+      "target_reachable": true,
+      "status": "complete"
+    },
+    {
+      "model_id": "artifact_commit_eligibility",
+      "scope": "Conditional proof in the declared finite Boolean model; not empirical causation, live authorization or eventual completion.",
+      "minimal_sets": [
+        [
+          {
+            "atom": "result_identity_matches",
+            "value": true
+          },
+          {
+            "atom": "attempt_cleanup_confirmed",
+            "value": true
+          },
+          {
+            "atom": "artifact_owned",
+            "value": true
+          },
+          {
+            "atom": "file_exists",
+            "value": true
+          },
+          {
+            "atom": "size_matches",
+            "value": true
+          },
+          {
+            "atom": "digest_matches",
+            "value": true
+          },
+          {
+            "atom": "full_media_validated",
+            "value": true
+          }
+        ]
+      ],
+      "necessary_literals": [
+        {
+          "atom": "result_identity_matches",
+          "value": true
+        },
+        {
+          "atom": "attempt_cleanup_confirmed",
+          "value": true
+        },
+        {
+          "atom": "artifact_owned",
+          "value": true
+        },
+        {
+          "atom": "file_exists",
+          "value": true
+        },
+        {
+          "atom": "size_matches",
+          "value": true
+        },
+        {
+          "atom": "digest_matches",
+          "value": true
+        },
+        {
+          "atom": "full_media_validated",
+          "value": true
+        }
+      ],
+      "examined_subsets": 255,
+      "model_already_implies_target": false,
+      "necessary_literals_status": "evaluated",
+      "minimality": "inclusion-minimal, not merely minimum cardinality",
+      "valid_worlds": 256,
+      "target_reachable": true,
+      "status": "complete"
+    },
+    {
+      "model_id": "closed_lifetime_review",
+      "scope": "Conditional proof in the declared finite Boolean model; not empirical causation, live authorization or eventual completion.",
+      "minimal_sets": [
+        [
+          {
+            "atom": "terminal_receipts_complete",
+            "value": true
+          },
+          {
+            "atom": "task_cleanup_recorded",
+            "value": true
+          },
+          {
+            "atom": "service_exit_recorded",
+            "value": true
+          },
+          {
+            "atom": "platform_release_observed",
+            "value": true
+          }
+        ]
+      ],
+      "necessary_literals": [
+        {
+          "atom": "terminal_receipts_complete",
+          "value": true
+        },
+        {
+          "atom": "task_cleanup_recorded",
+          "value": true
+        },
+        {
+          "atom": "service_exit_recorded",
+          "value": true
+        },
+        {
+          "atom": "platform_release_observed",
+          "value": true
+        }
+      ],
+      "examined_subsets": 16,
+      "model_already_implies_target": false,
+      "necessary_literals_status": "evaluated",
+      "minimality": "inclusion-minimal, not merely minimum cardinality",
+      "valid_worlds": 16,
+      "target_reachable": true,
+      "status": "complete"
+    },
+    {
+      "model_id": "illustrative_alternative_evidence",
+      "scope": "Conditional proof in the declared finite Boolean model; not empirical causation, live authorization or eventual completion.",
+      "minimal_sets": [
+        [
+          {
+            "atom": "independent_local_validation",
+            "value": true
+          }
+        ],
+        [
+          {
+            "atom": "trusted_commit_receipt",
+            "value": true
+          },
+          {
+            "atom": "matching_external_bytes",
+            "value": true
+          }
+        ]
+      ],
+      "necessary_literals": [],
+      "examined_subsets": 5,
+      "model_already_implies_target": false,
+      "necessary_literals_status": "evaluated",
+      "minimality": "inclusion-minimal, not merely minimum cardinality",
+      "valid_worlds": 8,
+      "target_reachable": true,
+      "status": "complete"
+    }
+  ],
+  "counterexamples": {
+    "downloaded_is_not_model_ready": {
+      "model_id": "gpu_stage_eligibility",
+      "scope": "Conditional proof in the declared finite Boolean model; not empirical causation, live authorization or eventual completion.",
+      "premises": [
+        {
+          "atom": "assets_downloaded",
+          "value": true
+        },
+        {
+          "atom": "attempt_owned",
+          "value": true
+        },
+        {
+          "atom": "prepare_succeeded",
+          "value": true
+        },
+        {
+          "atom": "not_cancelled",
+          "value": true
+        },
+        {
+          "atom": "gpu_grant_atomic",
+          "value": true
+        },
+        {
+          "atom": "cpu_grant_atomic",
+          "value": true
+        }
+      ],
+      "status": "refuted",
+      "applicable_worlds": 3,
+      "counterexample": {
+        "assets_downloaded": true,
+        "model_loaded": false,
+        "model_ready": false,
+        "attempt_owned": true,
+        "prepare_succeeded": true,
+        "not_cancelled": true,
+        "gpu_grant_atomic": true,
+        "cpu_grant_atomic": true
+      },
+      "model_already_implies_target": false
+    },
+    "tunnel_exists_is_not_verified_public_api": {
+      "model_id": "public_api_transport",
+      "scope": "Conditional proof in the declared finite Boolean model; not empirical causation, live authorization or eventual completion.",
+      "premises": [
+        {
+          "atom": "api_usable",
+          "value": true
+        },
+        {
+          "atom": "tunnel_alive",
+          "value": true
+        },
+        {
+          "atom": "tunnel_connected",
+          "value": true
+        },
+        {
+          "atom": "observation_fresh",
+          "value": true
+        },
+        {
+          "atom": "model_downloaded",
+          "value": true
+        },
+        {
+          "atom": "model_ready",
+          "value": true
+        }
+      ],
+      "status": "refuted",
+      "applicable_worlds": 2,
+      "counterexample": {
+        "api_usable": true,
+        "tunnel_alive": true,
+        "tunnel_connected": true,
+        "probe_same_instance": false,
+        "observation_fresh": true,
+        "model_downloaded": true,
+        "model_ready": true
+      },
+      "model_already_implies_target": false
+    },
+    "service_exit_is_not_platform_release": {
+      "model_id": "closed_lifetime_review",
+      "scope": "Conditional proof in the declared finite Boolean model; not empirical causation, live authorization or eventual completion.",
+      "premises": [
+        {
+          "atom": "terminal_receipts_complete",
+          "value": true
+        },
+        {
+          "atom": "task_cleanup_recorded",
+          "value": true
+        },
+        {
+          "atom": "service_exit_recorded",
+          "value": true
+        }
+      ],
+      "status": "refuted",
+      "applicable_worlds": 2,
+      "counterexample": {
+        "terminal_receipts_complete": true,
+        "task_cleanup_recorded": true,
+        "service_exit_recorded": true,
+        "platform_release_observed": false
+      },
+      "model_already_implies_target": false
+    }
+  },
+  "evidence_observations": [
+    {
+      "atom": "terminal_receipts_complete",
+      "bindings": {
+        "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+        "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef"
+      },
+      "valid_from": 1794700182.744,
+      "valid_until": 1794700183.744,
+      "validity_basis": "Retrospective immutable lifetime review window; no present readiness claim.",
+      "method": "derived",
+      "source": {
+        "path": "evidence/research-2026-11-15/analysis.json",
+        "sha256": "d46455cbe89823f49fe322b21815b9c7a1a338bc0f640d7c26e48a95a41f7da3"
+      },
+      "binding_selectors": {
+        "manager_instance_id": "/manager_instance_id",
+        "model_instance_id": "/model_instance_id"
+      },
+      "pointer": "/checks/terminal_receipt_coverage/status",
+      "value_map": [
+        {
+          "equals": "pass",
+          "state": "true"
+        },
+        {
+          "equals": "fail",
+          "state": "false"
+        },
+        {
+          "equals": "unknown",
+          "state": "unknown"
+        }
+      ]
+    },
+    {
+      "atom": "task_cleanup_recorded",
+      "bindings": {
+        "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+        "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef"
+      },
+      "valid_from": 1794700182.744,
+      "valid_until": 1794700183.744,
+      "validity_basis": "Retrospective immutable lifetime review window; no present readiness claim.",
+      "method": "derived",
+      "source": {
+        "path": "evidence/research-2026-11-15/analysis.json",
+        "sha256": "d46455cbe89823f49fe322b21815b9c7a1a338bc0f640d7c26e48a95a41f7da3"
+      },
+      "binding_selectors": {
+        "manager_instance_id": "/manager_instance_id",
+        "model_instance_id": "/model_instance_id"
+      },
+      "pointer": "/checks/terminal_job_cleanup/status",
+      "value_map": [
+        {
+          "equals": "pass",
+          "state": "true"
+        },
+        {
+          "equals": "fail",
+          "state": "false"
+        },
+        {
+          "equals": "unknown",
+          "state": "unknown"
+        }
+      ]
+    },
+    {
+      "atom": "service_exit_recorded",
+      "bindings": {
+        "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+        "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef"
+      },
+      "valid_from": 1794700182.744,
+      "valid_until": 1794700183.744,
+      "validity_basis": "Retrospective immutable lifetime review window; no present readiness claim.",
+      "method": "derived",
+      "source": {
+        "path": "evidence/research-2026-11-15/analysis.json",
+        "sha256": "d46455cbe89823f49fe322b21815b9c7a1a338bc0f640d7c26e48a95a41f7da3"
+      },
+      "binding_selectors": {
+        "manager_instance_id": "/manager_instance_id",
+        "model_instance_id": "/model_instance_id"
+      },
+      "pointer": "/checks/service_process_cleanup/status",
+      "value_map": [
+        {
+          "equals": "pass",
+          "state": "true"
+        },
+        {
+          "equals": "fail",
+          "state": "false"
+        },
+        {
+          "equals": "unknown",
+          "state": "unknown"
+        }
+      ]
+    },
+    {
+      "atom": "platform_release_observed",
+      "bindings": {
+        "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+        "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef"
+      },
+      "valid_from": 1794700182.744,
+      "valid_until": 1794700183.744,
+      "validity_basis": "Retrospective immutable lifetime review window; no present readiness claim.",
+      "method": "derived",
+      "source": {
+        "path": "evidence/research-2026-11-15/analysis.json",
+        "sha256": "d46455cbe89823f49fe322b21815b9c7a1a338bc0f640d7c26e48a95a41f7da3"
+      },
+      "binding_selectors": {
+        "manager_instance_id": "/manager_instance_id",
+        "model_instance_id": "/model_instance_id"
+      },
+      "pointer": "/checks/platform_release/status",
+      "value_map": [
+        {
+          "equals": "pass",
+          "state": "true"
+        },
+        {
+          "equals": "fail",
+          "state": "false"
+        },
+        {
+          "equals": "unknown",
+          "state": "unknown"
+        }
+      ]
+    },
+    {
+      "atom": "gpu_stage_nonoverlap_observed",
+      "bindings": {
+        "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+        "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef"
+      },
+      "valid_from": 1794700182.744,
+      "valid_until": 1794700183.744,
+      "validity_basis": "Retrospective immutable lifetime review window; no present readiness claim.",
+      "method": "derived",
+      "source": {
+        "path": "evidence/research-2026-11-15/analysis.json",
+        "sha256": "d46455cbe89823f49fe322b21815b9c7a1a338bc0f640d7c26e48a95a41f7da3"
+      },
+      "binding_selectors": {
+        "manager_instance_id": "/manager_instance_id",
+        "model_instance_id": "/model_instance_id"
+      },
+      "pointer": "/checks/gpu_stage_exclusivity/status",
+      "value_map": [
+        {
+          "equals": "pass",
+          "state": "true"
+        },
+        {
+          "equals": "fail",
+          "state": "false"
+        },
+        {
+          "equals": "unknown",
+          "state": "unknown"
+        }
+      ]
+    },
+    {
+      "atom": "ready_gate_observed",
+      "bindings": {
+        "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+        "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef"
+      },
+      "valid_from": 1794700182.744,
+      "valid_until": 1794700183.744,
+      "validity_basis": "Retrospective immutable lifetime review window; no present readiness claim.",
+      "method": "derived",
+      "source": {
+        "path": "evidence/research-2026-11-15/analysis.json",
+        "sha256": "d46455cbe89823f49fe322b21815b9c7a1a338bc0f640d7c26e48a95a41f7da3"
+      },
+      "binding_selectors": {
+        "manager_instance_id": "/manager_instance_id",
+        "model_instance_id": "/model_instance_id"
+      },
+      "pointer": "/checks/model_ready_gate/status",
+      "value_map": [
+        {
+          "equals": "pass",
+          "state": "true"
+        },
+        {
+          "equals": "fail",
+          "state": "false"
+        },
+        {
+          "equals": "unknown",
+          "state": "unknown"
+        }
+      ]
+    },
+    {
+      "atom": "pipeline_bandwidth_calibrated_in_selected_snapshot",
+      "bindings": {
+        "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+        "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef"
+      },
+      "valid_from": 1794700182.744,
+      "valid_until": 1794700183.744,
+      "validity_basis": "Retrospective immutable lifetime review window; no present readiness claim.",
+      "method": "observed",
+      "source": {
+        "path": "evidence/research-2026-11-15/trace.json",
+        "sha256": "08216d4fe71a8bbe7db852915ad8c351cd9e05a2a6c7d0b4148e05ff99babbc9"
+      },
+      "binding_selectors": {
+        "manager_instance_id": "/manager_instance_id",
+        "model_instance_id": "/model_instance_id"
+      },
+      "pointer": "/system_snapshots/0/modules/model/budget/io_budget/bandwidth_calibrated",
+      "value_map": [
+        {
+          "equals": true,
+          "state": "true"
+        },
+        {
+          "equals": false,
+          "state": "false"
+        }
+      ]
+    }
+  ],
+  "historical_evidence_audit": {
+    "as_of": 1794700183.244,
+    "bindings": {
+      "manager_instance_id": "a5c0e7ff255341c994921cdb5216821c",
+      "model_instance_id": "d358a92d5ccc431095ea3e9950dd25ef"
+    },
+    "states": {
+      "terminal_receipts_complete": "true",
+      "task_cleanup_recorded": "true",
+      "service_exit_recorded": "true",
+      "platform_release_observed": "true",
+      "gpu_stage_nonoverlap_observed": "true",
+      "ready_gate_observed": "true",
+      "pipeline_bandwidth_calibrated_in_selected_snapshot": "false",
+      "complete_gpu_lease_history": "unknown",
+      "whole_model_workload_known": "unknown",
+      "live_current_model_ready": "unknown",
+      "panel_semantics_retested": "unknown"
+    },
+    "accepted": [
+      {
+        "index": 0,
+        "atom": "terminal_receipts_complete",
+        "state": "true",
+        "source": "evidence/research-2026-11-15/analysis.json",
+        "sha256": "d46455cbe89823f49fe322b21815b9c7a1a338bc0f640d7c26e48a95a41f7da3",
+        "pointer": "/checks/terminal_receipt_coverage/status",
+        "method": "derived"
+      },
+      {
+        "index": 1,
+        "atom": "task_cleanup_recorded",
+        "state": "true",
+        "source": "evidence/research-2026-11-15/analysis.json",
+        "sha256": "d46455cbe89823f49fe322b21815b9c7a1a338bc0f640d7c26e48a95a41f7da3",
+        "pointer": "/checks/terminal_job_cleanup/status",
+        "method": "derived"
+      },
+      {
+        "index": 2,
+        "atom": "service_exit_recorded",
+        "state": "true",
+        "source": "evidence/research-2026-11-15/analysis.json",
+        "sha256": "d46455cbe89823f49fe322b21815b9c7a1a338bc0f640d7c26e48a95a41f7da3",
+        "pointer": "/checks/service_process_cleanup/status",
+        "method": "derived"
+      },
+      {
+        "index": 3,
+        "atom": "platform_release_observed",
+        "state": "true",
+        "source": "evidence/research-2026-11-15/analysis.json",
+        "sha256": "d46455cbe89823f49fe322b21815b9c7a1a338bc0f640d7c26e48a95a41f7da3",
+        "pointer": "/checks/platform_release/status",
+        "method": "derived"
+      },
+      {
+        "index": 4,
+        "atom": "gpu_stage_nonoverlap_observed",
+        "state": "true",
+        "source": "evidence/research-2026-11-15/analysis.json",
+        "sha256": "d46455cbe89823f49fe322b21815b9c7a1a338bc0f640d7c26e48a95a41f7da3",
+        "pointer": "/checks/gpu_stage_exclusivity/status",
+        "method": "derived"
+      },
+      {
+        "index": 5,
+        "atom": "ready_gate_observed",
+        "state": "true",
+        "source": "evidence/research-2026-11-15/analysis.json",
+        "sha256": "d46455cbe89823f49fe322b21815b9c7a1a338bc0f640d7c26e48a95a41f7da3",
+        "pointer": "/checks/model_ready_gate/status",
+        "method": "derived"
+      },
+      {
+        "index": 6,
+        "atom": "pipeline_bandwidth_calibrated_in_selected_snapshot",
+        "state": "false",
+        "source": "evidence/research-2026-11-15/trace.json",
+        "sha256": "08216d4fe71a8bbe7db852915ad8c351cd9e05a2a6c7d0b4148e05ff99babbc9",
+        "pointer": "/system_snapshots/0/modules/model/budget/io_budget/bandwidth_calibrated",
+        "method": "observed"
+      }
+    ],
+    "excluded": [],
+    "scope": "Source-bound assertions at the stated historical query time. Hash and bindings do not authenticate reality; no live capability or atomic resource reservation is granted."
+  },
+  "historical_closure_review": {
+    "model_id": "closed_lifetime_review",
+    "scope": "Conditional proof in the declared finite Boolean model; not empirical causation, live authorization or eventual completion.",
+    "premises": [
+      {
+        "atom": "terminal_receipts_complete",
+        "value": true
+      },
+      {
+        "atom": "task_cleanup_recorded",
+        "value": true
+      },
+      {
+        "atom": "service_exit_recorded",
+        "value": true
+      },
+      {
+        "atom": "platform_release_observed",
+        "value": true
+      }
+    ],
+    "status": "sufficient",
+    "applicable_worlds": 1,
+    "counterexample": null,
+    "model_already_implies_target": false
+  },
+  "coverage": {
+    "declared_models": 8,
+    "completed_model_searches": 8,
+    "runtime_all_conditions_covered": null,
+    "physical_world_exhausted": false,
+    "source_audit": "docs/research/condition-source-audit.md"
+  },
+  "limits": [
+    "The declared models are not all real-world conditions.",
+    "Definitions/assumptions are versioned policy abstractions, not measured discoveries.",
+    "Source hashes cannot authenticate physical reality or a platform observer.",
+    "Unknown facts do not become false; conflict facts are not premises.",
+    "Historical evidence never authorizes a new instance or replaces atomic reservation."
+  ]
+}

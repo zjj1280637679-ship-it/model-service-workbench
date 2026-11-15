@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "scope": "Review predicates over explicitly bounded Boolean abstractions. These are not replacements for atomic runtime guards or exhaustive physical models.",
+  "source_audit": "docs/research/condition-source-audit.md",
+  "model_assumptions_are_not_measurements": true,
+  "models": [
+    {
+      "id": "queue_admission",
+      "scope": "Design review of a new authenticated upload entering the durable queue; not container admission or media decodability.",
+      "atoms": ["auth_valid", "request_valid", "uploads_committed", "queue_accepting", "storage_available", "model_downloaded", "model_ready"],
+      "constraints": [],
+      "target": {"all": ["auth_valid", "request_valid", "uploads_committed", "queue_accepting", "storage_available"]},
+      "candidate_literals": [{"atom":"auth_valid","value":true},{"atom":"request_valid","value":true},{"atom":"uploads_committed","value":true},{"atom":"queue_accepting","value":true},{"atom":"storage_available","value":true},{"atom":"model_downloaded","value":true},{"atom":"model_ready","value":true}],
+      "sources": ["runtime/minimax_h3/server.py", "runtime/minimax_h3/global_manager.py"],
+      "omitted_detail": "Aggregate request/storage predicates must expand to actual route, identity, byte, parameter and transactional checks; no liveness guarantee."
+    },
+    {
+      "id": "public_api_transport",
+      "scope": "Public API delivery review, specifically public_api_ready, not public_ready or whole-system ready.",
+      "atoms": ["api_usable", "tunnel_alive", "tunnel_connected", "probe_same_instance", "observation_fresh", "model_downloaded", "model_ready"],
+      "constraints": [],
+      "target": {"all": ["api_usable", "tunnel_alive", "tunnel_connected", "probe_same_instance", "observation_fresh"]},
+      "candidate_literals": [{"atom":"api_usable","value":true},{"atom":"tunnel_alive","value":true},{"atom":"tunnel_connected","value":true},{"atom":"probe_same_instance","value":true},{"atom":"observation_fresh","value":true},{"atom":"model_downloaded","value":true},{"atom":"model_ready","value":true}],
+      "sources": ["runtime/minimax_h3/global_manager.py", "runtime/minimax_h3/tunnel.py", "runtime/minimax_h3/startup.py"],
+      "omitted_detail": "Freshness includes supervisor validity and current intent/probe epoch. Must be rechecked at the actual use boundary."
+    },
+    {
+      "id": "manager_execution_offer",
+      "scope": "Manager is eligible to issue a bounded execute offer, not proof it was accepted or that GPU inference started.",
+      "atoms": ["queued_job_owned", "dispatch_policy_open", "model_ready", "worker_alive", "worker_accepting", "gpu_idle"],
+      "constraints": [],
+      "target": {"all": ["queued_job_owned", "dispatch_policy_open", "model_ready", "worker_alive", "worker_accepting"]},
+      "candidate_literals": [{"atom":"queued_job_owned","value":true},{"atom":"dispatch_policy_open","value":true},{"atom":"model_ready","value":true},{"atom":"worker_alive","value":true},{"atom":"worker_accepting","value":true},{"atom":"gpu_idle","value":true}],
+      "sources": ["runtime/minimax_h3/global_manager.py"],
+      "omitted_detail": "Container request validation and resource admission occur after the offer; dispatch policy includes drain and unknown-attempt reconciliation."
+    },
+    {
+      "id": "container_new_attempt_admission",
+      "scope": "Design review of a new attempt, excluding the separate idempotent replay/reconciliation branch; not a GPU-start predicate.",
+      "atoms": ["current_model_usable", "worker_accepting", "request_identity_valid", "attempt_identity_unused", "output_conflict_absent", "stage_ram_reserved", "disk_reserved", "gpu_idle"],
+      "constraints": [],
+      "target": {"all": ["current_model_usable", "worker_accepting", "request_identity_valid", "attempt_identity_unused", "output_conflict_absent", "stage_ram_reserved", "disk_reserved"]},
+      "candidate_literals": [{"atom":"current_model_usable","value":true},{"atom":"worker_accepting","value":true},{"atom":"request_identity_valid","value":true},{"atom":"attempt_identity_unused","value":true},{"atom":"output_conflict_absent","value":true},{"atom":"stage_ram_reserved","value":true},{"atom":"disk_reserved","value":true},{"atom":"gpu_idle","value":true}],
+      "sources": ["runtime/minimax_h3/model_container.py", "runtime/minimax_h3/pipeline_scheduler.py"],
+      "omitted_detail": "Model usability includes ready, alive and its validated precision policy; request identity includes schema/instance/job/attempt consistency. Estimates are not hard physical caps. Existing-attempt replay must be modeled separately."
+    },
+    {
+      "id": "gpu_stage_eligibility",
+      "scope": "Design predicate for one current attempt at the GPU transition. Atomic grants are receipts, not free-capacity observations.",
+      "atoms": ["assets_downloaded", "model_loaded", "model_ready", "attempt_owned", "prepare_succeeded", "not_cancelled", "gpu_grant_atomic", "cpu_grant_atomic"],
+      "constraints": [{"any":[{"not":"model_ready"},"model_loaded"]},{"any":[{"not":"model_loaded"},"assets_downloaded"]},{"any":[{"not":"prepare_succeeded"},"attempt_owned"]}],
+      "assumption_basis": "Declared lifecycle implications of this abstraction; source review supports their intent, but this logical model does not independently prove all runtime trajectories.",
+      "target": {"all": ["model_ready", "attempt_owned", "prepare_succeeded", "not_cancelled", "gpu_grant_atomic", "cpu_grant_atomic"]},
+      "candidate_literals": [{"atom":"assets_downloaded","value":true},{"atom":"model_loaded","value":true},{"atom":"model_ready","value":true},{"atom":"attempt_owned","value":true},{"atom":"prepare_succeeded","value":true},{"atom":"not_cancelled","value":true},{"atom":"gpu_grant_atomic","value":true},{"atom":"cpu_grant_atomic","value":true}],
+      "sources": ["runtime/minimax_h3/model_container.py", "runtime/minimax_h3/pipeline_scheduler.py"],
+      "omitted_detail": "Acceptance, precision validation, resource pressure, revocation and identity are expanded by the owning runtime. Conditions imply permission in this model, not eventual success."
+    },
+    {
+      "id": "artifact_commit_eligibility",
+      "scope": "Historical contract review of eligibility to commit a successful artifact; committing and later download remain separate effects.",
+      "atoms": ["result_identity_matches", "attempt_cleanup_confirmed", "artifact_owned", "file_exists", "size_matches", "digest_matches", "full_media_validated", "client_downloaded"],
+      "constraints": [],
+      "target": {"all": ["result_identity_matches", "attempt_cleanup_confirmed", "artifact_owned", "file_exists", "size_matches", "digest_matches", "full_media_validated"]},
+      "candidate_literals": [{"atom":"result_identity_matches","value":true},{"atom":"attempt_cleanup_confirmed","value":true},{"atom":"artifact_owned","value":true},{"atom":"file_exists","value":true},{"atom":"size_matches","value":true},{"atom":"digest_matches","value":true},{"atom":"full_media_validated","value":true},{"atom":"client_downloaded","value":true}],
+      "sources": ["runtime/minimax_h3/model_container.py", "runtime/minimax_h3/global_manager.py"],
+      "omitted_detail": "Ownership, freshness, cancellation policy and transactional state transition are aggregate obligations; a Boolean file-exists snapshot cannot prevent concurrent mutation. Client download is not a prerequisite for server commit."
+    },
+    {
+      "id": "closed_lifetime_review",
+      "scope": "Historical review of the selected manager/model lifetime; no assertion about a presently running service.",
+      "atoms": ["terminal_receipts_complete", "task_cleanup_recorded", "service_exit_recorded", "platform_release_observed"],
+      "constraints": [],
+      "target": {"all": ["terminal_receipts_complete", "task_cleanup_recorded", "service_exit_recorded", "platform_release_observed"]},
+      "candidate_literals": [{"atom":"terminal_receipts_complete","value":true},{"atom":"task_cleanup_recorded","value":true},{"atom":"service_exit_recorded","value":true},{"atom":"platform_release_observed","value":true}],
+      "sources": ["research/analyze_trace.py", "runtime/minimax_h3/process_owner.py"],
+      "omitted_detail": "Each observation has a defined evidence scope; process exit alone is insufficient for platform release."
+    },
+    {
+      "id": "illustrative_alternative_evidence",
+      "scope": "Synthetic policy example for exhaustive inclusion-minimal search; not an implemented H3 acceptance rule.",
+      "atoms": ["independent_local_validation", "trusted_commit_receipt", "matching_external_bytes"],
+      "constraints": [],
+      "target": {"any": ["independent_local_validation", {"all":["trusted_commit_receipt","matching_external_bytes"]}]},
+      "candidate_literals": [{"atom":"independent_local_validation","value":true},{"atom":"trusted_commit_receipt","value":true},{"atom":"matching_external_bytes","value":true}],
+      "sources": ["docs/research/objective-condition-sets.md"],
+      "omitted_detail": "Abstract evidence routes only. Both the one-condition and two-condition sets must be retained; shortest is not the only minimal set."
+    }
+  ]
+}

@@ -38,5 +38,7 @@ jobs:
         run: python -m pytest runtime/minimax_h3 tests
       - name: Replay published research evidence without GPU
         run: python research/analyze_trace.py evidence/research-2026-11-15/trace.json
+      - name: Verify bounded condition search and historical evidence
+        run: python research/run_condition_study.py --output /tmp/condition-report.json
       - name: Verify actual console delivery JavaScript
         run: node --test tests/test_console_delivery.cjs

@@ -1,6 +1,6 @@
 # Model Service Workbench
 
-可查询、可控制、可审计的模型服务工程与模块知识库。仓库封装版本 **0.2.0**；当前参考实现为 MiniMax-H3 ref2va API **0.4.0**，配套网页为独立项目 **0.9.0**。
+可查询、可控制、可审计的模型服务工程与模块知识库。仓库封装版本 **0.3.0**；当前参考实现为 MiniMax-H3 ref2va API **0.4.0**，配套网页为独立项目 **0.9.0**。
 
 从同一份契约看四件事：模块的核心能力、对外交互、内部递归组合、对外表达。每个视角分别写清 **主观抽象的需求 → 客观具象的条件 → 主观具象的可选策略 → 客观抽象的可选验证指标**。这四类是不同责任，不是可信度等级，也不能互相替代。
 
@@ -13,6 +13,7 @@
 | 运行现有 A100 BF16 实例 | [运行说明](docs/operations.md) |
 | 查看真实生成和资源释放证据 | [验证范围](docs/validation.md)、[历史验收摘要](evidence/acceptance-2026-11-15.json) |
 | 复核架构假设与新研究 | [实验方法](docs/research/experimental-method.md)、[物理与经验参照](docs/research/physical-and-empirical-bounds.md)、[研究结果](docs/research/2026-11-15-results.md) |
+| 搜索与验证客观条件集合 | [条件设计](docs/research/objective-condition-sets.md)、[源码条件审查](docs/research/condition-source-audit.md)、[执行结果](docs/research/condition-search-results.md) |
 | 修改代码或增加新模型 | [维护入口](AGENTS.md)、[知识索引](knowledge/index.json) |
 
 ## 四个模块
@@ -41,6 +42,8 @@ v0.1.0 建仓阶段只做本地和 CI 的 CPU 验证，没有重新申请 GPU；
 研究分开使用有限模型穷举、设备微基准和真实云端服务轨迹。模型中的最优值只适用于枚举空间；微基准反映特定内核和设备条件；真实任务轨迹检验本轮依赖、预算、取消和清理闭环。它们不能相互代替，也不由一次运行推出全局最优或普遍可靠性。物理必要下界、经验能力和阶段耗时各自标注来源；未测量项保留未知。
 
 ## 使用
+
+0.3.0 新增研究工具：在声明的有限条件空间内搜索所有包含极小充分集合、给出不充分集合的反例，再以来源哈希、实例身份和有效窗口核对历史证据。未知与冲突单列，不能把条件证明当作执行成功。该工具用于审查，尚未接入生产调度；本次不启动 GPU。复核命令为 `python research/run_condition_study.py --output condition-report.json`。
 
 在 Colab 打开 [自包含笔记本](https://colab.research.google.com/github/zjj1280637679-ship-it/model-service-workbench/blob/main/notebooks/minimax-h3-ref2va.ipynb)，选择 A100 / 高 RAM 后运行唯一启动单元。源码与构建入口均在本仓库；模型权重由运行时按配置下载，不存入 Git。
 
